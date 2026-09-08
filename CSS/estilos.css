@@ -4,9 +4,29 @@
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
-
     height: 100vh;
+    
 }
 header{
     background-color: white;
 }
+.texto{
+    font-style: normal;
+    color: white;
+    font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+    text-align: center;
+    font-weight: 700;
+    text-shadow: 2px 3px 8px rgba(0, 0, 0, 0.65);
+}
+.cilindro{
+    display: block;
+    margin: 0 auto;
+}
+
+.btn-login{
+    background-color: #FF6B00;
+    color: white;
+    border: none;
+}
+
+
