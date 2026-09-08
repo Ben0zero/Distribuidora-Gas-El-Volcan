@@ -4,8 +4,8 @@
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
-    height: 100vh;
-    
+    min-height: 100vh;
+    padding: 40px 0;
 }
 header{
     background-color: white;
@@ -21,6 +21,9 @@ header{
 .cilindro{
     display: block;
     margin: 0 auto;
+      width: 100%;
+    max-width: 550px;
+    height: max-content;
 }
 
 .btn-login{
@@ -32,4 +35,19 @@ header{
     background-color: whitesmoke;
 }
 
+@media (max-width: 768px) {
+
+    .fondo {
+        background-position: center;
+        background-size: cover;
+        min-height: 100vh;
+    }
+
+}
+
+.peronsa-contacto{
+       width: 100%;
+    max-width: 550px;
+    height: max-content;
+}
 
