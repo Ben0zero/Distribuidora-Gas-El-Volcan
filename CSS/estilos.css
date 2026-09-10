@@ -199,3 +199,198 @@ header{
         bottom: 15px;
     }
 }
+
+/* ============================= */
+/* TIENDAS / SUCURSALES */
+/* ============================= */
+
+.titulo-tiendas {
+    background-color: rgba(255, 255, 255, 0.95);
+    padding: 35px 25px;
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+.titulo-tiendas h1 {
+    color: #0d3b73;
+    font-weight: bold;
+    margin-bottom: 15px;
+}
+
+.titulo-tiendas p {
+    color: #333;
+    font-size: 18px;
+    margin-bottom: 10px;
+}
+
+.texto-referencial {
+    color: #666 !important;
+    font-size: 15px !important;
+}
+
+
+/* LISTADO */
+
+.lista-tiendas {
+    background-color: rgba(255, 255, 255, 0.95);
+    border-radius: 15px;
+    padding: 25px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+.lista-tiendas h2 {
+    color: #0d3b73;
+    font-weight: bold;
+    margin-bottom: 20px;
+}
+
+
+/* TARJETAS */
+
+.tienda-card {
+    background-color: white;
+    border: 1px solid #e5e5e5;
+    border-left: 5px solid #ff6600;
+    border-radius: 10px;
+    padding: 18px;
+    margin-bottom: 15px;
+    transition: transform 0.2s ease,
+                box-shadow 0.2s ease;
+}
+
+.tienda-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.tienda-card h4 {
+    color: #0d3b73;
+    font-weight: bold;
+    margin-bottom: 8px;
+}
+
+.tienda-card p {
+    margin-bottom: 5px;
+    color: #444;
+}
+
+.tienda-card i {
+    color: #ff6600;
+    margin-right: 5px;
+}
+
+
+/* ETIQUETAS */
+
+.badge-matriz {
+    background-color: #0d3b73;
+    color: white;
+    margin-bottom: 10px;
+}
+
+.badge-futura {
+    background-color: #ff6600;
+    color: white;
+    margin-bottom: 10px;
+}
+
+
+/* MAPA */
+
+.mapa-contenedor {
+    background-color: rgba(255, 255, 255, 0.95);
+    border-radius: 15px;
+    padding: 25px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+.mapa-contenedor h2 {
+    color: #0d3b73;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.mapa-contenedor p {
+    color: #444;
+}
+
+
+/* CONTENEDOR DEL MAPA */
+
+#mapa-tiendas {
+    width: 100%;
+    height: 500px;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-top: 20px;
+}
+
+
+/* LEYENDA */
+
+.leyenda-mapa {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 15px;
+    color: #444;
+    font-size: 14px;
+}
+
+.leyenda-mapa i {
+    color: #ff6600;
+}
+
+
+/* INFORMACIÓN FINAL */
+
+.info-futuras {
+    background-color: rgba(255, 255, 255, 0.95);
+    padding: 40px 25px;
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+.info-futuras > i {
+    font-size: 45px;
+    color: #ff6600;
+}
+
+.info-futuras h2 {
+    color: #0d3b73;
+    font-weight: bold;
+    margin-top: 10px;
+}
+
+.info-futuras p {
+    color: #444;
+    font-size: 18px;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+
+/* ============================= */
+/* RESPONSIVE */
+/* ============================= */
+
+@media (max-width: 768px) {
+
+    #mapa-tiendas {
+        height: 400px;
+    }
+
+    .lista-tiendas {
+        padding: 20px;
+    }
+
+    .mapa-contenedor {
+        padding: 20px;
+    }
+
+    .titulo-tiendas {
+        padding: 25px 20px;
+    }
+
+}
