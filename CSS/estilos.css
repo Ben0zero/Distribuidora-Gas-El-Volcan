@@ -153,3 +153,49 @@ header{
     font-weight: bold;
     margin-bottom: 15px;
 }
+
+.titulo-consejos {
+    background-color: rgba(255, 255, 255, 0.92);
+    padding: 35px 25px;
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12);
+}
+
+.titulo-consejos h1 {
+    color: #0d3b73;
+    font-weight: bold;
+    margin-bottom: 15px;
+}
+
+.titulo-consejos p {
+    color: #333;
+    font-size: 18px;
+    margin-bottom: 0;
+}
+
+.boton-tienda {
+    position: fixed;
+    right: 25px;
+    bottom: 25px;
+    width: 300px;
+    z-index: 1000;
+    transition: transform 0.2s ease;
+}
+
+.boton-tienda img {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.boton-tienda:hover {
+    transform: scale(1.05);
+}
+
+@media (max-width: 768px) {
+    .boton-tienda {
+        width: 220px;
+        right: 10px;
+        bottom: 15px;
+    }
+}
