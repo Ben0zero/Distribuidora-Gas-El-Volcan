@@ -99,3 +99,57 @@ header{
     background-color: #e65c00;
     color: white;
 }
+
+.consejo-instalacion {
+    background-color: white;
+    border-radius: 15px;
+    padding: 40px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+.cilindro-consejo {
+    max-width: 380px;
+}
+
+.consejo-instalacion h2 {
+    color: #0d3b73;
+    font-weight: bold;
+}
+
+.consejo-instalacion p {
+    font-size: 18px;
+}
+
+.consejo-instalacion li {
+    margin-bottom: 10px;
+}
+
+.cta-consejos {
+    background-color: rgba(255, 255, 255, 0.95);
+    padding: 45px 25px;
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+.cta-consejos h2 {
+    color: #0d3b73;
+    font-weight: bold;
+    margin-bottom: 15px;
+}
+
+.cta-consejos p {
+    color: #333;
+    font-size: 18px;
+    margin-bottom: 25px;
+}
+
+.estilo-texto{
+    color: #0d3b73;
+    font-weight: bold;
+    margin-bottom: 15px;
+}
+.estilo-texto h4{
+    color: #0d3b73;
+    font-weight: bold;
+    margin-bottom: 15px;
+}
