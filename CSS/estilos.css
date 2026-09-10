@@ -86,3 +86,16 @@ header{
     transform: translateY(40px);
 }
 
+.btn-carrito {
+    background-color: #ff6600;
+    color: white;
+    font-size: 20px;
+    border-radius: 8px;
+    padding: 8px 14px;
+    margin-left: 10px;
+}
+
+.btn-carrito:hover {
+    background-color: #e65c00;
+    color: white;
+}
