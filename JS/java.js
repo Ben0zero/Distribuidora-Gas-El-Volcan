@@ -27,9 +27,9 @@
 
     var ADMIN_DEFAULT = {
         fecha: '2026-05-04',
-        run: '19011022-K',
+        run: '19011022',
         nombre: 'Juan Pérez',
-        correo: 'admin@elvolcan.cl',
+        correo: 'admin@duoc.cl',
         contrasena: 'Admin123',
         rol: 'Administrador',
         estado: 'Activo'
@@ -165,6 +165,11 @@
         return re.test(correo);
     }
 
+    function correoDominioPermitido(correo) {
+        var re = /^[^\s@]+@(profesor\.duoc\.cl|duoc\.cl|gmail\.com)$/i;
+        return re.test(correo);
+    }
+
     function validarTelefono(telefono) {
         var limpio = String(telefono).replace(/[\s()-]/g, '');
         return /^\+?\d{9,12}$/.test(limpio);
@@ -172,21 +177,78 @@
 
     function validarRun(run) {
         var limpio = String(run).replace(/\s/g, '');
-        return /^\d{1,2}(\.?\d{3}){2}-[\dkK]$/.test(limpio);
+        return /^\d{7,9}$/.test(limpio);
     }
 
     function asegurarAdminUsuario() {
         var usuarios = obtenerUsuarios();
-        var existe = false;
-        for (var i = 0; i < usuarios.length; i += 1) {
-            if (usuarios[i].rol === 'Administrador') {
-                existe = true;
+        var encontrado = false;
+        var i;
+        for (i = 0; i < usuarios.length; i += 1) {
+            if (usuarios[i].correo.toLowerCase() === ADMIN_DEFAULT.correo.toLowerCase()) {
+                usuarios[i].run = ADMIN_DEFAULT.run;
+                usuarios[i].nombre = ADMIN_DEFAULT.nombre;
+                usuarios[i].contrasena = ADMIN_DEFAULT.contrasena;
+                usuarios[i].rol = ADMIN_DEFAULT.rol;
+                usuarios[i].estado = ADMIN_DEFAULT.estado;
+                encontrado = true;
                 break;
             }
         }
-        if (!existe) {
+        if (!encontrado) {
+            for (i = 0; i < usuarios.length; i += 1) {
+                if (usuarios[i].rol === 'Administrador') {
+                    usuarios[i].fecha = ADMIN_DEFAULT.fecha;
+                    usuarios[i].run = ADMIN_DEFAULT.run;
+                    usuarios[i].nombre = ADMIN_DEFAULT.nombre;
+                    usuarios[i].correo = ADMIN_DEFAULT.correo;
+                    usuarios[i].contrasena = ADMIN_DEFAULT.contrasena;
+                    usuarios[i].rol = ADMIN_DEFAULT.rol;
+                    usuarios[i].estado = ADMIN_DEFAULT.estado;
+                    encontrado = true;
+                    break;
+                }
+            }
+        }
+        if (!encontrado) {
             usuarios.push(ADMIN_DEFAULT);
-            guardar(CLAVE_USUARIOS, usuarios);
+        }
+        guardar(CLAVE_USUARIOS, usuarios);
+    }
+
+    var REGIONES = [
+        { nombre: 'Región de Ñuble', comunas: ['Chillán', 'Chillán Viejo', 'El Carmen', 'Pinto', 'San Ignacio', 'Bulnes', 'Quillón'] }
+    ];
+
+    function cargarRegiones() {
+        var regionSelect = document.getElementById('region');
+        var comunaSelect = document.getElementById('comuna');
+        if (!regionSelect || !comunaSelect) {
+            return;
+        }
+        var opcionesRegion = '<option value="" selected disabled>Elige una región...</option>';
+        for (var i = 0; i < REGIONES.length; i += 1) {
+            opcionesRegion += '<option value="' + REGIONES[i].nombre + '">' + REGIONES[i].nombre + '</option>';
+        }
+        regionSelect.innerHTML = opcionesRegion;
+        comunaSelect.innerHTML = '<option value="" selected disabled>Elige una comuna...</option>';
+
+        regionSelect.addEventListener('change', function () {
+            var opcionesComuna = '<option value="" selected disabled>Elige una comuna...</option>';
+            for (var r = 0; r < REGIONES.length; r += 1) {
+                if (REGIONES[r].nombre === regionSelect.value) {
+                    for (var c = 0; c < REGIONES[r].comunas.length; c += 1) {
+                        opcionesComuna += '<option value="' + REGIONES[r].comunas[c] + '">' + REGIONES[r].comunas[c] + '</option>';
+                    }
+                    break;
+                }
+            }
+            comunaSelect.innerHTML = opcionesComuna;
+        });
+
+        if (REGIONES.length === 1) {
+            regionSelect.value = REGIONES[0].nombre;
+            regionSelect.dispatchEvent(new Event('change'));
         }
     }
 
@@ -421,10 +483,12 @@
         form.addEventListener('submit', function (evt) {
             evt.preventDefault();
             var nombre = document.getElementById('nombre').value.trim();
+            var run = document.getElementById('run').value.trim();
             var correo = document.getElementById('correo').value.trim();
             var telefono = document.getElementById('telefono').value.trim();
             var tipo = document.getElementById('tipo-cliente').value;
             var direccion = document.getElementById('direccion').value.trim();
+            var region = document.getElementById('region').value;
             var comuna = document.getElementById('comuna').value;
             var password = document.getElementById('password').value;
             var confirmar = document.getElementById('confirmar-password').value;
@@ -434,8 +498,16 @@
                 toast('Ingresa tu nombre completo', 'err');
                 return;
             }
-            if (!validarCorreo(correo)) {
-                toast('Ingresa un correo electrónico válido', 'err');
+            if (nombre.length > 100) {
+                toast('El nombre no puede superar los 100 caracteres', 'err');
+                return;
+            }
+            if (!validarRun(run)) {
+                toast('El RUN debe tener entre 7 y 9 dígitos, sin puntos y sin guion', 'err');
+                return;
+            }
+            if (!correoDominioPermitido(correo)) {
+                toast('El correo debe ser @duoc.cl, @profesor.duoc.cl o @gmail.com', 'err');
                 return;
             }
             if (!validarTelefono(telefono)) {
@@ -450,12 +522,16 @@
                 toast('Ingresa tu dirección de despacho', 'err');
                 return;
             }
+            if (!region) {
+                toast('Selecciona tu región', 'err');
+                return;
+            }
             if (!comuna) {
                 toast('Selecciona tu comuna de despacho', 'err');
                 return;
             }
-            if (String(password).length < 8) {
-                toast('La contraseña debe tener al menos 8 caracteres', 'err');
+            if (String(password).length < 4 || String(password).length > 10) {
+                toast('La contraseña debe tener entre 4 y 10 caracteres', 'err');
                 return;
             }
             if (password !== confirmar) {
@@ -477,12 +553,13 @@
 
             usuarios.push({
                 fecha: hoyISO(),
-                run: '',
+                run: run,
                 nombre: nombre,
                 correo: correo,
                 telefono: telefono,
                 tipoCliente: tipo,
                 direccion: direccion,
+                region: region,
                 comuna: comuna,
                 contrasena: password,
                 rol: 'Cliente',
@@ -507,6 +584,15 @@
 
             if (!correo || !contrasena) {
                 toast('Ingresa tu correo y tu contraseña', 'err');
+                return;
+            }
+            var esAdmin = ADMIN_DEFAULT.correo.toLowerCase() === correo.toLowerCase();
+            if (!esAdmin && !correoDominioPermitido(correo)) {
+                toast('El correo debe ser @duoc.cl, @profesor.duoc.cl o @gmail.com', 'err');
+                return;
+            }
+            if (String(contrasena).length < 4 || String(contrasena).length > 10) {
+                toast('La contraseña debe tener entre 4 y 10 caracteres', 'err');
                 return;
             }
             var usuarios = obtenerUsuarios();
@@ -568,8 +654,16 @@
                 toast('Selecciona un asunto', 'err');
                 return;
             }
+            if (nombre.length > 100) {
+                toast('El nombre no puede superar los 100 caracteres', 'err');
+                return;
+            }
             if (!mensaje) {
                 toast('Escribe tu mensaje', 'err');
+                return;
+            }
+            if (mensaje.length > 500) {
+                toast('El mensaje no puede superar los 500 caracteres', 'err');
                 return;
             }
 
@@ -913,21 +1007,22 @@
             var telefono = document.getElementById('telefono').value.trim();
             var region = document.getElementById('region').value;
             var comuna = document.getElementById('comuna').value;
+            var rol = document.getElementById('rol').value;
 
             if (!nombre) {
                 toast('Ingresa el nombre completo', 'err');
                 return;
             }
-            if (!validarCorreo(correo)) {
-                toast('Ingresa un correo válido', 'err');
+            if (!correoDominioPermitido(correo)) {
+                toast('El correo debe ser @duoc.cl, @profesor.duoc.cl o @gmail.com', 'err');
                 return;
             }
             if (!validarRun(run)) {
-                toast('Ingresa un RUN válido (ej: 12345678-9)', 'err');
+                toast('El RUN debe tener entre 7 y 9 dígitos, sin puntos y sin guion', 'err');
                 return;
             }
-            if (String(contrasena).length < 8) {
-                toast('La contraseña debe tener al menos 8 caracteres', 'err');
+            if (String(contrasena).length < 4 || String(contrasena).length > 10) {
+                toast('La contraseña debe tener entre 4 y 10 caracteres', 'err');
                 return;
             }
             if (contrasena !== confirmar) {
@@ -944,6 +1039,10 @@
             }
             if (!comuna) {
                 toast('Selecciona la comuna', 'err');
+                return;
+            }
+            if (!rol) {
+                toast('Selecciona el rol del usuario', 'err');
                 return;
             }
 
@@ -964,7 +1063,7 @@
                 region: region,
                 comuna: comuna,
                 contrasena: contrasena,
-                rol: 'Administrador',
+                rol: rol,
                 estado: 'Activo'
             });
             guardar(CLAVE_USUARIOS, usuarios);
@@ -987,6 +1086,10 @@
         } else if (filtro === 'Clientes') {
             filtrados = usuarios.filter(function (u) {
                 return u.rol === 'Cliente';
+            });
+        } else if (filtro === 'Vendedores') {
+            filtrados = usuarios.filter(function (u) {
+                return u.rol === 'Vendedor';
             });
         }
 
@@ -1212,6 +1315,7 @@
     }
 
     asegurarAdminUsuario();
+    cargarRegiones();
     sincronizarContador();
     iniciarListaCarrito();
     iniciarCatalogo();

@@ -14,24 +14,28 @@
     <a href="tiendas.html" class="boton-tienda">
     <img src="IMAGENES/loguito-boton.png" alt="Encuentra tu tienda más cercana"> </a>
 <header>
-    <div class="container ">
-        <div class="row align-items-center text-center">
-            
-                <div class="col">
-                    <img src="IMAGENES/Logo Gas.png" style="width: 90px;" alt="Logo Coorporativo">
+    <nav class="navbar navbar-expand-lg bg-white" aria-label="Navegación principal">
+        <div class="container">
+            <a href="index.html" class="navbar-brand p-0 me-2">
+                <img src="IMAGENES/Logo Gas.png" style="width: 70px; height: auto;" alt="Logo Corporativo">
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menuNavegacion" aria-controls="menuNavegacion" aria-expanded="false" aria-label="Abrir menú de navegación">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="menuNavegacion">
+                <ul class="navbar-nav mx-auto align-items-lg-center gap-lg-1 mt-3 mt-lg-0">
+                    <li class="nav-item"><a href="index.html" class="btn" role="button"> Inicio</a></li>
+                    <li class="nav-item"><a href="catalogo.html" class="btn" role="button"> Catalogo</a></li>
+                    <li class="nav-item"><a href="consejos.html" class="btn" role="button"> Consejos</a></li>
+                    <li class="nav-item"><a href="contacto.html" class="btn boton-nav" role="button"><strong>Contacto</strong></a></li>
+                </ul>
+                <div class="d-flex align-items-center justify-content-center justify-content-lg-end gap-2 mt-3 mt-lg-0 mb-3 mb-lg-0 flex-wrap">
+                    <a href="login.html" class="btn btn-login px-4" role="button"> Acceder</a>
+                    <a href="carrito.html" class="btn btn-carrito position-relative" aria-label="Carrito de compras"> Ver <i class="bi bi-cart-fill"></i> <span id="contador-carrito" class="badge rounded-pill bg-dark" style="display:none; font-size:11px; margin-left:2px;">0</span></a>
                 </div>
-                <div class="col">
-                    <a href="index.html" class="btn" role="button" > Inicio</a>
-                    <a href="catalogo.html" class="btn " role="button" > Catalogo</a>
-                    <a href="consejos.html" class="btn" role="button" > Consejos</a> 
-                    <a href="contacto.html" class="btn boton-nav" role="button" ><strong>Contacto</strong> </a>                    
-                </div>
-                <div class="col">                    
-                     <a href="login.html" class="btn btn-login px-4" role="button" > Acceder</a>
-                     <a href="carrito.html" class="btn btn-carrito position-relative" aria-label="Carrito de compras"> Ver <i class="bi bi-cart-fill"></i> <span id="contador-carrito" class="badge rounded-pill bg-dark" style="display:none; font-size:11px; margin-left:2px;">0</span></a>
-                </div>          
+            </div>
         </div>
-    </div>
+    </nav>
 </header>
 <main class="Contacto fondo">
     <section class="hero-contacto ">
@@ -72,6 +76,7 @@
                                 </label>
                                 <input type="text"
                                        id="nombre"
+                                       maxlength="100"
                                        class="form-control">
                             </div>
                             <div class="mb-3">
@@ -118,6 +123,7 @@
                                 <textarea id="mensaje"
                                           class="form-control"
                                           rows="4"
+                                          maxlength="500"
                                           style="resize: none;"></textarea>
                             </div>
                             <button type="submit"

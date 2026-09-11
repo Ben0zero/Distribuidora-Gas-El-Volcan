@@ -10,12 +10,23 @@
     
     <link rel="stylesheet" href="CSS/estilos.css">
 </head>
-<body class="bg-light">
+<body class="fondo-admin">
 
-    <div class="d-flex vh-100">
+    <!-- barra superior movil -->
+    <nav class="d-lg-none d-flex align-items-center justify-content-between bg-white border-bottom px-3 py-2 sticky-top">
+        <a href="admin.html" class="d-flex align-items-center text-decoration-none link-dark">
+            <img src="IMAGENES/Logo Gas.png" alt="Logo El Volcán" width="40" class="me-2">
+            <span class="fs-5 fw-bold">El Volcán</span>
+        </a>
+        <button class="btn btn-outline-dark rounded-0" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarAdmin" aria-expanded="false" aria-controls="sidebarAdmin">
+            <i class="bi bi-list fs-4"></i>
+        </button>
+    </nav>
+
+    <div class="d-flex min-vh-100">
 
         <!-- menu lateral -->
-        <aside class="d-flex flex-column flex-shrink-0 p-3 bg-white border-end" style="width: 250px;">
+        <aside id="sidebarAdmin" class="collapse d-lg-flex flex-column flex-shrink-0 p-3 bg-white border-end" style="width: 250px;">
             
             <a href="admin.html" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto link-dark text-decoration-none border-bottom pb-3 w-100">
                 <img src="IMAGENES/Logo Gas.png" alt="Logo El Volcán" width="40" class="me-2">
@@ -95,7 +106,7 @@
         </aside>
 
         <!-- contentido principal-->
-        <main class="flex-grow-1 p-4 overflow-auto bg-white">
+        <main class="flex-grow-1 p-4 overflow-auto contenido-admin">
             
             <!-- encabezado superior como el mockup -->
             <div class="d-flex justify-content-end mb-4">
@@ -116,6 +127,7 @@
                     <option>Todos los usuarios</option>
                     <option>Administradores</option>
                     <option>Clientes</option>
+                    <option>Vendedores</option>
                 </select>
             </div>
 
@@ -134,7 +146,7 @@
                     <tbody>
                         <tr>
                             <td class="py-3">2026-05-04</td>
-                            <td class="py-3">19011022-K</td>
+                            <td class="py-3">19011022</td>
                             <td class="py-3">Juan Pérez</td>
                             <td class="py-3">Administrador</td>
                             <td class="py-3">Activo</td>

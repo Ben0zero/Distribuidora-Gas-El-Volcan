@@ -41,7 +41,7 @@ header{
     display: block;
     margin: 0 auto;
     width: 100%;
-    min-width: 400px;
+    min-width: 0;
     max-width: 550px;
     height: max-content;
 }
@@ -76,6 +76,19 @@ header{
         background-position: center;
         background-size: cover;
         min-height: 100vh;
+    }
+
+    .navbar .btn {
+        white-space: nowrap;
+    }
+
+    .navbar-toggler {
+        border-color: #FF6B00;
+    }
+
+    .navbar-toggler:focus {
+        box-shadow: 0 0 0 3px rgba(255, 107, 0, 0.25);
+        border-color: #FF6B00;
     }
 
 }
@@ -836,4 +849,21 @@ header{
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
+}
+
+.fondo-admin .contenido-admin {
+    background-color: rgba(255, 255, 255, 0.9);
+}
+
+@media (max-width: 991.98px) {
+    #sidebarAdmin.show,
+    #sidebarAdmin.collapsing {
+        display: flex !important;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .contenido-admin {
+        padding: 1rem !important;
+    }
 }
