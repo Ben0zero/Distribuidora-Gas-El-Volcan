@@ -28,7 +28,7 @@
                     </div>
                     <div class="col">                    
                         <a href="login.html" role="button" ></a>
-                        <a href="carrito.html" class="btn btn-carrito position-relative" aria-label="Carrito de compras"> <i class="bi bi-cart-fill"></i> <span id="contador-carrito" class="badge rounded-pill bg-dark" style="display:none; font-size:11px; margin-left:2px;">0</span></a>
+                        <a href="carrito.html" class="btn btn-carrito position-relative" aria-label="Carrito de compras"> Ver <i class="bi bi-cart-fill"></i> <span id="contador-carrito" class="badge rounded-pill bg-dark" style="display:none; font-size:11px; margin-left:2px;">0</span></a>
                     </div>          
             </div>
         </div>
@@ -58,14 +58,15 @@
                                                             <label for="contrasena" class="form-label texto-2">
                                                                 Contraseña
                                                             </label>
-                                                            <input type="text"
+                                                            <input type="password"
                                                                     id="contrasena"
                                                                     class="form-control"
                                                                     placeholder="Ingrese su contrasena">
                                                         </div>                                               
                                                     </form>                                      
                                                         <div class="d-grid">
-                                                        <button type="submit"
+                                                        <button type="button"
+                                                                id="btn-iniciar-sesion"
                                                                 class="btn btn-login my-3">
                                                             <i class="bi bi-person-check-fill"></i>
                                                             Iniciar sesión
@@ -112,5 +113,6 @@
         </div>
     </div>
 </footer>
+<script src="JS/java.js"></script>
 </body>
 </html>
