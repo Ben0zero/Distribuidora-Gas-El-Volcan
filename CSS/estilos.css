@@ -317,13 +317,20 @@ header{
 
 /* CONTENEDOR DEL MAPA */
 
-#mapa-tiendas {
+.mapa-tiendas {
     width: 100%;
     height: 500px;
     border-radius: 12px;
     overflow: hidden;
     margin-top: 20px;
 }
+
+.mapa-tiendas iframe {
+    width: 100%;
+    height: 100%;
+    border: 0;
+}
+
 
 
 /* LEYENDA */
@@ -377,7 +384,7 @@ header{
 
 @media (max-width: 768px) {
 
-    #mapa-tiendas {
+    .mapa-tiendas {
         height: 400px;
     }
 
@@ -390,6 +397,68 @@ header{
     }
 
     .titulo-tiendas {
+        padding: 25px 20px;
+    }
+
+}
+
+/* ============================= */
+/* REGISTRO */
+/* ============================= */
+
+.registro-contenedor {
+    background-color: rgba(255, 255, 255, 0.95);
+    padding: 40px;
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+.registro-contenedor h1 {
+    color: #0d3b73;
+    font-weight: bold;
+    margin-top: 10px;
+}
+
+.registro-contenedor p {
+    color: #444;
+}
+
+.icono-registro {
+    font-size: 45px;
+    color: #ff6600;
+}
+
+.registro-contenedor .form-label {
+    color: #0d3b73;
+    font-weight: bold;
+}
+
+.registro-contenedor .form-control,
+.registro-contenedor .form-select {
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 10px 12px;
+}
+
+.registro-contenedor .form-control:focus,
+.registro-contenedor .form-select:focus {
+    border-color: #ff6600;
+    box-shadow: 0 0 0 0.2rem rgba(255, 102, 0, 0.15);
+}
+
+.registro-contenedor a {
+    color: #0d3b73;
+    font-weight: bold;
+    text-decoration: none;
+}
+
+.registro-contenedor a:hover {
+    color: #ff6600;
+}
+
+@media (max-width: 768px) {
+
+    .registro-contenedor {
         padding: 25px 20px;
     }
 
