@@ -91,14 +91,16 @@ header{
     background-color: #ff6600;
     color: white;
     font-size: 20px;
-    border-radius: 8px;
+    border: 2px solid transparent; 
+    transition: all 0.15s ease;  
     padding: 8px 14px;
     margin-left: 10px;
 }
 
 .btn-carrito:hover {
-    background-color: #e65c00;
-    color: white;
+    background-color: white;
+    color: #FF6B00;
+    border-color: #FF6B00;  
 }
 
 .consejo-instalacion {
@@ -248,9 +250,14 @@ header{
 
 /* TARJETAS */
 
+.tarjeta-catalogo{
+    border-radius: 3.5%;
+    margin-top: 10px;
+
+}
+
 .tarjeta-catalogo:hover{
     transform: translateY(-4px);
-    box-shadow: 0 4px 12px rgba(255, 255, 255, 0.5);
 }
 
 .img-catalogo{
@@ -499,3 +506,67 @@ header{
     border-color: #ff6600;
     box-shadow: 0 0 0 0.2rem rgba(255, 102, 0, 0.15);
 }
+
+/* ============================= */
+/* CATALOGO */
+/* ============================= */
+
+#carruselProductosDesktop .carousel-control-prev {
+    left: -40px;
+    width: 40px;
+
+}
+
+#carruselProductosDesktop .carousel-control-next {
+    right: -40px;
+    width: 40px;
+}
+
+#carruselProductosDesktop .carousel-control-prev-icon,
+#carruselProductosDesktop .carousel-control-next-icon {
+    background-color: #ff6600;
+    border-radius: 30%;
+    padding: 30px;
+    padding-top: 40px;
+    padding-bottom: 40px;
+    background-size: 70%;
+    opacity: 1;
+    transition: opacity 0.2s ease;
+    
+}
+
+#carruselProductosDesktop .carousel-control-prev-icon:hover,
+#carruselProductosDesktop .carousel-control-next-icon:hover {
+    opacity: 1;
+}
+
+@media (max-width: 768px) {
+    #carruselProductosMobile .carousel-control-prev {
+        left: 0;
+    }
+    #carruselProductosMobile .carousel-control-next {
+        right: 0;
+    }
+    #carruselProductosMobile .carousel-control-prev {
+        left: -10px;
+        width: 40px;
+}
+    #carruselProductosMobile .carousel-control-next {
+        right: -10px;
+        width: 40px;
+}
+
+    #carruselProductosMobile .carousel-control-prev-icon,
+    #carruselProductosMobile .carousel-control-next-icon {
+        background-color: #ff6600;
+        border-radius: 30%;
+        padding: 30px;
+        padding-top: 40px;
+        padding-bottom: 40px;
+        background-size: 70%;
+        opacity: 1;
+        transition: opacity 0.2s ease;
+        
+}
+}
+
