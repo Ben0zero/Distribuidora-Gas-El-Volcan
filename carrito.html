@@ -3,363 +3,100 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Carrito de compras - Distribuidora de Gas El Volcán</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="CSS/estilos.css">
 </head>
 <body>
 <a href="tiendas.html" class="boton-tienda">
     <img src="IMAGENES/loguito-boton.png" alt="Encuentra tu tienda más cercana"> </a>
 <header>
-    <div class="container">
+    <div class="container ">
         <div class="row align-items-center text-center">
-            
-                <div class="col-4 col-md-3 col-lg-4">
+
+                <div class="col">
                     <img src="IMAGENES/Logo Gas.png" style="width: 90px;" alt="Logo Coorporativo">
                 </div>
                 <div class="col">
-                    <a href="index.html" class="btn boton-nav" role="button" ><strong> Inicio</strong></a>
+                    <a href="index.html" class="btn" role="button" > Inicio</a>
                     <a href="catalogo.html" class="btn" role="button" > Catalogo</a>
                     <a href="consejos.html" class="btn" role="button" > Consejos</a>
-                    <a href="contacto.html" class="btn" role="button" > Contacto</a>                   
+                    <a href="contacto.html" class="btn" role="button" > Contacto</a>
+
                 </div>
-                <div class="col">                    
-                     <a href="login.html" class="btn btn-login px-4" role="button" > Acceder</a>
-                </div>          
+                <div class="col">
+                     <a href="login.html" class="btn btn-login " role="button" > Acceder</a>
+                     <a href="carrito.html" class="btn btn-carrito position-relative" aria-label="Carrito de compras"> <i class="bi bi-cart-fill"></i> <span id="contador-carrito" class="badge rounded-pill bg-dark" style="display:none; font-size:11px; margin-left:2px;">0</span></a>
+                </div>
         </div>
     </div>
 </header>
+<main class="fondo">
 
-<main>
-        <main class="carrito fondo">
+    <section class="container py-5">
+        <div class="titulo-consejos text-center mb-4">
+            <h1>Tu carrito</h1>
+            <p>Estos son los productos que agregaste desde el catálogo.</p>
+        </div>
 
+        <div class="consejo-instalacion">
 
-        <!-- ================================= -->
-        <!-- TÍTULO -->
-        <!-- ================================= -->
-
-        <section class="container py-5">
-
-            <div class="titulo-carrito text-center">
-
-                <i class="bi bi-cart-fill icono-carrito"></i>
-
-                <h1>
-                    Mi carrito
-                </h1>
-
-                <p>
-                    Revisa los productos seleccionados
-                    antes de continuar con tu compra.
-                </p>
-
+            <div id="carrito-vacio" class="text-center py-4">
+                <i class="bi bi-cart-x fs-1"></i>
+                <p class="mt-3">Tu carrito está vacío por ahora.</p>
+                <a href="catalogo.html" class="btn btn-login">Ir al catálogo</a>
             </div>
 
-        </section>
-
-
-
-        <!-- ================================= -->
-        <!-- CARRITO -->
-        <!-- ================================= -->
-
-        <section class="container pb-5">
-
-            <div class="row g-4">
-
-
-                <!-- ================================= -->
-                <!-- PRODUCTOS -->
-                <!-- ================================= -->
-
-                <div class="col-12 col-lg-8">
-
-                    <div class="productos-carrito">
-
-
-                        <h2>
-
-                            <i class="bi bi-bag-check-fill"></i>
-
-                            Productos seleccionados
-
-                        </h2>
-
-
-
-                        <!-- PRODUCTO DE EJEMPLO -->
-
-                        <div class="producto-carrito">
-
-
-                            <!-- IMAGEN -->
-
-                            <div class="producto-imagen">
-
-                                <img src="IMAGENES/cilindro de 11K.png"
-                                     alt="Cilindro GLP 11 kg">
-
-                            </div>
-
-
-
-                            <!-- INFORMACIÓN -->
-
-                            <div class="producto-info">
-
-                                <h3>
-                                    Cilindro GLP 11 kg
-                                </h3>
-
-
-                                <p>
-                                    Gas licuado de petróleo
-                                    para uso residencial.
-                                </p>
-
-
-                                <span class="tipo-producto">
-
-                                    Cliente residencial
-
-                                </span>
-
-                            </div>
-
-
-
-                            <!-- PRECIO -->
-
-                            <div class="producto-precio">
-
-                                <strong>
-                                    $12.000
-                                </strong>
-
-
-                                <small>
-                                    Precio residencial
-                                </small>
-
-                            </div>
-
-
-
-                            <!-- CANTIDAD -->
-
-                            <div class="producto-cantidad">
-
-                                <label>
-                                    Cantidad
-                                </label>
-
-
-                                <div class="cantidad-control">
-
-                                    <button type="button"
-                                            class="btn-cantidad">
-
-                                        −
-
-                                    </button>
-
-
-                                    <span>
-                                        1
-                                    </span>
-
-
-                                    <button type="button"
-                                            class="btn-cantidad">
-
-                                        +
-
-                                    </button>
-
-                                </div>
-
-                            </div>
-
-
-
-                            <!-- ELIMINAR -->
-
-                            <button type="button"
-                                    class="btn-eliminar"
-                                    aria-label="Eliminar producto">
-
-                                <i class="bi bi-trash-fill"></i>
-
-                            </button>
-
-
-                        </div>
-
-
-                    </div>
-
+            <div id="carrito-resumen" class="d-none">
+
+                <div class="row texto-2 fw-bold border-bottom pb-2 mb-2 d-none d-md-flex">
+                    <div class="col-md-5 text-start">Producto</div>
+                    <div class="col-md-2">Cantidad</div>
+                    <div class="col-md-2">Precio unitario</div>
+                    <div class="col-md-2">Subtotal</div>
+                    <div class="col-md-1"></div>
                 </div>
 
+                <div id="lista-carrito"></div>
 
-
-                <!-- ================================= -->
-                <!-- RESUMEN -->
-                <!-- ================================= -->
-
-                <div class="col-12 col-lg-4">
-
-                    <div class="resumen-carrito">
-
-
-                        <h2>
-
-                            <i class="bi bi-receipt"></i>
-
-                            Resumen de compra
-
-                        </h2>
-
-
-
-                        <!-- TIPO DE CLIENTE -->
-
-                        <div class="resumen-dato">
-
-                            <span>
-                                Tipo de cliente
-                            </span>
-
-                            <strong>
-                                Residencial
-                            </strong>
-
-                        </div>
-
-
-
-                        <!-- COMUNA -->
-
-                        <div class="resumen-dato">
-
-                            <span>
-                                Comuna de despacho
-                            </span>
-
-                            <strong>
-                                Chillán
-                            </strong>
-
-                        </div>
-
-
-
-                        <hr>
-
-
-
-                        <!-- PRODUCTOS -->
-
-                        <div class="resumen-dato">
-
-                            <span>
-                                Productos
-                            </span>
-
-                            <strong>
-                                $12.000
-                            </strong>
-
-                        </div>
-
-
-
-                        <!-- ENVÍO -->
-
-                        <div class="resumen-dato">
-
-                            <span>
-                                Despacho
-                            </span>
-
-                            <strong>
-                                Por calcular
-                            </strong>
-
-                        </div>
-
-
-
-                        <hr>
-
-
-
-                        <!-- TOTAL -->
-
-                        <div class="resumen-total">
-
-                            <span>
-                                Total
-                            </span>
-
-                            <strong> $12.000  </strong>
-                        </div>
-                        <div class="d-grid mt-4">
-                            <button type="button"
-                                    class="btn btn-login">
-                                <i class="bi bi-credit-card-fill"></i>
-                                Continuar compra
-                            </button>
-                        </div>
-                        <div class="text-center mt-3">
-                            <a href="catalogo.html"> <i class="bi bi-arrow-left"></i>
-                                Volver al catálogo
-                            </a>
-                        </div>
+                <div class="row align-items-center mt-4">
+                    <div class="col-12 col-md-6 texto-2 text-start mb-3 mb-md-0">
+                        <span class="fs-5">Total: $<span id="carrito-total-precio">0</span></span>
+                        <br>
+                        <small class="text-muted">Precios a tarifa residencial. Se confirman en el checkout.</small>
+                    </div>
+                    <div class="col-12 col-md-6 text-md-end text-center">
+                        <button id="boton-vaciar-carrito" type="button" class="btn btn-outline-danger me-2">Vaciar carrito</button>
+                        <a href="ventas.html" class="btn btn-login">Continuar compra</a>
                     </div>
                 </div>
             </div>
-        </section>
 
-        <section class="container pb-5">
-            <div class="aviso-carrito text-center">
-                <i class="bi bi-shield-check"></i>
-                <h2>
-                    Compra segura
-                </h2>
-                <p>
-                    Tus datos de despacho y compra serán utilizados
-                    únicamente para gestionar tu pedido.
-                </p>
-            </div>
-        </section>
+        </div>
+    </section>
 
 </main>
-
 <footer>
     <div class="container py-3">
         <div class="row align-items-center text-center">
-            
+
                 <div class="col">
                     <img src="IMAGENES/Logo Gas.png" style="width: 90px;" alt="Logo Coorporativo">
                 </div>
                 <div class="col">
-                    <h5 class="texto-2">Contacto</h5>  
-                    <p class="texto-2">+56 42 234 5678 · pedidos@elvolcangas.cl</p>                 
+                    <h5>Contacto</h5>
+                    <p>+56 42 234 5678 · pedidos@elvolcangas.cl</p>
                 </div>
-                <div class="col">                    
-                        <figcaption class="blockquote-footer texto-2">
+                <div class="col">
+                        <figcaption class="blockquote-footer">
                         © 2026 Distribuidora de Gas El Volcán. Proyecto académico DSY1104.
                         </figcaption>
-                </div>          
+                </div>
         </div>
     </div>
 </footer>
-   
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script> 
-</body>
-</html>
-    
-
-
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+<script src="JS/java.js"></script>
 </body>
 </html>
