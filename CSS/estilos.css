@@ -851,6 +851,7 @@ header{
     background-repeat: no-repeat;
 }
 
+<<<<<<< HEAD
 .fondo-admin .contenido-admin {
     background-color: rgba(255, 255, 255, 0.9);
 }
@@ -867,3 +868,10 @@ header{
         padding: 1rem !important;
     }
 }
+
+/* efecto hover pero para los numeros de paginacion inactivos */
+.page-link:not(.bg-primary):hover {
+    background-color: #e9ecef; 
+    color: #0a58ca !important; 
+}
+
