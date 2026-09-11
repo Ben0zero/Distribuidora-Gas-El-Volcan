@@ -39,31 +39,43 @@
                                 <h1 class="text-center my-1 texto-2">Bienvenido de nuevo</h1>
                                 <h4 class="text-center mb-5 texto-2">Ingresa a tu cuenta para continuar</h4>
                                         <div class="row justify-content-center">
-                                            <div class="col-12 col-md-8 col-lg-8">                                          
+                                            <div class="col-12 col-md-8 col-lg-8 form-login">                                          
                                                     <form action="" id="form-login">
                                                         <div class="mb-3 text-start">
                                                             <label for="nombre" class="form-label text-start texto-2">
                                                                 Correo electronico
                                                             </label>
                                                             <input type="text"
-                                                            id="correo"
-                                                            class="form-control"
-                                                            placeholder="Ingrese su correo">
+                                                                    id="correo"
+                                                                    class="form-control"
+                                                                    placeholder="Ingrese su correo">
                                                         </div>
                                                         <div class="mb-3 text-start">
                                                             <label for="contrasena" class="form-label texto-2">
                                                                 Contraseña
                                                             </label>
                                                             <input type="text"
-                                                            id="contrasena"
-                                                            class="form-control"
-                                                            placeholder="Ingrese su contrasena">
+                                                                    id="contrasena"
+                                                                    class="form-control"
+                                                                    placeholder="Ingrese su contrasena">
                                                         </div>                                               
-                                                    </form>
-                                                    <div class="text-center">
-                                                        <button id="login" class="btn btn-login mt-4 px-5 pb-2" role="button">
-                                                            Login
+                                                    </form>                                      
+                                                        <div class="d-grid">
+                                                        <button type="submit"
+                                                                class="btn btn-login my-3">
+                                                            <i class="bi bi-person-check-fill"></i>
+                                                            Iniciar sesión
                                                         </button>
+                                                        </div>
+                                                    <div>
+                                                        <div class="text-center mt-4 texto-login">
+                                                            <p>
+                                                                ¿Aun no tienes cuenta?
+                                                                <a href="registro.html">
+                                                                    Registrate aquí
+                                                                </a>
+                                                            </p>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -85,17 +97,16 @@
                     <img src="IMAGENES/Logo Gas.png" style="width: 90px;" alt="Logo Coorporativo">
                 </div>
                 <div class="col">
-                    <h5>Contacto</h5>  
-                    <p>+56 42 234 5678 · pedidos@elvolcangas.cl</p>                 
+                    <h5 class="texto-2">Contacto</h5>  
+                    <p class="texto-2">+56 42 234 5678 · pedidos@elvolcangas.cl</p>                 
                 </div>
                 <div class="col">                    
-                        <figcaption class="blockquote-footer">
+                        <figcaption class="blockquote-footer texto-2">
                         © 2026 Distribuidora de Gas El Volcán. Proyecto académico DSY1104.
                         </figcaption>
                 </div>          
         </div>
     </div>
-
 </footer>
 </body>
 </html>

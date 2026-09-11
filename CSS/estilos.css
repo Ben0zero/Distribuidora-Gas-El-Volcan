@@ -248,6 +248,21 @@ header{
 
 /* TARJETAS */
 
+.tarjeta-catalogo:hover{
+    transform: translateY(-4px);
+    box-shadow: 0 4px 12px rgba(255, 255, 255, 0.5);
+}
+
+.img-catalogo{
+    width: 100%;
+    height: 250px;
+    object-fit: contain;
+    display: block;
+    margin: 0 auto;
+    padding: 30px;
+}
+
+
 .tienda-card {
     background-color: white;
     border: 1px solid #e5e5e5;
@@ -463,4 +478,24 @@ header{
         padding: 25px 20px;
     }
 
+}
+
+/* ============================= */
+/* LOGIN */
+/* ============================= */
+
+.texto-login a{
+    color: #0d3b73;
+    font-weight: bold;
+    text-decoration: none;
+}
+
+.texto-login a:hover{
+    color: #ff6600;
+}
+
+.form-login .form-control:focus,
+.form-login .form-select:focus {
+    border-color: #ff6600;
+    box-shadow: 0 0 0 0.2rem rgba(255, 102, 0, 0.15);
 }
