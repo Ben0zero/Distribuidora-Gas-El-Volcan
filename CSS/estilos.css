@@ -499,3 +499,263 @@ header{
     border-color: #ff6600;
     box-shadow: 0 0 0 0.2rem rgba(255, 102, 0, 0.15);
 }
+
+/* ============================= */
+/* CARRITO */
+/* ============================= */
+
+.titulo-carrito {
+    background-color: rgba(255, 255, 255, 0.95);
+    padding: 35px 25px;
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+.titulo-carrito h1 {
+    color: #0d3b73;
+    font-weight: bold;
+    margin-top: 10px;
+}
+
+.titulo-carrito p {
+    color: #444;
+    font-size: 18px;
+}
+
+.icono-carrito {
+    font-size: 45px;
+    color: #ff6600;
+}
+
+
+/* PRODUCTOS */
+
+.productos-carrito {
+    background-color: rgba(255, 255, 255, 0.95);
+    padding: 25px;
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+.productos-carrito h2 {
+    color: #0d3b73;
+    font-weight: bold;
+    margin-bottom: 20px;
+}
+
+
+/* PRODUCTO */
+
+.producto-carrito {
+    display: grid;
+    grid-template-columns: 110px 1fr auto;
+    gap: 20px;
+    align-items: center;
+    background-color: white;
+    border: 1px solid #e5e5e5;
+    border-left: 5px solid #ff6600;
+    border-radius: 10px;
+    padding: 20px;
+}
+
+.producto-imagen img {
+    width: 100px;
+    height: 120px;
+    object-fit: contain;
+}
+
+.producto-info h3 {
+    color: #0d3b73;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.producto-info p {
+    color: #555;
+    margin-bottom: 8px;
+}
+
+.tipo-producto {
+    background-color: #0d3b73;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 13px;
+}
+
+
+/* PRECIO */
+
+.producto-precio {
+    text-align: right;
+}
+
+.producto-precio strong {
+    display: block;
+    color: #0d3b73;
+    font-size: 20px;
+}
+
+.producto-precio small {
+    color: #666;
+}
+
+
+/* CANTIDAD */
+
+.producto-cantidad {
+    text-align: center;
+}
+
+.producto-cantidad label {
+    display: block;
+    color: #555;
+    font-size: 14px;
+    margin-bottom: 5px;
+}
+
+.cantidad-control {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.btn-cantidad {
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 6px;
+    background-color: #0d3b73;
+    color: white;
+    font-size: 20px;
+}
+
+.cantidad-control span {
+    font-weight: bold;
+    min-width: 20px;
+}
+
+
+/* ELIMINAR */
+
+.btn-eliminar {
+    border: none;
+    background: none;
+    color: #dc3545;
+    font-size: 18px;
+}
+
+.btn-eliminar:hover {
+    color: #a71d2a;
+}
+
+
+/* RESUMEN */
+
+.resumen-carrito {
+    background-color: rgba(255, 255, 255, 0.95);
+    padding: 25px;
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+.resumen-carrito h2 {
+    color: #0d3b73;
+    font-weight: bold;
+    margin-bottom: 25px;
+}
+
+.resumen-dato {
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.resumen-dato span {
+    color: #555;
+}
+
+.resumen-dato strong {
+    color: #0d3b73;
+}
+
+.resumen-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.resumen-total span {
+    color: #0d3b73;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.resumen-total strong {
+    color: #ff6600;
+    font-size: 25px;
+}
+
+.resumen-carrito a {
+    color: #0d3b73;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.resumen-carrito a:hover {
+    color: #ff6600;
+}
+
+
+/* AVISO */
+
+.aviso-carrito {
+    background-color: rgba(255, 255, 255, 0.95);
+    padding: 35px 25px;
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+.aviso-carrito > i {
+    color: #ff6600;
+    font-size: 40px;
+}
+
+.aviso-carrito h2 {
+    color: #0d3b73;
+    font-weight: bold;
+}
+
+.aviso-carrito p {
+    color: #444;
+    font-size: 17px;
+}
+
+
+/* RESPONSIVE */
+
+@media (max-width: 768px) {
+
+    .producto-carrito {
+        grid-template-columns: 90px 1fr;
+    }
+
+    .producto-imagen img {
+        width: 80px;
+        height: 100px;
+    }
+
+    .producto-precio,
+    .producto-cantidad,
+    .btn-eliminar {
+        grid-column: 2;
+        text-align: left;
+    }
+
+    .producto-precio {
+        text-align: left;
+    }
+
+}
