@@ -98,24 +98,178 @@
         </aside>
 
         <!-- contentido principal-->
-        <main class="flex-grow-1 p-4 overflow-auto">
+        <main class="flex-grow-1 p-4 overflow-auto fondo-admin bg-transparent">
             
-            <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
-                <h1 class="h2">¡HOLA Administrador!</h1>
+            <div class="d-flex justify-content-between align-items-center mb-4 border-bottom border-secondary pb-3">
+                <h1 class="h2 fw-bold text-dark">¡HOLA Administrador!</h1>
                 <a href="#" class="text-dark fs-4" aria-label="Notificaciones">
                     <i class="bi bi-bell-fill"></i>
                 </a>
             </div>
 
-            <div class="container-fluid">
-                <p class="text-muted">Selecciona una opción del menú lateral para comenzar.</p>
-            </div>
+            <div class="container-fluid px-0">
+                
+                <!-- Tarjetas de Resumen (KPIs) -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-3">
+                        <div class="card border-0 shadow-sm rounded-0">
+                            <div class="card-body d-flex align-items-center">
+                                <div class="bg-primary text-white p-3 me-3 fs-4 d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                                    <i class="bi bi-currency-dollar"></i>
+                                </div>
+                                <div>
+                                    <h6 class="text-muted mb-0" style="font-size: 0.8rem; text-transform: uppercase;">Ventas del Día</h6>
+                                    <h4 class="mb-0 fw-bold">$450.000</h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card border-0 shadow-sm rounded-0">
+                            <div class="card-body d-flex align-items-center">
+                                <div class="bg-warning text-dark p-3 me-3 fs-4 d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                                    <i class="bi bi-truck"></i>
+                                </div>
+                                <div>
+                                    <h6 class="text-muted mb-0" style="font-size: 0.8rem; text-transform: uppercase;">En Ruta</h6>
+                                    <h4 class="mb-0 fw-bold">12 Órdenes</h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card border-0 shadow-sm rounded-0">
+                            <div class="card-body d-flex align-items-center">
+                                <div class="bg-success text-white p-3 me-3 fs-4 d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                                    <i class="bi bi-people"></i>
+                                </div>
+                                <div>
+                                    <h6 class="text-muted mb-0" style="font-size: 0.8rem; text-transform: uppercase;">Clientes Nuevos</h6>
+                                    <h4 class="mb-0 fw-bold">24</h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card border-0 shadow-sm rounded-0">
+                            <div class="card-body d-flex align-items-center">
+                                <div class="bg-danger text-white p-3 me-3 fs-4 d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                                    <i class="bi bi-exclamation-triangle"></i>
+                                </div>
+                                <div>
+                                    <h6 class="text-muted mb-0" style="font-size: 0.8rem; text-transform: uppercase;">Stock Crítico</h6>
+                                    <h4 class="mb-0 fw-bold">3 Productos</h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
+                <!-- Segunda fila: Tabla y Gráficos simulados -->
+                <div class="row g-3">
+                    <!-- Últimas Órdenes -->
+                    <div class="col-md-8">
+                        <div class="card border-0 shadow-sm rounded-0 h-100">
+                            <div class="card-header bg-white border-bottom py-3">
+                                <h6 class="mb-0 fw-bold text-uppercase text-secondary">Últimas Órdenes Recibidas</h6>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-hover mb-0 align-middle">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th class="ps-4">ID Pedido</th>
+                                                <th>Cliente</th>
+                                                <th>Detalle</th>
+                                                <th>Estado</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td class="ps-4 fw-bold">#V-1045</td>
+                                                <td>Juan Pérez</td>
+                                                <td>2x Cilindro 15kg</td>
+                                                <td><span class="badge bg-warning text-dark rounded-0 px-2 py-1">En Reparto</span></td>
+                                            </tr>
+                                            <tr>
+                                                <td class="ps-4 fw-bold">#V-1044</td>
+                                                <td>María González</td>
+                                                <td>1x Cilindro 45kg</td>
+                                                <td><span class="badge bg-success rounded-0 px-2 py-1">Entregado</span></td>
+                                            </tr>
+                                            <tr>
+                                                <td class="ps-4 fw-bold">#V-1043</td>
+                                                <td>Pedro Soto</td>
+                                                <td>1x Cilindro 11kg</td>
+                                                <td><span class="badge bg-secondary rounded-0 px-2 py-1">Pendiente</span></td>
+                                            </tr>
+                                            <tr>
+                                                <td class="ps-4 fw-bold">#V-1042</td>
+                                                <td>Luisa Martínez</td>
+                                                <td>1x Cilindro 5kg</td>
+                                                <td><span class="badge bg-success rounded-0 px-2 py-1">Entregado</span></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Estado del Inventario -->
+                    <div class="col-md-4">
+                        <div class="card border-0 shadow-sm rounded-0 h-100">
+                            <div class="card-header bg-white border-bottom py-3">
+                                <h6 class="mb-0 fw-bold text-uppercase text-secondary">Nivel de Inventario</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <span class="fw-bold text-dark" style="font-size: 0.85rem;">Cilindros 5kg</span>
+                                        <span class="text-muted small">80%</span>
+                                    </div>
+                                    <div class="progress rounded-0 border" style="height: 10px;">
+                                        <div class="progress-bar bg-info" role="progressbar" style="width: 80%" aria-valuenow="80" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <span class="fw-bold text-dark" style="font-size: 0.85rem;">Cilindros 11kg</span>
+                                        <span class="text-muted small">45%</span>
+                                    </div>
+                                    <div class="progress rounded-0 border" style="height: 10px;">
+                                        <div class="progress-bar bg-success" role="progressbar" style="width: 45%" aria-valuenow="45" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <span class="fw-bold text-dark" style="font-size: 0.85rem;">Cilindros 15kg</span>
+                                        <span class="text-danger small fw-bold">15%</span>
+                                    </div>
+                                    <div class="progress rounded-0 border" style="height: 10px;">
+                                        <div class="progress-bar bg-danger" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                </div>
+                                <div class="mb-0">
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <span class="fw-bold text-dark" style="font-size: 0.85rem;">Cilindros 45kg</span>
+                                        <span class="text-muted small">60%</span>
+                                    </div>
+                                    <div class="progress rounded-0 border" style="height: 10px;">
+                                        <div class="progress-bar bg-primary" role="progressbar" style="width: 60%" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
         </main>
     </div>
 
     <!-- scrip para no bloquear los clics -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script> 
-<script src="JS/java.js"></script>
+    <script src="JS/java.js"></script>
 </body>
 </html>
