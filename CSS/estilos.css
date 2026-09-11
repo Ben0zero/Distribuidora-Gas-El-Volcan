@@ -837,3 +837,9 @@ header{
     background-position: center;
     background-repeat: no-repeat;
 }
+
+/* efecto hover pero para los numeros de paginacion inactivos */
+.page-link:not(.bg-primary):hover {
+    background-color: #e9ecef; 
+    color: #0a58ca !important; 
+}
