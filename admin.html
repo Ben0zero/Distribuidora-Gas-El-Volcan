@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - El Volcán</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="CSS/estilos.css">
+</head>
+<body class="bg-light">
+
+    <!-- contenedor pantalla completa -->
+    <div class="d-flex vh-100">
+
+        <!-- menu lateral -->
+        <aside class="d-flex flex-column flex-shrink-0 p-3 bg-white border-end" style="width: 250px;">
+            
+            <!-- Logo -->
+            <a href="admin.html" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto link-dark text-decoration-none border-bottom pb-3 w-100">
+                <img src="IMAGENES/Logo Gas.png" alt="Logo El Volcán" width="40" class="me-2">
+                <span class="fs-5 fw-bold">El Volcán</span>
+            </a>
+
+            <!-- navegacion principal -->
+            <div class="nav nav-pills flex-column mb-auto mt-3">
+                <div class="nav-item mb-1">
+                    <a href="admin.html" class="nav-link active" aria-current="page">
+                        <i class="bi bi-grid-fill me-2"></i> Dashboard
+                    </a>
+                </div>
+                <div class="nav-item mb-1">
+                    <a href="#" class="nav-link link-dark">
+                        <i class="bi bi-receipt me-2"></i> Órdenes
+                    </a>
+                </div>
+                <div class="nav-item mb-1">
+                    <a href="admin_nuevo_producto.html" class="nav-link link-dark">
+                        <i class="bi bi-box-seam me-2"></i> Inventario
+                    </a>
+                </div>
+                <div class="nav-item mb-1">
+                    <a href="#" class="nav-link link-dark">
+                        <i class="bi bi-file-earmark-bar-graph me-2"></i> Reportes
+                    </a>
+                </div>
+                <div class="nav-item mb-1">
+                    <a href="admin_lista_usuarios.html" class="nav-link link-dark">
+                        <i class="bi bi-person-badge me-2"></i> Empleados
+                    </a>
+                </div>
+                <div class="nav-item mb-1">
+                    <a href="#" class="nav-link link-dark">
+                        <i class="bi bi-people me-2"></i> Clientes
+                    </a>
+                </div>
+            </div>
+
+            <!-- navegacion secundaria -->
+            <hr>
+            <div class="nav nav-pills flex-column mb-3">
+                <div class="nav-item mb-1">
+                    <a href="#" class="nav-link link-dark">
+                        <i class="bi bi-gear me-2"></i> Configuración
+                    </a>
+                </div>
+                <div class="nav-item mb-1">
+                    <a href="admin_nuevo_usuario.html" class="nav-link link-dark">
+                        <i class="bi bi-person-plus me-2"></i> +Profile
+                    </a>
+                </div>
+                <div class="nav-item mb-1">
+                    <a href="#" class="nav-link link-dark">
+                        <i class="bi bi-search me-2"></i> Buscar
+                    </a>
+                </div>
+                <div class="nav-item mb-1">
+                    <a href="#" class="nav-link link-dark">
+                        <i class="bi bi-question-circle me-2"></i> Ayuda
+                    </a>
+                </div>
+            </div>
+
+            <!-- perfil  -->
+            <hr>
+            <div class="dropdown">
+                <a href="#" class="d-flex align-items-center link-dark text-decoration-none dropdown-toggle" id="dropdownUser" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-person-circle fs-4 me-2"></i>
+                    <strong>Perfil Admin</strong>
+                </a>
+                <div class="dropdown-menu text-small shadow" aria-labelledby="dropdownUser">
+                    <a class="dropdown-item" href="#">Ajustes</a>
+                    <a class="dropdown-item" href="#">Perfil</a>
+                    <hr class="dropdown-divider">
+                    <a class="dropdown-item" href="login.html">Cerrar sesión</a>
+                </div>
+            </div>
+        </aside>
+
+        <!-- contentido principal-->
+        <main class="flex-grow-1 p-4 overflow-auto">
+            
+            <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
+                <h1 class="h2">¡HOLA Administrador!</h1>
+                <a href="#" class="text-dark fs-4" aria-label="Notificaciones">
+                    <i class="bi bi-bell-fill"></i>
+                </a>
+            </div>
+
+            <div class="container-fluid">
+                <p class="text-muted">Selecciona una opción del menú lateral para comenzar.</p>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- scrip para no bloquear los clics -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script> 
+</body>
+</html>

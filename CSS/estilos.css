@@ -154,3 +154,313 @@ header{
     font-weight: bold;
     margin-bottom: 15px;
 }
+
+.titulo-consejos {
+    background-color: rgba(255, 255, 255, 0.92);
+    padding: 35px 25px;
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12);
+}
+
+.titulo-consejos h1 {
+    color: #0d3b73;
+    font-weight: bold;
+    margin-bottom: 15px;
+}
+
+.titulo-consejos p {
+    color: #333;
+    font-size: 18px;
+    margin-bottom: 0;
+}
+
+.boton-tienda {
+    position: fixed;
+    right: 25px;
+    bottom: 25px;
+    width: 300px;
+    z-index: 1000;
+    transition: transform 0.2s ease;
+}
+
+.boton-tienda img {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.boton-tienda:hover {
+    transform: scale(1.05);
+}
+
+@media (max-width: 768px) {
+    .boton-tienda {
+        width: 220px;
+        right: 10px;
+        bottom: 15px;
+    }
+}
+
+/* ============================= */
+/* TIENDAS / SUCURSALES */
+/* ============================= */
+
+.titulo-tiendas {
+    background-color: rgba(255, 255, 255, 0.95);
+    padding: 35px 25px;
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+.titulo-tiendas h1 {
+    color: #0d3b73;
+    font-weight: bold;
+    margin-bottom: 15px;
+}
+
+.titulo-tiendas p {
+    color: #333;
+    font-size: 18px;
+    margin-bottom: 10px;
+}
+
+.texto-referencial {
+    color: #666 !important;
+    font-size: 15px !important;
+}
+
+
+/* LISTADO */
+
+.lista-tiendas {
+    background-color: rgba(255, 255, 255, 0.95);
+    border-radius: 15px;
+    padding: 25px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+.lista-tiendas h2 {
+    color: #0d3b73;
+    font-weight: bold;
+    margin-bottom: 20px;
+}
+
+
+/* TARJETAS */
+
+.tienda-card {
+    background-color: white;
+    border: 1px solid #e5e5e5;
+    border-left: 5px solid #ff6600;
+    border-radius: 10px;
+    padding: 18px;
+    margin-bottom: 15px;
+    transition: transform 0.2s ease,
+                box-shadow 0.2s ease;
+}
+
+.tienda-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.tienda-card h4 {
+    color: #0d3b73;
+    font-weight: bold;
+    margin-bottom: 8px;
+}
+
+.tienda-card p {
+    margin-bottom: 5px;
+    color: #444;
+}
+
+.tienda-card i {
+    color: #ff6600;
+    margin-right: 5px;
+}
+
+
+/* ETIQUETAS */
+
+.badge-matriz {
+    background-color: #0d3b73;
+    color: white;
+    margin-bottom: 10px;
+}
+
+.badge-futura {
+    background-color: #ff6600;
+    color: white;
+    margin-bottom: 10px;
+}
+
+
+/* MAPA */
+
+.mapa-contenedor {
+    background-color: rgba(255, 255, 255, 0.95);
+    border-radius: 15px;
+    padding: 25px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+.mapa-contenedor h2 {
+    color: #0d3b73;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.mapa-contenedor p {
+    color: #444;
+}
+
+
+/* CONTENEDOR DEL MAPA */
+
+.mapa-tiendas {
+    width: 100%;
+    height: 500px;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-top: 20px;
+}
+
+.mapa-tiendas iframe {
+    width: 100%;
+    height: 100%;
+    border: 0;
+}
+
+
+
+/* LEYENDA */
+
+.leyenda-mapa {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 15px;
+    color: #444;
+    font-size: 14px;
+}
+
+.leyenda-mapa i {
+    color: #ff6600;
+}
+
+
+/* INFORMACIÓN FINAL */
+
+.info-futuras {
+    background-color: rgba(255, 255, 255, 0.95);
+    padding: 40px 25px;
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+.info-futuras > i {
+    font-size: 45px;
+    color: #ff6600;
+}
+
+.info-futuras h2 {
+    color: #0d3b73;
+    font-weight: bold;
+    margin-top: 10px;
+}
+
+.info-futuras p {
+    color: #444;
+    font-size: 18px;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+
+/* ============================= */
+/* RESPONSIVE */
+/* ============================= */
+
+@media (max-width: 768px) {
+
+    .mapa-tiendas {
+        height: 400px;
+    }
+
+    .lista-tiendas {
+        padding: 20px;
+    }
+
+    .mapa-contenedor {
+        padding: 20px;
+    }
+
+    .titulo-tiendas {
+        padding: 25px 20px;
+    }
+
+}
+
+/* ============================= */
+/* REGISTRO */
+/* ============================= */
+
+.registro-contenedor {
+    background-color: rgba(255, 255, 255, 0.95);
+    padding: 40px;
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+.registro-contenedor h1 {
+    color: #0d3b73;
+    font-weight: bold;
+    margin-top: 10px;
+}
+
+.registro-contenedor p {
+    color: #444;
+}
+
+.icono-registro {
+    font-size: 45px;
+    color: #ff6600;
+}
+
+.registro-contenedor .form-label {
+    color: #0d3b73;
+    font-weight: bold;
+}
+
+.registro-contenedor .form-control,
+.registro-contenedor .form-select {
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 10px 12px;
+}
+
+.registro-contenedor .form-control:focus,
+.registro-contenedor .form-select:focus {
+    border-color: #ff6600;
+    box-shadow: 0 0 0 0.2rem rgba(255, 102, 0, 0.15);
+}
+
+.registro-contenedor a {
+    color: #0d3b73;
+    font-weight: bold;
+    text-decoration: none;
+}
+
+.registro-contenedor a:hover {
+    color: #ff6600;
+}
+
+@media (max-width: 768px) {
+
+    .registro-contenedor {
+        padding: 25px 20px;
+    }
+
+}
