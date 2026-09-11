@@ -830,3 +830,10 @@ header{
 }
 }
 
+
+.fondo-admin {
+    background-image: url('../IMAGENES/fondo admin.jpg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
