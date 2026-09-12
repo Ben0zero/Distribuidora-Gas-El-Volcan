@@ -874,3 +874,34 @@ header{
     color: #0a58ca !important; 
 }
 
+/* ============================= */
+/* INDEX - VENTAJAS */
+/* ============================= */
+
+.icono-seguridad {
+    color: #0d3b73;
+    font-size: 45px;
+}
+
+/* ============================= */
+/* NOSOTROS - BLOGS */
+/* ============================= */
+
+.blog-resumen {
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.blog-expandido {
+    display: none;
+    margin-top: 25px;
+    padding-top: 20px;
+    border-top: 1px solid #e5e5e5;
+}
+
+.blog-expandido p {
+    color: #444;
+    font-size: 17px;
+    margin-bottom: 12px;
+}
+

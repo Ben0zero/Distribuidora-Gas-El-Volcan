@@ -1283,6 +1283,23 @@
         renderizarResumenPago();
     }
 
+    function iniciarVerMas() {
+        var botones = document.querySelectorAll('.ver-mas');
+        for (var i = 0; i < botones.length; i += 1) {
+            (function (boton) {
+                boton.addEventListener('click', function () {
+                    var contenido = boton.parentNode.parentNode.querySelector('.blog-expandido');
+                    if (!contenido) {
+                        return;
+                    }
+                    var expandido = contenido.style.display === 'block';
+                    contenido.style.display = expandido ? 'none' : 'block';
+                    boton.textContent = expandido ? 'Ver Más' : 'Ver Menos';
+                });
+            })(botones[i]);
+        }
+    }
+
     function iniciarHeaderSesion() {
         var usuario = obtenerSesion();
         if (!usuario) {
@@ -1328,6 +1345,7 @@
     iniciarEdicionProducto();
     iniciarListaUsuarios();
     iniciarVentas();
+    iniciarVerMas();
     iniciarHeaderSesion();
     iniciarCierreSesion();
 })();
