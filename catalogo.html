@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catálogo | Distribuidora de Gas El Volcán</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="CSS/estilos.css">
+</head>
+
+<body>
+    <a href="tiendas.html" class="boton-tienda">
+    <img src="IMAGENES/loguito-boton.png" alt="Encuentra tu tienda más cercana"> </a>
+<header>
+    <nav class="navbar navbar-expand-lg bg-white" aria-label="Navegación principal">
+        <div class="container">
+            <a href="index.html" class="navbar-brand p-0 me-2">
+                <img src="IMAGENES/Logo Gas.png" style="width: 70px; height: auto;" alt="Logo Corporativo">
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menuNavegacion" aria-controls="menuNavegacion" aria-expanded="false" aria-label="Abrir menú de navegación">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="menuNavegacion">
+                <ul class="navbar-nav mx-auto align-items-lg-center gap-lg-1 mt-3 mt-lg-0">
+                    <li class="nav-item"><a href="index.html" class="btn" role="button"> Inicio</a></li>
+                    <li class="nav-item"><a href="catalogo.html" class="btn boton-nav" role="button"><strong>Catálogo</strong></a></li>
+                    <li class="nav-item"><a href="nosotros.html" class="btn" role="button"> Nosotros</a></li>
+                    <li class="nav-item"><a href="consejos.html" class="btn" role="button"> Consejos</a></li>
+                    <li class="nav-item"><a href="contacto.html" class="btn" role="button"> Contacto</a></li>
+                </ul>
+                <div class="d-flex align-items-center justify-content-center justify-content-lg-end gap-2 mt-3 mt-lg-0 mb-3 mb-lg-0 flex-wrap">
+                    <a href="login.html" class="btn btn-login px-4" role="button"> Acceder</a>
+                    <a href="carrito.html" class="btn btn-carrito position-relative" aria-label="Carrito de compras"> Ver <i class="bi bi-cart-fill"></i> <span id="contador-carrito" class="badge rounded-pill bg-dark" style="display:none; font-size:11px; margin-left:2px;">0</span></a>
+                </div>
+            </div>
+        </div>
+    </nav>
+</header>
+<main class="fondo py-5">
+    <div class="container px-4 px-md-5">
+
+        <!-- ==========================================
+             CARRUSEL ESCRITORIO
+             3 PRODUCTOS POR DIAPOSITIVA
+             ========================================== -->
+
+        <div id="carruselProductosDesktop"
+             class="carousel slide position-relative d-none d-md-block"
+             data-bs-ride="carousel">
+
+            <div class="carousel-inner">
+                <div class="carousel-item active">
+                    <div class="row justify-content-center g-4">
+
+                        <!-- Producto 1 -->
+                        <div class="col-md-4 d-flex">
+                            <div class="card text-center w-100 tarjeta-catalogo">
+
+                                <img src="IMAGENES/cilindro de 5 K.png"
+                                     class="img-catalogo"
+                                     alt="Cilindro GLP 5 kg">
+
+                                <div class="card-body d-flex flex-column justify-content-between">
+
+                                    <p class="card-text">
+                                        <strong>Cilindro GLP 5 kg</strong><br>
+                                        Cilindro de gas licuado de petróleo 5 kg. Para uso residencial (cocina, calefacción pequeña).<br>
+                                        <strong>Residencial: $6.500</strong><br>
+                                        <strong>Comercial: $6.000</strong>
+                                    </p>
+
+                                    <button class="btn btn-sm btn-login mt-auto">
+                                        Agregar
+                                    </button>
+
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Producto 2 -->
+                        <div class="col-md-4 d-flex">
+                            <div class="card text-center w-100 tarjeta-catalogo">
+
+                                <img src="IMAGENES/cilindro de 11K.png"
+                                     class="img-catalogo"
+                                     alt="Cilindro GLP 11 kg">
+
+                                <div class="card-body d-flex flex-column justify-content-between">
+
+                                    <p class="card-text">
+                                        <strong>Cilindro GLP 11 kg</strong><br>
+                                        Cilindro estándar doméstico. El más utilizado en hogares chilenos.<br>
+                                        <strong>Residencial: $12.000</strong><br>
+                                        <strong>Comercial: $11.000</strong>
+                                    </p>
+
+                                    <button class="btn btn-sm btn-login mt-auto">
+                                        Agregar
+                                    </button>
+
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Producto 3 -->
+                        <div class="col-md-4 d-flex">
+                            <div class="card text-center w-100 tarjeta-catalogo">
+
+                                <img src="IMAGENES/cilindro de 15K.png"
+                                     class="img-catalogo"
+                                     alt="Cilindro GLP 15 kg">
+
+                                <div class="card-body d-flex flex-column justify-content-between">
+
+                                    <p class="card-text">
+                                        <strong>Cilindro GLP 15 kg</strong><br>
+                                        Cilindro de mayor capacidad para hogares de alto consumo o locales pequeños.<br>
+                                        <strong>Residencial: $16.000</strong><br>
+                                        <strong>Comercial: $14.500</strong>
+                                    </p>
+
+                                    <button class="btn btn-sm btn-login mt-auto">
+                                        Agregar
+                                    </button>
+
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+                <div class="carousel-item">
+                    <div class="row justify-content-center g-4">
+
+                        <!-- Producto 4 -->
+                        <div class="col-md-4 d-flex">
+                            <div class="card text-center w-100 tarjeta-catalogo">
+
+                                <img src="IMAGENES/cilindro de 45K.png"
+                                     class="img-catalogo"
+                                     alt="Cilindro GLP 45 kg">
+
+                                <div class="card-body d-flex flex-column justify-content-between">
+
+                                    <p class="card-text">
+                                        <strong>Cilindro GLP 45 kg</strong><br>
+                                        Cilindro industrial. Uso comercial: restaurantes, talleres, locales.<br>
+                                        <strong>Residencial: $45.000</strong><br>
+                                        <strong>Comercial: $40.000</strong>
+                                    </p>
+
+                                    <button class="btn btn-sm btn-login mt-auto">
+                                        Agregar
+                                    </button>
+
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Producto 5 -->
+                        <div class="col-md-4 d-flex">
+                            <div class="card text-center w-100 tarjeta-catalogo">
+
+                                <img src="IMAGENES/Regulador Standar.png"
+                                     class="img-catalogo"
+                                     alt="Regulador doméstico estándar">
+
+                                <div class="card-body d-flex flex-column justify-content-between">
+
+                                    <p class="card-text">
+                                        <strong>Regulador doméstico estándar</strong><br>
+                                        Regulador de 1 etapa para cilindros 5, 11 y 15 kg. Presión de salida 28 mbar.<br>
+                                        <strong>Residencial: $8.990</strong><br>
+                                        <strong>Comercial: $8.200</strong>
+                                    </p>
+
+                                    <button class="btn btn-sm btn-login mt-auto">
+                                        Agregar
+                                    </button>
+
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Producto 6 -->
+                        <div class="col-md-4 d-flex">
+                            <div class="card text-center w-100 tarjeta-catalogo">
+
+                                <img src="IMAGENES/Regaulador de Alta presion.png"
+                                     class="img-catalogo"
+                                     alt="Regulador de alta presión">
+
+                                <div class="card-body d-flex flex-column justify-content-between">
+
+                                    <p class="card-text">
+                                        <strong>Regulador de alta presión</strong><br>
+                                        Regulador para cocinas industriales o equipos de mayor consumo. Presión regulable.<br>
+                                        <strong>Residencial: $18.990</strong><br>
+                                        <strong>Comercial: $17.000</strong>
+                                    </p>
+
+                                    <button class="btn btn-sm btn-login mt-auto">
+                                        Agregar
+                                    </button>
+
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Diapositiva 3 -->
+                <div class="carousel-item">
+                    <div class="row justify-content-center g-4">
+
+                        <!-- Producto 7 -->
+                        <div class="col-md-4 d-flex">
+                            <div class="card text-center w-100 tarjeta-catalogo">
+                                <img src="IMAGENES/Manguera gas 1.5 m.png" class="img-catalogo" alt="Manguera gas 1.5 m">
+
+                                <div class="card-body d-flex flex-column justify-content-between">
+                                    <p class="card-text">
+                                        <strong>Manguera gas 1.5 m</strong><br>
+                                        Manguera flexible homologada. Diámetro interior 9 mm.<br>
+                                        <strong>Residencial: $3.990</strong><br>
+                                        <strong>Comercial: $3.500</strong>
+                                    </p>
+                                    <button class="btn btn-sm btn-login mt-auto">
+                                        Agregar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Producto 8 -->
+                        <div class="col-md-4 d-flex">
+                            <div class="card text-center w-100 tarjeta-catalogo">
+                                <img src="IMAGENES/Manguera gas 3 m.png" class="img-catalogo" alt="Manguera gas 3 m">
+
+                                <div class="card-body d-flex flex-column justify-content-between">
+                                    <p class="card-text">
+                                        <strong>Manguera gas 3 m</strong><br>
+                                        Manguera larga para instalaciones donde el artefacto está alejado del cilindro.<br>
+                                        <strong>Residencial: $6.990</strong><br>
+                                        <strong>Comercial: $6.200</strong>
+                                    </p>
+                                    <button class="btn btn-sm btn-login mt-auto">
+                                        Agregar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Producto 9 -->
+                        <div class="col-md-4 d-flex">
+                            <div class="card text-center w-100 tarjeta-catalogo">
+                                <img src="IMAGENES/Abrazadera metálica.png" class="img-catalogo" alt="Abrazadera metálica">
+
+                                <div class="card-body d-flex flex-column justify-content-between">
+                                    <p class="card-text">
+                                        <strong>Abrazadera metálica</strong><br>
+                                        Abrazadera de acero para asegurar la conexión manguera-regulador.<br>
+                                        <strong>Residencial: $990</strong><br>
+                                        <strong>Comercial: $800</strong>
+                                    </p>
+                                    <button class="btn btn-sm btn-login mt-auto">
+                                        Agregar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Diapositiva 4 -->
+                <div class="carousel-item">
+                    <div class="row justify-content-center g-4">
+
+                        <!-- Producto 10 -->
+                        <div class="col-md-4 d-flex">
+                            <div class="card text-center w-100 tarjeta-catalogo">
+                                <img src="IMAGENES/Regulador Dual.png" class="img-catalogo" alt="Regulador dual (2 salidas)">
+
+                                <div class="card-body d-flex flex-column justify-content-between">
+                                    <p class="card-text">
+                                        <strong>Regulador dual (2 salidas)</strong><br>
+                                        Permite conectar dos artefactos simultáneamente al mismo cilindro.<br>
+                                        <strong>Residencial: $14.990</strong><br>
+                                        <strong>Comercial: $13.500</strong>
+                                    </p>
+                                    <button class="btn btn-sm btn-login mt-auto">
+                                        Agregar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Producto 11 -->
+                        <div class="col-md-4 d-flex">
+                            <div class="card text-center w-100 tarjeta-catalogo">
+                                <img src="IMAGENES/Sensor electroquímico.png" class="img-catalogo" alt="Detector de gas a batería">
+
+                                <div class="card-body d-flex flex-column justify-content-between">
+                                    <p class="card-text">
+                                        <strong>Detector de gas a batería</strong><br>
+                                        Sensor electroquímico. Alarma sonora y visual ante fuga de gas GLP.<br>
+                                        <strong>Residencial: $19.990</strong><br>
+                                        <strong>Comercial: $17.000</strong>
+                                    </p>
+                                    <button class="btn btn-sm btn-login mt-auto">
+                                        Agregar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Producto 12 -->
+                        <div class="col-md-4 d-flex">
+                            <div class="card text-center w-100 tarjeta-catalogo">
+                                <img src="IMAGENES/Tapa de plástico ABS.png" class="img-catalogo" alt="Tapa protectora para válvula">
+
+                                <div class="card-body d-flex flex-column justify-content-between">
+                                    <p class="card-text">
+                                        <strong>Tapa protectora para válvula</strong><br>
+                                        Tapa de plástico ABS para proteger la válvula durante el transporte.<br>
+                                        <strong>Residencial: $1.490</strong><br>
+                                        <strong>Comercial: $1.200</strong>
+                                    </p>
+                                    <button class="btn btn-sm btn-login mt-auto">
+                                        Agregar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Diapositiva 5 -->
+                <div class="carousel-item">
+                    <div class="row justify-content-center g-4">
+
+                        <!-- Producto 13 -->
+                        <div class="col-md-4 d-flex">
+                            <div class="card text-center w-100 tarjeta-catalogo">
+                                <img src="IMAGENES/kit completo.png" class="img-catalogo" alt="Kit conexión completo">
+
+                                <div class="card-body d-flex flex-column justify-content-between">
+                                    <p class="card-text">
+                                        <strong>Kit conexión completo</strong><br>
+                                        Todo lo necesario para instalar un cilindro nuevo.<br>
+                                        <strong>Residencial: $12.990</strong><br>
+                                        <strong>Comercial: $11.500</strong>
+                                    </p>
+                                    <button class="btn btn-sm btn-login mt-auto">
+                                        Agregar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Producto 14 -->
+                        <div class="col-md-4 d-flex">
+                            <div class="card text-center w-100 tarjeta-catalogo">
+                                <img src="IMAGENES/carro transportador de gas.png" class="img-catalogo" alt="Carro porta cilindro 11/15 kg">
+
+                                <div class="card-body d-flex flex-column justify-content-between">
+                                    <p class="card-text">
+                                        <strong>Carro porta cilindro 11/15 kg</strong><br>
+                                        Carro metálico con ruedas para transportar cilindros con seguridad.<br>
+                                        <strong>Residencial: $12.990</strong><br>
+                                        <strong>Comercial: $11.000</strong>
+                                    </p>
+                                    <button class="btn btn-sm btn-login mt-auto">
+                                        Agregar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Controles -->
+            <button class="carousel-control-prev"
+                    type="button"
+                    data-bs-target="#carruselProductosDesktop"
+                    data-bs-slide="prev">
+
+                <span class="carousel-control-prev-icon"></span>
+
+                <span class="visually-hidden">
+                    Anterior
+                </span>
+
+            </button>
+
+            <button class="carousel-control-next"
+                    type="button"
+                    data-bs-target="#carruselProductosDesktop"
+                    data-bs-slide="next">
+
+                <span class="carousel-control-next-icon"></span>
+
+                <span class="visually-hidden">
+                    Siguiente
+                </span>
+
+            </button>
+
+        </div>
+
+        <div id="carruselProductosMobile"
+             class="carousel slide position-relative d-block d-md-none"
+             data-bs-ride="carousel">
+
+            <div class="carousel-inner">
+
+                <!-- Producto 1 -->
+                <div class="carousel-item active">
+
+                    <div class="card text-center tarjeta-catalogo">
+
+                        <img src="IMAGENES/cilindro de 5 K.png"
+                             class="img-catalogo"
+                             alt="Cilindro GLP 5 kg">
+
+                        <div class="card-body">
+
+                            <p class="card-text">
+                                <strong>Cilindro GLP 5 kg</strong><br>
+                                Cilindro de gas licuado de petróleo 5 kg. Para uso residencial (cocina, calefacción pequeña).<br>
+                                <strong>Residencial: $6.500</strong><br>
+                                <strong>Comercial: $6.000</strong>
+                            </p>
+
+                            <button class="btn btn-sm btn-login">
+                                Agregar
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- Producto 2 -->
+                <div class="carousel-item">
+
+                    <div class="card text-center tarjeta-catalogo">
+
+                        <img src="IMAGENES/cilindro de 11K.png"
+                             class="img-catalogo"
+                             alt="Cilindro GLP 11 kg">
+
+                        <div class="card-body">
+
+                            <p class="card-text">
+                                <strong>Cilindro GLP 11 kg</strong><br>
+                                Cilindro estándar doméstico. El más utilizado en hogares chilenos.<br>
+                                <strong>Residencial: $12.000</strong><br>
+                                <strong>Comercial: $11.000</strong>
+                            </p>
+
+                            <button class="btn btn-sm btn-login">
+                                Agregar
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- Producto 3 -->
+                <div class="carousel-item">
+
+                    <div class="card text-center tarjeta-catalogo">
+
+                        <img src="IMAGENES/cilindro de 15K.png"
+                             class="img-catalogo"
+                             alt="Cilindro GLP 15 kg">
+
+                        <div class="card-body">
+
+                            <p class="card-text">
+                                <strong>Cilindro GLP 15 kg</strong><br>
+                                Cilindro de mayor capacidad para hogares de alto consumo o locales pequeños.<br>
+                                <strong>Residencial: $16.000</strong><br>
+                                <strong>Comercial: $14.500</strong>
+                            </p>
+
+                            <button class="btn btn-sm btn-login">
+                                Agregar
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- Producto 4 -->
+                <div class="carousel-item">
+
+                    <div class="card text-center tarjeta-catalogo">
+
+                        <img src="IMAGENES/cilindro de 45K.png"
+                             class="img-catalogo"
+                             alt="Cilindro GLP 45 kg">
+
+                        <div class="card-body">
+
+                            <p class="card-text">
+                                <strong>Cilindro GLP 45 kg</strong><br>
+                                Cilindro industrial. Uso comercial: restaurantes, talleres, locales.<br>
+                                <strong>Residencial: $45.000</strong><br>
+                                <strong>Comercial: $40.000</strong>
+                            </p>
+
+                            <button class="btn btn-sm btn-login">
+                                Agregar
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- Producto 5 -->
+                <div class="carousel-item">
+
+                    <div class="card text-center tarjeta-catalogo">
+
+                        <img src="IMAGENES/Regulador Standar.png"
+                             class="img-catalogo"
+                             alt="Regulador doméstico estándar">
+
+                        <div class="card-body">
+
+                            <p class="card-text">
+                                <strong>Regulador doméstico estándar</strong><br>
+                                Regulador de 1 etapa para cilindros 5, 11 y 15 kg. Presión de salida 28 mbar.<br>
+                                <strong>Residencial: $8.990</strong><br>
+                                <strong>Comercial: $8.200</strong>
+                            </p>
+
+                            <button class="btn btn-sm btn-login">
+                                Agregar
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- Producto 6 -->
+                <div class="carousel-item">
+
+                    <div class="card text-center tarjeta-catalogo">
+
+                        <img src="IMAGENES/Regaulador de Alta presion.png"
+                             class="img-catalogo"
+                             alt="Regulador de alta presión">
+
+                        <div class="card-body">
+
+                            <p class="card-text">
+                                <strong>Regulador de alta presión</strong><br>
+                                Regulador para cocinas industriales o equipos de mayor consumo. Presión regulable.<br>
+                                <strong>Residencial: $18.990</strong><br>
+                                <strong>Comercial: $17.000</strong>
+                            </p>
+
+                            <button class="btn btn-sm btn-login">
+                                Agregar
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <!-- Producto 7 -->
+                <div class="carousel-item">
+                    <div class="card text-center tarjeta-catalogo">
+                        <img src="IMAGENES/Manguera gas 1.5 m.png" class="img-catalogo" alt="Manguera gas 1.5 m">
+                        <div class="card-body">
+                            <p class="card-text">
+                                <strong>Manguera gas 1.5 m</strong><br>
+                                Manguera flexible homologada. Diámetro interior 9 mm.<br>
+                                <strong>Residencial: $3.990</strong><br>
+                                <strong>Comercial: $3.500</strong>
+                            </p>
+                            <button class="btn btn-sm btn-login">
+                                Agregar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Producto 8 -->
+                <div class="carousel-item">
+                    <div class="card text-center tarjeta-catalogo">
+                        <img src="IMAGENES/Manguera gas 3 m.png" class="img-catalogo" alt="Manguera gas 3 m">
+                        <div class="card-body">
+                            <p class="card-text">
+                                <strong>Manguera gas 3 m</strong><br>
+                                Manguera larga para instalaciones donde el artefacto está alejado del cilindro.<br>
+                                <strong>Residencial: $6.990</strong><br>
+                                <strong>Comercial: $6.200</strong>
+                            </p>
+                            <button class="btn btn-sm btn-login">
+                                Agregar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Producto 9 -->
+                <div class="carousel-item">
+                    <div class="card text-center tarjeta-catalogo">
+                        <img src="IMAGENES/Abrazadera metálica.png" class="img-catalogo" alt="Abrazadera metálica">
+                        <div class="card-body">
+                            <p class="card-text">
+                                <strong>Abrazadera metálica</strong><br>
+                                Abrazadera de acero para asegurar la conexión manguera-regulador.<br>
+                                <strong>Residencial: $990</strong><br>
+                                <strong>Comercial: $800</strong>
+                            </p>
+                            <button class="btn btn-sm btn-login">
+                                Agregar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Producto 10 -->
+                <div class="carousel-item">
+                    <div class="card text-center tarjeta-catalogo">
+                        <img src="IMAGENES/Regulador Dual.png" class="img-catalogo" alt="Regulador dual (2 salidas)">
+                        <div class="card-body">
+                            <p class="card-text">
+                                <strong>Regulador dual (2 salidas)</strong><br>
+                                Permite conectar dos artefactos simultáneamente al mismo cilindro.<br>
+                                <strong>Residencial: $14.990</strong><br>
+                                <strong>Comercial: $13.500</strong>
+                            </p>
+                            <button class="btn btn-sm btn-login">
+                                Agregar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Producto 11 -->
+                <div class="carousel-item">
+                    <div class="card text-center tarjeta-catalogo">
+                        <img src="IMAGENES/Sensor electroquímico.png" class="img-catalogo" alt="Detector de gas a batería">
+                        <div class="card-body">
+                            <p class="card-text">
+                                <strong>Detector de gas a batería</strong><br>
+                                Sensor electroquímico. Alarma sonora y visual ante fuga de gas GLP.<br>
+                                <strong>Residencial: $19.990</strong><br>
+                                <strong>Comercial: $17.000</strong>
+                            </p>
+                            <button class="btn btn-sm btn-login">
+                                Agregar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Producto 12 -->
+                <div class="carousel-item">
+                    <div class="card text-center tarjeta-catalogo">
+                        <img src="IMAGENES/Tapa de plástico ABS.png" class="img-catalogo" alt="Tapa protectora para válvula">
+                        <div class="card-body">
+                            <p class="card-text">
+                                <strong>Tapa protectora para válvula</strong><br>
+                                Tapa de plástico ABS para proteger la válvula durante el transporte.<br>
+                                <strong>Residencial: $1.490</strong><br>
+                                <strong>Comercial: $1.200</strong>
+                            </p>
+                            <button class="btn btn-sm btn-login">
+                                Agregar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Producto 13 -->
+                <div class="carousel-item">
+                    <div class="card text-center tarjeta-catalogo">
+                        <img src="IMAGENES/kit completo.png" class="img-catalogo" alt="Kit conexión completo">
+                        <div class="card-body">
+                            <p class="card-text">
+                                <strong>Kit conexión completo</strong><br>
+                                Todo lo necesario para instalar un cilindro nuevo.<br>
+                                <strong>Residencial: $12.990</strong><br>
+                                <strong>Comercial: $11.500</strong>
+                            </p>
+                            <button class="btn btn-sm btn-login">
+                                Agregar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Producto 14 -->
+                <div class="carousel-item">
+                    <div class="card text-center tarjeta-catalogo">
+                        <img src="IMAGENES/carro transportador de gas.png" class="img-catalogo" alt="Carro porta cilindro 11/15 kg">
+                        <div class="card-body">
+                            <p class="card-text">
+                                <strong>Carro porta cilindro 11/15 kg</strong><br>
+                                Carro metálico con ruedas para transportar cilindros con seguridad.<br>
+                                <strong>Residencial: $12.990</strong><br>
+                                <strong>Comercial: $11.000</strong>
+                            </p>
+                            <button class="btn btn-sm btn-login">
+                                Agregar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <button class="carousel-control-prev" type="button" data-bs-target="#carruselProductosDesktop" data-bs-slide="prev">
+                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                <span class="visually-hidden">Anterior</span>
+            </button>
+
+            <button class="carousel-control-next" type="button" data-bs-target="#carruselProductosDesktop" data-bs-slide="next">
+                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                <span class="visually-hidden">Siguiente</span>
+            </button>
+            <button class="carousel-control-prev" type="button" data-bs-target="#carruselProductosMobile" data-bs-slide="prev">
+                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                <span class="visually-hidden">Anterior</span>
+            </button>
+
+            <button class="carousel-control-next" type="button" data-bs-target="#carruselProductosMobile" data-bs-slide="next">
+                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                <span class="visually-hidden">Siguiente</span>
+            </button>
+
+        </div>
+
+    </div>
+    <section class="container py-5">
+        <div class="titulo-consejos text-center">
+            <h1>¿No sabes que cilindro o producto necesitas? </h1>
+            <p class="py-2">Te asesoramos sin compromiso.</p>
+            <div class="col">                
+                    <a href="contacto.html" class="btn btn-login px-4" role="button">Contactanos</a>
+            </div>
+        </div>
+    </section>
+</main>
+<footer>
+    <div class="container py-3">
+        <div class="row align-items-center text-center">
+            
+                <div class="col">
+                    <img src="IMAGENES/Logo Gas.png" style="width: 90px;" alt="Logo Coorporativo">
+                </div>
+                <div class="col">
+                    <h5 class="texto-2">Contacto</h5>  
+                    <p class="texto-2">+56 42 234 5678 · pedidos@elvolcangas.cl</p>                 
+                </div>
+                <div class="col">                    
+                        <figcaption class="blockquote-footer texto-2">
+                        © 2026 Distribuidora de Gas El Volcán. Proyecto académico DSY1104.
+                        </figcaption>
+                </div>          
+        </div>
+    </div>
+</footer>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script> 
+<script src="JS/java.js"></script>
+</body>
+</html>

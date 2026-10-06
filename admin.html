@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - El Volcán</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="CSS/estilos.css">
+</head>
+<body class="bg-light overflow-hidden">
+
+    <!-- barra superior movil -->
+    <nav class="d-lg-none d-flex align-items-center justify-content-between bg-white border-bottom px-3 py-2 sticky-top">
+        <a href="admin.html" class="d-flex align-items-center text-decoration-none link-dark">
+            <img src="IMAGENES/Logo Gas.png" alt="Logo El Volcán" width="40" class="me-2">
+            <span class="fs-5 fw-bold">El Volcán</span>
+        </a>
+        <button class="btn btn-outline-dark rounded-0" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarAdmin" aria-expanded="false" aria-controls="sidebarAdmin">
+            <i class="bi bi-list fs-4"></i>
+        </button>
+    </nav>
+
+    <!-- contenedor pantalla completa -->
+    <div class="d-flex vh-100">
+
+        <!-- menu lateral -->
+        <aside id="sidebarAdmin" class="collapse d-lg-flex flex-column flex-shrink-0 p-3 bg-white border-end" style="width: 250px;">
+            
+            <!-- Logo -->
+            <a href="admin.html" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto link-dark text-decoration-none border-bottom pb-3 w-100">
+                <img src="IMAGENES/Logo Gas.png" alt="Logo El Volcán" width="40" class="me-2">
+                <span class="fs-5 fw-bold">El Volcán</span>
+            </a>
+
+            <!-- navegacion principal -->
+            <div class="nav nav-pills flex-column mb-auto mt-3">
+                <div class="nav-item mb-1">
+                    <a href="admin.html" class="nav-link active" aria-current="page">
+                        <i class="bi bi-grid-fill me-2"></i> Dashboard
+                    </a>
+                </div>
+                <div class="nav-item mb-1">
+                    <a href="#" class="nav-link link-dark">
+                        <i class="bi bi-receipt me-2"></i> Órdenes
+                    </a>
+                </div>
+                <div class="nav-item mb-1">
+                    <a href="admin_nuevo_producto.html" class="nav-link link-dark">
+                        <i class="bi bi-box-seam me-2"></i> Inventario
+                    </a>
+                </div>
+                <div class="nav-item mb-1">
+                    <a href="#" class="nav-link link-dark">
+                        <i class="bi bi-file-earmark-bar-graph me-2"></i> Reportes
+                    </a>
+                </div>
+                <div class="nav-item mb-1">
+                    <a href="admin_lista_usuarios.html" class="nav-link link-dark">
+                        <i class="bi bi-person-badge me-2"></i> Empleados
+                    </a>
+                </div>
+                <div class="nav-item mb-1">
+                    <a href="#" class="nav-link link-dark">
+                        <i class="bi bi-people me-2"></i> Clientes
+                    </a>
+                </div>
+            </div>
+
+            <!-- navegacion secundaria -->
+            <hr>
+            <div class="nav nav-pills flex-column mb-3">
+                <div class="nav-item mb-1">
+                    <a href="#" class="nav-link link-dark">
+                        <i class="bi bi-gear me-2"></i> Configuración
+                    </a>
+                </div>
+                <div class="nav-item mb-1">
+                    <a href="admin_nuevo_usuario.html" class="nav-link link-dark">
+                        <i class="bi bi-person-plus me-2"></i> +Profile
+                    </a>
+                </div>
+                <div class="nav-item mb-1">
+                    <a href="#" class="nav-link link-dark">
+                        <i class="bi bi-search me-2"></i> Buscar
+                    </a>
+                </div>
+                <div class="nav-item mb-1">
+                    <a href="#" class="nav-link link-dark">
+                        <i class="bi bi-question-circle me-2"></i> Ayuda
+                    </a>
+                </div>
+            </div>
+
+            <!-- perfil  -->
+            <hr>
+            <div class="dropdown">
+                <a href="#" class="d-flex align-items-center link-dark text-decoration-none dropdown-toggle" id="dropdownUser" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-person-circle fs-4 me-2"></i>
+                    <strong>Perfil Admin</strong>
+                </a>
+                <div class="dropdown-menu text-small shadow" aria-labelledby="dropdownUser">
+                    <a class="dropdown-item" href="#">Ajustes</a>
+                    <a class="dropdown-item" href="#">Perfil</a>
+                    <hr class="dropdown-divider">
+                    <a class="dropdown-item" href="login.html">Cerrar sesión</a>
+                </div>
+            </div>
+        </aside>
+
+        <!-- contentido principal-->
+        <main class="flex-grow-1 p-4 overflow-auto fondo-admin bg-transparent">
+            
+            <div class="d-flex justify-content-between align-items-center mb-4 border-bottom border-secondary pb-3">
+                <h1 class="h2 fw-bold text-dark">¡HOLA Administrador!</h1>
+                <a href="#" class="text-dark fs-4" aria-label="Notificaciones">
+                    <i class="bi bi-bell-fill"></i>
+                </a>
+            </div>
+
+            <div class="container-fluid px-0">
+                
+                <!-- Tarjetas de Resumen (KPIs) -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-3">
+                        <div class="card border-0 shadow-sm rounded-0">
+                            <div class="card-body d-flex align-items-center">
+                                <div class="bg-primary text-white p-3 me-3 fs-4 d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                                    <i class="bi bi-currency-dollar"></i>
+                                </div>
+                                <div>
+                                    <h6 class="text-muted mb-0" style="font-size: 0.8rem; text-transform: uppercase;">Ventas del Día</h6>
+                                    <h4 class="mb-0 fw-bold">$450.000</h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card border-0 shadow-sm rounded-0">
+                            <div class="card-body d-flex align-items-center">
+                                <div class="bg-warning text-dark p-3 me-3 fs-4 d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                                    <i class="bi bi-truck"></i>
+                                </div>
+                                <div>
+                                    <h6 class="text-muted mb-0" style="font-size: 0.8rem; text-transform: uppercase;">En Ruta</h6>
+                                    <h4 class="mb-0 fw-bold">12 Órdenes</h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card border-0 shadow-sm rounded-0">
+                            <div class="card-body d-flex align-items-center">
+                                <div class="bg-success text-white p-3 me-3 fs-4 d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                                    <i class="bi bi-people"></i>
+                                </div>
+                                <div>
+                                    <h6 class="text-muted mb-0" style="font-size: 0.8rem; text-transform: uppercase;">Clientes Nuevos</h6>
+                                    <h4 class="mb-0 fw-bold">24</h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card border-0 shadow-sm rounded-0">
+                            <div class="card-body d-flex align-items-center">
+                                <div class="bg-danger text-white p-3 me-3 fs-4 d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                                    <i class="bi bi-exclamation-triangle"></i>
+                                </div>
+                                <div>
+                                    <h6 class="text-muted mb-0" style="font-size: 0.8rem; text-transform: uppercase;">Stock Crítico</h6>
+                                    <h4 class="mb-0 fw-bold">3 Productos</h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Segunda fila: Tabla y Gráficos simulados -->
+                <div class="row g-3">
+                    <!-- Últimas Órdenes -->
+                    <div class="col-md-8">
+                        <div class="card border-0 shadow-sm rounded-0 h-100">
+                            <div class="card-header bg-white border-bottom py-3">
+                                <h6 class="mb-0 fw-bold text-uppercase text-secondary">Últimas Órdenes Recibidas</h6>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-hover mb-0 align-middle">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th class="ps-4">ID Pedido</th>
+                                                <th>Cliente</th>
+                                                <th>Detalle</th>
+                                                <th>Estado</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td class="ps-4 fw-bold">#V-1045</td>
+                                                <td>Juan Pérez</td>
+                                                <td>2x Cilindro 15kg</td>
+                                                <td><span class="badge bg-warning text-dark rounded-0 px-2 py-1">En Reparto</span></td>
+                                            </tr>
+                                            <tr>
+                                                <td class="ps-4 fw-bold">#V-1044</td>
+                                                <td>María González</td>
+                                                <td>1x Cilindro 45kg</td>
+                                                <td><span class="badge bg-success rounded-0 px-2 py-1">Entregado</span></td>
+                                            </tr>
+                                            <tr>
+                                                <td class="ps-4 fw-bold">#V-1043</td>
+                                                <td>Pedro Soto</td>
+                                                <td>1x Cilindro 11kg</td>
+                                                <td><span class="badge bg-secondary rounded-0 px-2 py-1">Pendiente</span></td>
+                                            </tr>
+                                            <tr>
+                                                <td class="ps-4 fw-bold">#V-1042</td>
+                                                <td>Luisa Martínez</td>
+                                                <td>1x Cilindro 5kg</td>
+                                                <td><span class="badge bg-success rounded-0 px-2 py-1">Entregado</span></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Estado del Inventario -->
+                    <div class="col-md-4">
+                        <div class="card border-0 shadow-sm rounded-0 h-100">
+                            <div class="card-header bg-white border-bottom py-3">
+                                <h6 class="mb-0 fw-bold text-uppercase text-secondary">Nivel de Inventario</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <span class="fw-bold text-dark" style="font-size: 0.85rem;">Cilindros 5kg</span>
+                                        <span class="text-muted small">80%</span>
+                                    </div>
+                                    <div class="progress rounded-0 border" style="height: 10px;">
+                                        <div class="progress-bar bg-info" role="progressbar" style="width: 80%" aria-valuenow="80" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <span class="fw-bold text-dark" style="font-size: 0.85rem;">Cilindros 11kg</span>
+                                        <span class="text-muted small">45%</span>
+                                    </div>
+                                    <div class="progress rounded-0 border" style="height: 10px;">
+                                        <div class="progress-bar bg-success" role="progressbar" style="width: 45%" aria-valuenow="45" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <span class="fw-bold text-dark" style="font-size: 0.85rem;">Cilindros 15kg</span>
+                                        <span class="text-danger small fw-bold">15%</span>
+                                    </div>
+                                    <div class="progress rounded-0 border" style="height: 10px;">
+                                        <div class="progress-bar bg-danger" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                </div>
+                                <div class="mb-0">
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <span class="fw-bold text-dark" style="font-size: 0.85rem;">Cilindros 45kg</span>
+                                        <span class="text-muted small">60%</span>
+                                    </div>
+                                    <div class="progress rounded-0 border" style="height: 10px;">
+                                        <div class="progress-bar bg-primary" role="progressbar" style="width: 60%" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- scrip para no bloquear los clics -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script> 
+    <script src="JS/java.js"></script>
+</body>
+</html>
