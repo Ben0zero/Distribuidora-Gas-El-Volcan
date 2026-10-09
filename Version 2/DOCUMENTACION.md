@@ -1,22 +1,24 @@
-# Documentación — avance entrega (El Volcán en React)
+# Documentación — Versión 2 (El Volcán en React)
 
-Explica qué se construyó en `Evaluacion 2/avance entrega`, cómo funciona cada parte y la lógica detrás de cada decisión.
-Sigue el patrón de la **Guía React Parte II (Tienda Fullstack)** de DSY1104 y el modelo de clases `mi-primer-react`.
+Explica qué se construyó en `Evaluacion 2/avance entrega`, cómo funciona cada parte y la lógica detrás de cada
+decisión. Complementa al `README.md`, al `ERS_ACTUALIZADO.md` (requisitos) y al
+`DOCUMENTO_COBERTURA_TESTING.md` (pruebas).
 
 ---
 
 ## 1. Qué es y para qué
 
-Aplicación SPA de la **Distribuidora de Gas El Volcán** construida con React. Es el avance de la evaluación que
-reemplaza el sitio estático (HTML/CSS/JS) por una aplicación React moderna, incorporando todo lo visto hasta ahora:
+Aplicación **SPA** de la **Distribuidora de Gas El Volcán** construida con React. Reemplaza el sitio estático
+(HTML/CSS/JS) de la Versión 1 por una aplicación moderna, incorporando todo lo visto en la asignatura:
 
-- Componentes y props.
-- Estado (`useState`) y persistencia (`localStorage`).
-- React Router (SPA con varias rutas).
-- Formularios controlados con validación.
-- Diseño responsivo y componentes con React Bootstrap.
+- Componentes y **props**.
+- **Estado** (`useState`) y persistencia (`localStorage`).
+- **React Router** (SPA con varias rutas y rutas anidadas).
+- **Formularios controlados** con validación.
+- **Diseño responsivo** con Bootstrap / React Bootstrap.
+- **Pruebas unitarias** con Jasmine + Karma.
 
-Datos de negocio reales: 14 productos de gas, precios residencial/comercial, y el login del administrador
+Datos de negocio reales: 14 productos de gas, precios residencial/comercial y el login del administrador
 (`admin@duoc.cl`).
 
 ---
@@ -25,15 +27,20 @@ Datos de negocio reales: 14 productos de gas, precios residencial/comercial, y e
 
 | Tecnología | Versión | Rol |
 |---|---|---|
-| Vite | 8.3 | Herramienta de desarrollo/build. Uso en clases: `npm run dev`. |
+| Vite | 8.3 | Herramienta de desarrollo/build (`npm run dev`). |
 | React / React DOM | 19.2 | Biblioteca de componentes (SPA). |
-| react-router-dom | 7.18 | Rutas de la SPA (`BrowserRouter`, `Routes`, `Route`, `Link`, `useParams`, `useLocation`). |
-| react-bootstrap | 2.10 | Componentes UI listos (`Navbar`, `Card`, `Button`, `Form`, `Alert`, `Badge`, `ListGroup`). |
-| bootstrap | 5.3.8 | CSS base (grillas, estilos). Importado en `main.jsx`. |
-| oxlint | 1.81 | Linter oficial del template de clases (`npm run lint`). |
+| react-router-dom | 7.18 | Rutas (`BrowserRouter`, `Routes`, `Route`, `Outlet`, `Link`, `useParams`, `useLocation`, `useNavigate`). |
+| react-bootstrap | 2.10 | Componentes UI (`Navbar`, `Card`, `Button`, `Form`, `Alert`, `Badge`, `ListGroup`, `Table`, `Modal`, `Row`, `Col`). |
+| bootstrap | 5.3.8 | CSS base (grillas y estilos). Importado en `main.jsx`. |
+| bootstrap-icons | 1.13 | Íconos (`bi-*`) usados en el sitio y el admin. |
+| oxlint | 1.81 | Linter (`npm run lint`). |
+| Karma + Jasmine | 6.4 / 4.6 | Pruebas unitarias (`npm test`). |
+| karma-esbuild | 2.3 | Compila los specs (soporta JSX y Vite/React 19). |
+| karma-coverage | 2.2 | Reporte de cobertura (`coverage/`). |
 
-**Por qué este stack**: es exactamente el mismo que la asignatura (Ver `Semana react/mi-primer-react`).
-No se introduce nada nuevo que no se pueda explicar/nivel-del-curso.
+**Por qué este stack**: es el mismo de la asignatura (ver `Semana react/mi-primer-react`). Para las pruebas,
+Jasmine es el framework pedido y Karma el runner; como `karma-vite` no es compatible con Vite 8 + React 19, se
+usa `karma-esbuild`, que compila los `.jsx` con esbuild.
 
 ---
 
@@ -41,289 +48,351 @@ No se introduce nada nuevo que no se pueda explicar/nivel-del-curso.
 
 ```
 avance entrega/
-├─ index.html                     → punto de montaje de la SPA (lang="es")
+├─ index.html                       → punto de montaje de la SPA (lang="es")
+├─ karma.conf.cjs                   → configuración de Karma + Jasmine
 ├─ src/
-│  ├─ main.jsx                    → arranca React y carga Bootstrap CSS
-│  ├─ index.css                   → estilos globales mínimos
-│  ├─ App.jsx                     → rutas + estado global del carrito
+│  ├─ main.jsx                      → arranca React y carga Bootstrap, íconos y CSS
+│  ├─ estilos.css                   → estilos heredados de la Versión 1 (incluye .fondo)
+│  ├─ index.css                     → estilos globales mínimos
+│  ├─ App.jsx                       → rutas + estado global del carrito
 │  ├─ datos/
-│  │  └─ productos.js             → "base de datos" local: los 14 productos
+│  │  └─ productos.js               → los 14 productos base
+│  ├─ utils/
+│  │  ├─ validaciones.js            → validaciones, REGIONES, CATEGORIAS, CLAVES, helpers
+│  │  ├─ carrito.js                 → lógica pura del carrito
+│  │  └─ productos.js               → catálogo real (ediciones + creados)
 │  ├─ components/
-│  │  ├─ Navbar.jsx               → barra de navegación (repeat en todas las páginas)
-│  │  └─ Producto.jsx             → tarjeta de producto (reutilizable)
-│  └─ pages/
-│     ├─ Inicio.jsx               → portada
-│     ├─ Productos.jsx            → catálogo + filtro por categoría
-│     ├─ DetalleProducto.jsx      → ficha de un producto (ruta /producto/:id)
-│     ├─ Login.jsx                → formulario controlado de acceso
-│     ├─ Registro.jsx             → creación de cuenta (validaciones + regiones/comunas)
-│     └─ Carrito.jsx              → resumen del carrito (cantidades y total)
+│  │  ├─ LayoutPublico.jsx          → layout de la parte pública
+│  │  ├─ Navbar.jsx                 → barra de navegación
+│  │  ├─ Footer.jsx                 → pie de página
+│  │  ├─ BotonTienda.jsx            → botón flotante a Tiendas
+│  │  └─ Producto.jsx               → tarjeta de producto
+│  ├─ pages/
+│  │  ├─ Inicio.jsx
+│  │  ├─ Productos.jsx
+│  │  ├─ DetalleProducto.jsx
+│  │  ├─ Carrito.jsx
+│  │  ├─ Ventas.jsx                 → checkout
+│  │  ├─ Login.jsx
+│  │  ├─ Registro.jsx
+│  │  ├─ Nosotros.jsx
+│  │  ├─ Consejos.jsx
+│  │  ├─ Tiendas.jsx
+│  │  ├─ Contacto.jsx
+│  │  └─ admin/
+│  │     ├─ AdminLayout.jsx
+│  │     ├─ Dashboard.jsx
+│  │     ├─ Inventario.jsx
+│  │     ├─ ListaUsuarios.jsx
+│  │     └─ NuevoUsuario.jsx
+│  └─ test/
+│     └─ setup.js                   → arranque de Jasmine DOM y limpieza
 └─ public/
-   └─ IMAGENES/                   → imágenes de los productos
+   └─ IMAGENES/                     → imágenes de los productos y del sitio
 ```
 
 ---
 
-## 4. Explicación componente por componente (con la lógica)
+## 4. Rutas de la aplicación
 
-### 4.1 `src/main.jsx` — punto de entrada
+Definidas en `src/App.jsx` con **rutas anidadas**: las públicas comparten `LayoutPublico` y las de administración
+comparten `AdminLayout` (cada layout renderiza su contenido con `<Outlet />`).
 
-```jsx
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import 'bootstrap/dist/css/bootstrap.min.css'
-import './index.css'
-import App from './App.jsx'
-```
+| Ruta | Componente | Layout | Descripción |
+|---|---|---|---|
+| `/` | `Inicio` | Público | Portada |
+| `/productos` | `Productos` | Público | Catálogo (con `?categoria=`) |
+| `/producto/:id` | `DetalleProducto` | Público | Ficha de producto |
+| `/carrito` | `Carrito` | Público | Carrito |
+| `/ventas` | `Ventas` | Público | Checkout |
+| `/login` | `Login` | Público | Acceso |
+| `/registro` | `Registro` | Público | Crear cuenta |
+| `/nosotros` | `Nosotros` | Público | Historia |
+| `/consejos` | `Consejos` | Público | Consejos de seguridad |
+| `/tiendas` | `Tiendas` | Público | Sucursales |
+| `/contacto` | `Contacto` | Público | Formulario de contacto |
+| `/admin` | `Dashboard` | Admin | Panel (índice) |
+| `/admin/inventario` | `Inventario` | Admin | CRUD de productos |
+| `/admin/usuarios` | `ListaUsuarios` | Admin | Usuarios y roles |
+| `/admin/usuarios/nuevo` | `NuevoUsuario` | Admin | Crear usuario |
 
-**Lógica**: `createRoot(...).render(<App />)` es quién "monta" la aplicación en el `<div id="root">` del
-`index.html`. El import `bootstrap/dist/css/bootstrap.min.css` carga los estilos de Bootstrap **antes**
-de nuestro `index.css`, para que lo nuestro pueda sobrescribir. `StrictMode` es una herramienta de
-desarrollo que detecta errores (en producción no agrega nada visible).
+---
 
-### 4.2 `src/datos/productos.js` — los datos
+## 5. Estado global y persistencia
 
-```jsx
-export const PRODUCTOS = [
-  { id: 'p1', codigo: 'CL001', nombre: 'Cilindro GLP 5 kg', ..., residencial: 6500, comercial: 6000,
-    stock: 80, stockCritico: 5, categoria: 'Cilindros de Gas', imagen: '/IMAGENES/cilindro de 5 K.png' },
-  ...
-]
-```
-
-**Lógica detras de la decisión**:
-- Son los **mismos 14 productos** del `java.js` del sitio anterior (mismos nombres, precios, stock y rutas de
-  imagen). Defendible: los datos ya estaban validados y aprobados en la entrega anterior.
-- Al hacer `export` el resto de la app los importa donde los necesite (`Productos`, `DetalleProducto`, `Carrito`).
-- **Por qué array y no `<Producto nombre="..." precio="..." />` repetido 14 veces**:
-  - No repetimos código (DRY). Si cambia un precio se edita una sola línea.
-  - El componente `Producto` es genérico (una sola definición), igual que el "Atomic Design" de la guía
-    (átomo/molecular/organismo/página).
-  - Cuando existan los microservicios, solo reemplazamos este archivo por un `fetch()` a la API; las páginas
-    no cambian (el "seam" o punto de cambio único).
-
-### 4.3 `src/App.jsx` — rutas + estado del carrito
+El **carrito** es el único estado de aplicación; vive en `App` (patrón **"lifting state up"**) porque lo comparten
+`Productos`, `DetalleProducto`, `Carrito` y `Ventas`.
 
 ```jsx
-<BrowserRouter>
-  <Navbar totalItems={totalItems} />
-  <Routes>
-    <Route path="/" element={<Inicio />} />
-    <Route path="/productos" element={<Productos onAgregar={agregar} />} />
-    <Route path="/producto/:id" element={<DetalleProducto onAgregar={agregar} />} />
-    <Route path="/login" element={<Login />} />
-    <Route path="/carrito" element={<Carrito ... />} />
-  </Routes>
-</BrowserRouter>
+const [carrito, setCarrito] = useState(() => {
+  try { return JSON.parse(localStorage.getItem(CLAVES.carrito)) || [] }
+  catch { return [] }
+})
+
+useEffect(() => {
+  localStorage.setItem(CLAVES.carrito, JSON.stringify(carrito))
+}, [carrito])
 ```
 
-**Lógica**:
-- `BrowserRouter` habilita la navegación de la SPA **sin recargar la página**.
-- `Navbar` está **fuera de `Routes`** → aparece en todas las páginas (igual que en la guía).
-- `Routes`/`Route` hacen el "enrutado": según la URL mostraremos un componente u otro.
-- La ruta `/producto/:id` es dinámica; los dos puntos hacen que `:id` sea una parte variable de la URL.
+- El valor inicial se **lee de `localStorage`** con la función inicializadora del `useState` (por eso `F5` no lo
+  pierde).
+- Cada cambio se **persiste** con `useEffect`.
+- Las operaciones (`agregar`, `incrementar`, `decrementar`, `eliminar`, `vaciar`) delegan en las funciones puras de
+  `utils/carrito.js`, y `totalItems` se calcula con `contarItems`.
+- `App` le pasa el carrito y los callbacks por **props** a `Carrito`/`Ventas`, y `totalItems` a `Navbar`.
 
-**Estado del carrito (lógica clave)**:
+**Claves de `localStorage`** (constante `CLAVES` en `utils/validaciones.js`):
+
+| Clave | Contenido |
+|---|---|
+| `carrito` | Arreglo `[{ id, cantidad }]` |
+| `usuarios` | Usuarios registrados / creados por el admin |
+| `sesion` | Usuario con sesión activa (sin contraseña) |
+| `productos` | Productos creados desde el panel admin |
+| `edicionesProductos` | Cambios del admin sobre los productos base |
+| `ordenes` | Órdenes generadas en el checkout |
+| `solicitudes` | Mensajes enviados por el formulario de contacto |
+
+---
+
+## 6. Utilidades (lógica pura y testable)
+
+Se extrajeron a `src/utils/` para reutilizarlas en varias páginas **y** poder probarlas de forma aislada.
+
+### 6.1 `utils/validaciones.js`
+Contiene datos compartidos (`REGIONES`, `CATEGORIAS`, `ADMIN_DEFAULT`, `CLAVES`) y funciones puras:
+
+- `validarRun`, `validarTelefono`, `validarCorreo`, `correoDominioPermitido`, `formatearPrecio`.
+- `validarFormularioRegistro(datos)` y `validarFormularioContacto(datos)`: devuelven **el primer mensaje de error**
+  o `''` si todo está correcto (centralizan las reglas que antes estaban dispersas en `java.js`).
+- `leerLista(clave)` / `leerObjeto(clave)`: leen `localStorage` de forma **tolerante a errores** (JSON corrupto
+  devuelve `[]` o `null` en vez de romper la app).
+
+### 6.2 `utils/carrito.js`
+Funciones **puras** (reciben el carrito y devuelven uno **nuevo**, sin mutar), fáciles de testear:
+
+- `agregarItem`, `incrementarItem`, `decrementarItem` (elimina al llegar a 0), `eliminarItem`, `contarItems`.
+- `obtenerItemsCompletos(carrito, productos)`: une cada línea con su producto y descarta ids inexistentes.
+- `calcularTotal(carrito, productos, tipo)`: suma `precio × cantidad` según `residencial` o `comercial`.
+
+### 6.3 `utils/productos.js`
+Construye el **catálogo real** combinando datos:
+
+- `aplicarEdiciones(base, ediciones)`: sobreescribe solo los campos editados por el admin.
+- `catalogoActual()`: catálogo base + ediciones (lo que ve el cliente).
+- `productosConCreados()`: catálogo + productos creados desde el admin, marcados con `base: true/false`.
+
+> **Por qué importa**: son el "seam" (punto único de cambio). Cuando existan los microservicios, estas funciones se
+> reemplazan por `fetch()` y las páginas no cambian.
+
+---
+
+## 7. Componentes reutilizables
+
+### 7.1 `components/LayoutPublico.jsx`
+Layout de la parte pública. Renderiza `BotonTienda`, `Navbar`, el `<Outlet />` (la página actual) y `Footer`.
+Gracias a las **rutas anidadas**, no repetimos el menú ni el pie en cada página.
+
+### 7.2 `components/Navbar.jsx`
+Barra de navegación de react-bootstrap (`Navbar as BootstrapNavbar` para no chocar con el nombre propio).
+Recibe **`totalItems` por props** y lo muestra en un `Badge` sobre el enlace "Carrito".
+`expand="lg"` la hace colapsable (responsiva). Enlaces: Inicio, Productos, Nosotros, Consejos, Tiendas, Contacto,
+Carrito, Login y Registro.
+
+### 7.3 `components/Producto.jsx`
+Tarjeta de producto (componente **de presentación**). Recibe props (`id`, `nombre`, `descripcion`, `residencial`,
+`imagen`) y un callback `onAgregar`. **No** sabe de datos: solo muestra y avisa.
+- "Agregar" → `props.onAgregar(props.id)` (comunicación **hijo → padre**).
+- "Ver detalle" → `Link to={/producto/${props.id}}`.
+
+### 7.4 `components/Footer.jsx` y `components/BotonTienda.jsx`
+- `Footer`: logo, datos de contacto y créditos.
+- `BotonTienda`: botón flotante con imagen que enlaza a `/tiendas`, con `aria-label` accesible.
+
+---
+
+## 8. Páginas públicas
+
+### 8.1 `Inicio.jsx`
+Componente de presentación: título, descripción y botón `as={Link}` a `/productos`.
+
+### 8.2 `Productos.jsx` — catálogo + filtro
 ```jsx
-const [carrito, setCarrito] = useState(() => { ... JSON.parse(localStorage.getItem('carrito')) ... })
-useEffect(() => { localStorage.setItem('carrito', JSON.stringify(carrito)) }, [carrito])
+const categoria = new URLSearchParams(useLocation().search).get('categoria')
+const productos = catalogoActual()
+const lista = categoria ? productos.filter((p) => p.categoria === categoria) : productos
 ```
-- El carrito vive en `App` (**"lifting state up"**): es información compartida entre `Productos`,
-  `DetalleProducto` y `Carrito`, así que se centraliza en el padre.
-- **Persistencia**: el valor inicial se lee desde `localStorage` (función inicializadora del `useState`), y cada
-  vez que el carrito cambia, `useEffect` lo guarda. Así `F5` no lo pierde (misma técnica que el stock de la guía).
-- Funciones que lo modifican:
-  - `agregar(id)`: si el producto ya está, suma 1 a su `cantidad`; si no, lo agrega con `{ id, cantidad: 1 }`.
-  - `incrementar(id)` / `decrementar(id)`: suman/restan 1; `decrementar` además filtra los que quedaron en 0
-    (para que la cantidad nunca sea negativa — igual que el stock que "no puede bajar de 0" de la guía).
-  - `eliminar(id)`: quita el producto del carrito.
+Usa `useLocation` + `URLSearchParams` (funcionalidad "parámetros de búsqueda" de la guía). Los botones de categoría
+navegan a `/productos?categoria=...`; las tarjetas se generan con `.map()` y `key={p.id}`, en grilla responsiva.
 
-### 4.4 `src/components/Navbar.jsx` — navegación
-
-```jsx
-<BootstrapNavbar bg="dark" data-bs-theme="dark" expand="lg">
-  ...
-  <Nav.Link as={Link} to="/productos">Productos</Nav.Link>
-  <Nav.Link as={Link} to="/carrito">Carrito <Badge ...>{totalItems}</Badge></Nav.Link>
-```
-
-**Lógica**:
-- Usamos el componente `Navbar` de react-bootstrap (por eso el import lleva alias `as BootstrapNavbar`
-  para no chocar con el nombre de nuestro propio componente).
-- `as={Link}` + `to="/..."` hace que los links naveguen **dentro de la SPA** usando React Router, sin recargar.
-- Recibe `totalItems` por **props** desde `App` para mostrar el contador del carrito en el badge.
-- `expand="lg"` hace el menú colapsable en pantallas chicas (responsivo).
-
-### 4.5 `src/components/Producto.jsx` — tarjeta de producto
-
-Recibe **props**: `id`, `nombre`, `descripcion`, `residencial`, `imagen` y `onAgregar`.
-
-```jsx
-<Button onClick={() => props.onAgregar(props.id)}>Agregar</Button>
-<Button as={Link} to={`/producto/${props.id}`}>Ver detalle</Button>
-```
-
-**Lógica**:
-- Es el **componente reutilizable** (el "organismo" del Atomic Design). No sabe nada de los datos; solo muestra lo
-  que le pasan y avisa con `onAgregar(id)` cuando se presiona Agregar.
-- **Comunicación hijo → padre**: el clic en "Agregar" llama a `onAgregar`, una función que `App` le pasó;
-  es el patrón estándar para que los hijos "avisen" al padre.
-- "Ver detalle" genera la URL con template literal: `` `/producto/${props.id}` ``.
-
-### 4.6 `src/pages/Inicio.jsx` — portada
-
-**Lógica**: componente simple de presentación. Solo renderiza el nombre de la empresa y un botón que navega a
-`/productos` con `as={Link}`.
-
-### 4.7 `src/pages/Productos.jsx` — catálogo + filtro
-
-```jsx
-const location = useLocation()
-const parametros = new URLSearchParams(location.search)
-const categoria = parametros.get('categoria')
-const productos = categoria ? PRODUCTOS.filter((p) => p.categoria === categoria) : PRODUCTOS
-```
-
-**Lógica** (es la funcionalidad de la guía "Parámetros de búsqueda"):
-- `useLocation()` nos da la URL actual; `URLSearchParams` parsea la parte de la query string.
-- Si la URL es `/productos?categoria=Reguladores`, `categoria` vale "Reguladores" y filtramos el array con
-  `.filter()`.
-- Los botones de categoría navegan con `Link to={/productos?categoria=...}` (con `encodeURIComponent`
-  para los espacios).
-- Las tarjetas se generan en bucle con `.map()` y se le pasan al componente `Producto`. La prop `key={p.id}`
-  le dice a React cuál es cada elemento (necesaria en listas).
-- Grilla responsiva con `Row`/`Col`: `xs={1} sm={2} md={3} lg={4}` = 1 producto celular, 4 en pantalla grande.
-
-### 4.8 `src/pages/DetalleProducto.jsx` — ficha del producto
-
+### 8.3 `DetalleProducto.jsx` — ficha
 ```jsx
 const { id } = useParams()
-const producto = PRODUCTOS.find((p) => p.id === id)
+const producto = catalogoActual().find((p) => p.id === id)
 ```
+`useParams` extrae `:id`; si el producto no existe muestra un `Alert` "Producto no encontrado" (caso real: URL
+tecleada a mano). Muestra imagen, descripción, categoría, código, precios y stock, con botón "Agregar".
 
-**Lógica** (guía "Rutas con parámetros"):
-- `useParams()` extrae el valor de `:id` de la URL (ej. `/producto/p3` → `id = "p3"`).
-- `.find()` busca el producto exacto en el array; si no existe, mostramos un `Alert` "Producto no encontrado"
-  (caso de mundo real: URLs tecleadas a mano o inválidas).
-- La ficha muestra los datos completos: imagen, descripción, categoría, código, precio residencial/comercial y
-  stock, con el botón "Agregar al carrito" que usa `onAgregar(producto.id)`.
-
-### 4.9 `src/pages/Login.jsx` — formulario controlado + sesión
-
-**Formulario controlado**:
+### 8.4 `Carrito.jsx` — resumen y total
 ```jsx
-const [email, setEmail] = useState('')
-const [password, setPassword] = useState('')
-...
-<input value={email} onChange={(e) => setEmail(e.target.value)} />
+const items = obtenerItemsCompletos(carrito, catalogoActual())
+const total = calcularTotal(carrito, catalogoActual())
 ```
-Los valores de los campos **viven en React** (estado), no en el DOM. Por eso es "controlado": `value` vincula el
-input al estado y `onChange` lo actualiza en cada tecla.
+Muestra cada línea con `+`/`-`/Quitar (los callbacks vienen de `App`), subtotales y total, y el botón "Finalizar
+compra" que lleva al checkout (`/ventas`). Si está vacío, muestra un `Alert` y un botón a Productos.
 
-**Validación** (lógica del negocio):
-1. El email debe contener `@` → si no, error "El correo electrónico no es válido".
-2. La contraseña debe tener al menos 4 caracteres → si no, error.
-3. Se busca el usuario en `localStorage.usuarios` + el `ADMIN_DEFAULT` (admin@duoc.cl). Si no coincide
-   → "Credenciales incorrectas".
-4. Si todo ok → se guarda la **sesión** (sin el password) en `localStorage.sesion` y se navega a `/` con
-   `useNavigate()`.
+### 8.5 `Ventas.jsx` — checkout
+- Requiere **sesión iniciada**; si no hay, invita a iniciar sesión/registrarse (comparando con `localStorage.sesion`).
+- Toma dirección y comuna de la sesión (se pueden editar) y pide **método de pago** (Efectivo / Tarjeta).
+- Valida, **genera una orden** (`ORD-######`) con fecha, cliente, ítems y total, la guarda en `localStorage.ordenes`
+  y **vacía el carrito** (`vaciar`).
+- Muestra una confirmación con el número de orden y el total.
 
-**Lógica de sesión**: al recargar, el `useState` inicial lee `localStorage.sesion`; si hay sesión, en vez del
-formulario se muestra un `Alert` con el usuario y botón "Cerrar sesión" (que hace `removeItem`).
-Así replicamos el comportamiento del frontend viejo sin backend.
+### 8.6 `Login.jsx` — acceso y sesión
+Formulario controlado. Valida `@` en el correo y largo de contraseña; busca en `localStorage.usuarios` + el
+`ADMIN_DEFAULT`. Si coincide, guarda la **sesión** (sin contraseña) en `localStorage.sesion` y navega (el
+administrador va a `/admin`). Si ya hay sesión, muestra los datos y un botón "Cerrar sesión".
 
-### 4.10 `src/pages/Carrito.jsx` — resumen y totales
+### 8.7 `Registro.jsx` — creación de cuenta
+Formulario controlado por campo. Usa `validarFormularioRegistro` (RUN 7–9 dígitos, correo `@duoc.cl` /
+`@profesor.duoc.cl` / `@gmail.com`, teléfono, dirección, región/comuna, contraseña 4–10, términos) y verifica que
+el correo no esté repetido. Guarda el usuario con `rol: 'Cliente'` y navega a `/login`. Usa **selectores
+dependientes** Región → Comuna (`REGIONES.find(...)`).
 
-```jsx
-const items = carrito.map((item) => ({ ...item, producto: PRODUCTOS.find((p) => p.id === item.id) }))
-const total = items.reduce((suma, item) => suma + item.producto.residencial * item.cantidad, 0)
-```
+### 8.8 `Nosotros.jsx` — historia con blogs expandibles
+Dos secciones ("blogs") con resumen y un botón "Ver Más"/"Ver Menos" que **expande/contrae** el contenido usando
+`useState` (estado local por blog). Esta página se usa para probar el **estado de un componente**.
 
-**Lógica**:
-- Al carrito (que solo guarda `{ id, cantidad }`) le "juntoamos" (`.find`) el producto completo para poder
-  mostrar nombre, imagen y precio. Con `.filter` descartamos ids que ya no existan (seguridad).
-- `total` con `reduce()` suma `precio × cantidad` de cada línea = el **subtotal** y el **total**.
-- Los botones `+`/`-` llaman a `incrementar`/`decrementar` (definidas en `App`), y "Quitar" a `eliminar`.
-- `toLocaleString('es-CL')` formatea los precios a moneda chilena (`6.500`, `12.000`).
-- Caso vacío → `Alert` "Aún no hay productos en el carrito" + botón a Productos (mismo mensaje del
-  `ShoppingCart` de la guía AWS).
+### 8.9 `Consejos.jsx` — seguridad del gas
+Secciones informativas: instalación correcta, consejos rápidos (íconos), video de YouTube embebido y pasos a
+seguir ante una fuga. Incluye un CTA al catálogo.
 
-### 4.11 `src/pages/Registro.jsx` — creación de cuenta
+### 8.10 `Tiendas.jsx` — sucursales
+Tarjetas de las sucursales (Casa Matriz Chillán, Chillán Viejo, Bulnes, Quillón, San Ignacio) con dirección,
+teléfono, horario y un **mapa** referencial.
 
-Formulario controlado con `useState` para **cada campo** (igual que Login), más las reglas de negocio del
-frontend original (`java.js`):
-
-**Validaciones (replicadas del sitio anterior):**
-1. Nombre completo obligatorio (máx. 100 caracteres).
-2. RUN: solo dígitos, sin puntos ni guion, entre 7 y 9 (`/^\d{7,9}$/`).
-3. Correo con dominio permitido: `@duoc.cl`, `@profesor.duoc.cl` o `@gmail.com`.
-4. Teléfono válido (9 a 12 dígitos, permite `+56`).
-5. Dirección, región y comuna obligatorias.
-6. Contraseña de 4 a 10 caracteres y que coincida con "confirmar".
-7. Checkbox de términos y condiciones obligatorio.
-8. El correo no debe estar ya registrado (se verifica recorriendo `localStorage.usuarios`).
-
-**Regiones/comunas (lógica de selectores dependientes):**
-- `REGIONES` es un array `{ nombre, comunas: [...] }` (aquí: Región de Ñuble con sus comunas).
-- Al elegir una región se **limpia** la comuna y se habilitan solo las comunas de esa región
-  (`comunasRegion = REGIONES.find(...)`). Es el patrón "carga condicional de opciones".
-
-**Guardado y flujo:**
-- Se agrega el usuario con `{ fecha, run, nombre, correo, telefono, tipoCliente, direccion, region, comuna,
-  contrasena, rol: 'Cliente', estado: 'Pendiente' }` y se guarda el array completo en `localStorage.usuarios`
-  (misma clave y formato del frontend anterior).
-- Al éxito muestra un `Alert` verde y navega a `/login` con `setTimeout` + `useNavigate`.
-- El **Login** lee `correo`/`contrasena` (usuarios registrados) o `email`/`password` (admin), por eso ambos
-  funcionan sin cambios extra.
+### 8.11 `Contacto.jsx` — formulario
+Valida con `validarFormularioContacto` (nombre, correo, teléfono, asunto y mensaje) y **guarda la solicitud** en
+`localStorage.solicitudes`, mostrando confirmación.
 
 ---
 
-## 5. Decisiones de diseño y lógica de negocio
+## 9. Panel de administración
+
+### 9.1 `admin/AdminLayout.jsx`
+Layout propio del panel: menú lateral (`NavLink`) con Dashboard, Inventario y Empleados, un acceso a "+Profile"
+(Nuevo usuario), el nombre del usuario de la sesión y el botón **Cerrar sesión** (elimina `localStorage.sesion` y
+vuelve a `/login`). En móvil el menú se colapsa. Los ítems "Órdenes", "Reportes" y "Clientes" quedan como
+**próximamente** (deshabilitados).
+
+### 9.2 `admin/Dashboard.jsx`
+Indicadores (ventas del día, órdenes en ruta, clientes nuevos), tabla de últimas órdenes con estados (badges) y
+**alertas de stock crítico** calculadas con `catalogoActual()`.
+
+### 9.3 `admin/Inventario.jsx` — CRUD de productos
+- Lista `productosConCreados()` (base + creados) en una tabla, resaltando **stock crítico**.
+- **Crear**: valida código único, nombre, precios, stock entero y categoría; guarda en `localStorage.productos`.
+- **Editar**: guarda cambios en `localStorage.edicionesProductos` para los base, sin sobrescribir el catálogo
+  original (por eso `aplicarEdiciones` conserva los campos no editados).
+- **Eliminar**: solo los productos creados (los base solo se editan).
+
+### 9.4 `admin/ListaUsuarios.jsx`
+Lista `ADMIN_DEFAULT` + usuarios de `localStorage.usuarios`, con **filtro por rol** (Todos, Administradores,
+Clientes, Vendedores) y botón para crear un usuario nuevo.
+
+### 9.5 `admin/NuevoUsuario.jsx`
+Formulario para crear usuarios con rol (`Administrador` / `Cliente` / `Vendedor`), reutilizando `validarRun`,
+`validarTelefono`, `correoDominioPermitido` y los selectores Región → Comuna. Guarda en `localStorage.usuarios`.
+
+---
+
+## 10. Pruebas unitarias (Jasmine + Karma)
+
+**Configuración** (`karma.conf.cjs`):
+- Framework `jasmine` con `karma-esbuild` como preprocesador (compila JSX con esbuild).
+- Navegador `ChromeHeadlessCI` (`--no-sandbox --disable-gpu --disable-dev-shm-usage`), con `CHROME_BIN`
+  autodetectado.
+- Reportes: `spec` (en consola) y `coverage` (en `coverage/`).
+- Se instrumenta el código con `istanbul-lib-instrument` **dentro del bundle de esbuild** y con `parserPlugins:
+  ['jsx']` (Karma core no recolecta `window.__coverage__` por sí solo).
+
+**Arranque** (`src/test/setup.js`): activa `IS_REACT_ACT_ENVIRONMENT`, registra los matchers de
+`@testing-library/jasmine-dom` y limpia `localStorage` antes de cada prueba.
+
+**Las 10 pruebas** (agrupadas por cohesión, ver `DOCUMENTO_COBERTURA_TESTING.md`):
+
+| # | Spec | Qué verifica |
+|---|---|---|
+| 1 | `validaciones.spec.js` | RUN, teléfono, correo, dominio permitido y `formatearPrecio` |
+| 2 | `validaciones.spec.js` | `validarFormularioRegistro`: caso válido y cada mensaje de error |
+| 3 | `validaciones.spec.js` | `validarFormularioContacto` + `leerLista`/`leerObjeto` (incluye JSON corrupto) |
+| 4 | `carrito.spec.js` | `agregarItem`/`incrementarItem` acumulan sin mutar el original |
+| 5 | `carrito.spec.js` | `decrementarItem` (elimina en 0), `eliminarItem` y `contarItems` |
+| 6 | `carrito.spec.js` | `obtenerItemsCompletos` (descarta ids) y `calcularTotal` (residencial/comercial) |
+| 7 | `productos.spec.js` | `aplicarEdiciones`, `catalogoActual` y `productosConCreados` |
+| 8 | `Producto.spec.jsx` | props en el DOM y callback `onAgregar` (mock `jasmine.createSpy`) |
+| 9 | `Navbar.spec.jsx` | enlaces (`href`) y prop `totalItems` en el badge |
+| 10 | `Nosotros.spec.jsx` | estado `useState`: expandir/contraer el blog |
+
+**Cobertura:** 92,15 % sentencias · 80 % ramas · 100 % funciones · 100 % líneas.
+Las ramas no cubiertas son defensivas (validaciones alternativas, respaldos `|| 0`, ediciones parciales).
+
+---
+
+## 11. Decisiones de diseño
 
 | Decisión | Por qué |
 |---|---|
-| Carrito en `App` y no en cada página | Estado compartido se centraliza en el padre ("lifting state up"). |
-| Persistencia con `localStorage` | No hay backend todavía; igual que el sitio anterior, no se pierde al `F5`. Claves usadas: `carrito`, `usuarios`, `sesion`. |
-| Datos en `datos/productos.js` | Mismos 14 productos validados del frontend anterior; un solo punto de cambio para la futura API. |
-| `BrowserRouter` + `Navbar` fuera de `Routes` | Patrón de la guía: SPA sin recarga y menú visible en todas las páginas. |
-| Login contra `localStorage` con admin precargado | Replica la seguridad del frontend viejo (`ADMIN_DEFAULT` admin@duoc.cl / Admin123) hasta que existan los microservicios. |
-| Precios con `toLocaleString('es-CL')` | Formato de moneda chilena, consistente con la entrega anterior. |
-| Botón – que elimina el item en 0 | La cantidad nunca puede quedar negativa (regla de la guía: stock no baja de 0). |
+| Carrito en `App`, no en cada página | Estado compartido se centraliza en el padre ("lifting state up"). |
+| Lógica en `utils/` (pura) | Se reutiliza en varias páginas y se prueba de forma aislada. |
+| Persistencia con `localStorage` | No hay backend todavía; igual que la Versión 1, no se pierde al `F5`. |
+| Datos en `datos/productos.js` + `utils/productos.js` | Mismos 14 productos validados antes; un único punto de cambio para la futura API. |
+| Rutas anidadas + `LayoutPublico`/`AdminLayout` | Evita repetir el menú/pie y separa claramente las dos zonas. |
+| Ediciones del admin separadas de los datos base | Los productos base no se sobrescriben (`aplicarEdiciones` conserva lo no editado). |
+| Precios con `toLocaleString('es-CL')` / `formatearPrecio` | Formato de moneda chilena, consistente con la entrega anterior. |
+| Botón `-` que elimina el ítem en 0 | La cantidad nunca puede quedar negativa. |
+| 10 pruebas agrupando funciones cohesivas | Cumple el requisito de **10 pruebas** maximizando cobertura. |
 
 ---
 
-## 6. Conceptos del curso que se ven aquí
+## 12. Conceptos del curso que se ven aquí
 
 - Componentes y **props** (padre → hijo).
 - **Eventos y callbacks** (hijo → padre con `onAgregar`).
 - **Estado** con `useState` y persistencia con `useEffect` + `localStorage`.
-- **React Router**: `BrowserRouter`, `Routes`, `Route`, `Link`, `useParams`, `useLocation`, `useNavigate`.
+- **React Router**: `BrowserRouter`, `Routes`, `Route`, `Outlet` (rutas anidadas), `Link`, `useParams`,
+  `useLocation`, `useNavigate`.
 - **Formularios controlados** y validación (`preventDefault`).
 - **Renderizado condicional** (`{error && <Alert/>}`) y **listas** con `.map()` + `key`.
-- **Atomic Design** (componentes reutilizables pequeños → páginas).
+- **Atomic Design** (componentes pequeños reutilizables → páginas).
 - **Diseño responsivo** con grillas de Bootstrap.
+- **Pruebas unitarias** (Jasmine) de funciones puras y de componentes (Jasmine DOM + spies).
 
 ---
 
-## 7. Cómo correrlo
+## 13. Cómo correrlo
 
-```
-cd "C:\Users\ben95\OneDrive\Documentos\Duoc\Full Stack 2\Evaluacion 2\avance entrega"
+```bash
 npm.cmd install     # la primera vez
 npm.cmd run dev     # desarrollo → http://localhost:5173
 npm run lint        # oxlint: 0 errores
 npm run build       # producción → carpeta dist/
+npm test            # 10 pruebas + cobertura (una vez)
+npm run test:watch  # pruebas en modo vigilancia
 ```
 
 > En PowerShell usar `npm.cmd` (la política de ejecución puede bloquear `npm.ps1`).
+> Los tests requieren **Google Chrome** instalado (se ejecutan en headless).
 
-Credenciales de prueba: **admin@duoc.cl / Admin123**.
+**Credenciales de prueba (admin):** `admin@duoc.cl` / `Admin123`.
 
 ---
 
-## 8. Próximos pasos
+## 14. Próximos pasos
 
-- **React Hook Form** (`react-hook-form`) con `{...register(...)}` + `formState.errors` (guía 2.2.2).
-- **Checkout** (asignación de venta) y roles (Cliente vs Administrador).
-- **Publicación en AWS EC2** (guía 2.1.2): `npm run build` + Nginx en el puerto 80, o `npm run dev -- --host 0.0.0.0` en el 5173.
-- Cuando existan los microservicios: reemplazar `datos/productos.js` por llamadas `fetch()`.
+- Backend con **microservicios Spring Boot** (API REST/JSON) y **MySQL**: reemplazar `datos/productos.js` y
+  `localStorage` por llamadas `fetch()`.
+- **Autenticación con tokens** y **RBAC** real (roles Operadora y Repartidor), protegiendo las rutas del panel.
+- **Seguimiento de pedidos con mapas** (Leaflet / Google Maps).
+- **React Hook Form** (`react-hook-form`) para los formularios (guía 2.2.2).
+- **Despliegue en AWS EC2 con Docker + Nginx** (guía 2.1.2).
