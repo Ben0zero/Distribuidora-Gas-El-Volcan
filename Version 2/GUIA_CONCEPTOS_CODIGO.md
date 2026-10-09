@@ -17,7 +17,8 @@ que te sirva para la **presentación**.
 5. [localStorage (los datos guardados en el navegador)](#5-localstorage-los-datos-guardados-en-el-navegador)
 6. [Pruebas unitarias (Jasmine + Karma)](#6-pruebas-unitarias-jasmine--karma)
 7. [Herramientas (Vite, npm, lint)](#7-herramientas-vite-npm-lint)
-8. [Glosario rápido A–Z](#8-glosario-rápido-az)
+8. [Cómo se relaciona con tu proyecto](#8-cómo-se-relaciona-con-tu-proyecto)
+9. [Glosario rápido A–Z](#9-glosario-rápido-az)
 
 ---
 
@@ -609,7 +610,87 @@ Vite "hornea" estas variables en el `build`.
 
 ---
 
-## 8. Glosario rápido A–Z
+## 8. Cómo se relaciona con tu proyecto
+
+Acá está lo más importante: **dónde vive cada concepto** y **cómo se conectan** las piezas entre sí.
+
+### 8.1 Mapa: concepto → dónde se usa en TU proyecto
+
+| Concepto | Archivo(s) donde aparece | Para qué sirve ahí |
+|---|---|---|
+| `const` / funciones flecha | **Todos** | Declarar variables y funciones. |
+| `export` / `import` | **Todos** | Conectar archivos (App importa páginas, páginas importan utils, etc.). |
+| **Props** | `App.jsx` → `Navbar`, `Producto`, `Carrito`, `Ventas`, `LayoutPublico` | Pasar el carrito, callbacks y `totalItems` **hacia los hijos**. |
+| **`useState`** | `App.jsx`, `Login`, `Registro`, `Contacto`, `Inventario`, `NuevoUsuario`, `ListaUsuarios`, `Ventas`, `Nosotros` | Guardar el carrito, los formularios, los filtros y el blog expandido. |
+| **`useEffect`** | `App.jsx` | Persistir el carrito en `localStorage` cuando cambia. |
+| **`StrictMode`** | `src/main.jsx` | Avisos de errores/malas prácticas en desarrollo. |
+| **Fragmento `< >`** | `LayoutPublico.jsx`, `AdminLayout.jsx`, `Nosotros.jsx` | Devolver varios elementos sin un `<div>` extra. |
+| **Listas + `key`** | `Productos`, `Consejos`, `Nosotros`, `Inventario`, `ListaUsuarios`, `Dashboard` | Dibujar tarjetas, filas y tablas con `.map()`. |
+| **Formularios controlados** | `Login`, `Registro`, `Contacto`, `Inventario`, `NuevoUsuario` | `value` + `onChange` conectados al estado. |
+| **Renderizado condicional** | `Carrito`, `DetalleProducto`, `Login`, `Nosotros`, `Inventario` | Mostrar `Alert` de error/vacío, "producto no encontrado", etc. |
+| **`BrowserRouter` / `Routes` / `Route`** | `App.jsx` | Definir toda la navegación de la SPA. |
+| **Rutas anidadas + `Outlet`** | `App.jsx` + `LayoutPublico.jsx` + `AdminLayout.jsx` | Compartir Navbar/Footer o el menú admin sin repetir código. |
+| **`Link`** | `Navbar`, `Inicio`, `Producto`, `Carrito`, `DetalleProducto`, `BotonTienda` | Navegar entre páginas sin recargar. |
+| **`as={Link}`** | `Inicio`, `Productos`, `Carrito`, `DetalleProducto`, `Producto`, `Nosotros`, `Consejos` | Botones de Bootstrap que navegan como Router. |
+| **`NavLink`** | `AdminLayout.jsx` | Marcar el ítem activo del menú lateral. |
+| **`useParams`** | `DetalleProducto.jsx` | Leer el `:id` de `/producto/:id`. |
+| **`useLocation` + `URLSearchParams`** | `Productos.jsx` | Leer `?categoria=` para filtrar el catálogo. |
+| **`useNavigate`** | `Login`, `Registro`, `Ventas`, `AdminLayout` | Redirigir por código (tras login, registro o cerrar sesión). |
+| **`MemoryRouter`** | `Producto.spec.jsx`, `Navbar.spec.jsx` | Dar un Router falso en las pruebas. |
+| **`localStorage`** | `App.jsx`, `utils/validaciones.js`, `utils/productos.js`, `Login`, `Registro`, `Contacto`, `Ventas`, `Inventario`, `ListaUsuarios`, `NuevoUsuario` | Guardar carrito, usuarios, sesión, productos, órdenes y solicitudes. |
+| **`JSON.parse` / `stringify`** | `App.jsx`, `utils/validaciones.js` | Convertir objetos ↔ texto para guardar/leer. |
+| **`map`/`filter`/`find`/`reduce`** | `utils/carrito.js`, `utils/productos.js`, `Productos`, `Inventario`, `Dashboard`, `ListaUsuarios` | Transformar, filtrar, buscar y sumar. |
+| **Ternario / `&&` / `||` / `??` / `?.`** | `utils/carrito.js`, `utils/productos.js`, `Login`, `Navbar`, `Carrito` | Condiciones cortas y valores por defecto. |
+| **Mocks / spies** | `Producto.spec.jsx` (`jasmine.createSpy`) | Espiar si se llamó `onAgregar` con el id correcto. |
+| **`render` / `screen` / `fireEvent`** | `Producto.spec.jsx`, `Navbar.spec.jsx`, `Nosotros.spec.jsx` | Dibujar componentes y simular clics en las pruebas. |
+
+### 8.2 Recorrido: qué hace cada archivo y qué conceptos aplica
+
+| Archivo | Rol en el proyecto | Conceptos que aplica |
+|---|---|---|
+| `src/main.jsx` | Punto de entrada: monta la app y carga los CSS. | `createRoot`, `StrictMode`, import de CSS. |
+| `src/App.jsx` | **El cerebro**: rutas + estado global del carrito. | `BrowserRouter`, `Routes`/`Route`, rutas anidadas, `useState`, `useEffect`, props. |
+| `components/LayoutPublico.jsx` | Layout público (menú + contenido + pie). | Props, `Outlet`, Fragmento. |
+| `components/Navbar.jsx` | Menú superior (en todas las páginas públicas). | Props (`totalItems`), `Link`, `Badge`. |
+| `components/Producto.jsx` | Tarjeta de producto reutilizable. | Props, callback hijo→padre (`onAgregar`), `Link`. |
+| `components/Footer.jsx` / `BotonTienda.jsx` | Pie de página y botón flotante a Tiendas. | Presentación; `Link`. |
+| `pages/Inicio.jsx` | Portada. | Presentación, `Link`/`as={Link}`. |
+| `pages/Productos.jsx` | Catálogo + filtro por categoría. | `useLocation`, `URLSearchParams`, `.map()`, `.filter()`, props. |
+| `pages/DetalleProducto.jsx` | Ficha de un producto. | `useParams`, `.find()`, renderizado condicional, `as={Link}`. |
+| `pages/Carrito.jsx` | Carrito con cantidades y total. | Props, `.map()`, renderizado condicional, uso de `utils/carrito.js`. |
+| `pages/Ventas.jsx` | Checkout: dirección, pago y orden. | `useState`, `useNavigate`, `localStorage`, `calcularTotal`. |
+| `pages/Login.jsx` / `Registro.jsx` | Acceso y creación de cuenta. | Formularios controlados, validaciones, `useNavigate`, `localStorage`. |
+| `pages/Nosotros.jsx` | Historia con blogs expandibles. | `useState` (estado local), `.map()`. |
+| `pages/Consejos.jsx` / `Tiendas.jsx` | Información de seguridad y sucursales. | Presentación, `.map()`. |
+| `pages/Contacto.jsx` | Formulario de contacto. | Formulario controlado, validaciones, `localStorage`. |
+| `pages/admin/AdminLayout.jsx` | Layout del panel con menú lateral. | `NavLink`, `Outlet`, `useNavigate`, `localStorage` (cerrar sesión). |
+| `pages/admin/Dashboard.jsx` | Indicadores y stock crítico. | `.filter()`, `.map()`, `formatearPrecio`. |
+| `pages/admin/Inventario.jsx` | CRUD de productos. | `useState`, validaciones, `localStorage`, `.map()`, condicionales, `Modal`. |
+| `pages/admin/ListaUsuarios.jsx` | Listar y filtrar usuarios. | `useState` (filtro), `.map()`, `.filter()`, `localStorage`. |
+| `pages/admin/NuevoUsuario.jsx` | Crear usuarios. | Formulario controlado, validaciones, selectores Región→Comuna. |
+| `utils/validaciones.js` | Validaciones y datos compartidos (funciones puras). | Regex, funciones flecha, `export`, `JSON`, helpers de `localStorage`. |
+| `utils/carrito.js` | Operaciones del carrito (puras). | `.map()`, `.filter()`, `.reduce()`, spread `...`, no mutar. |
+| `utils/productos.js` | Catálogo real (ediciones + creados). | `.map()`, `.find()`, spread, `localStorage`. |
+| `datos/productos.js` | Los 14 productos base. | Arreglo de datos, `export`. |
+
+### 8.3 El flujo completo: "agregar un producto y comprarlo"
+
+Así se conecta **todo el proyecto** de principio a fin (ideal para explicar en la presentación):
+
+1. **El clic** → en `components/Producto.jsx`, el botón ejecuta `onClick={() => props.onAgregar(props.id)}`.
+2. **El aviso al padre** → ese `onAgregar` es la función `agregar` que `App.jsx` le pasó **por props** (a través de `Productos`). Es el patrón **hijo → padre**.
+3. **Cambia el estado** → en `App.jsx`, `agregar` llama a `setCarrito((anterior) => agregarItem(anterior, id))`. La función `agregarItem` (de `utils/carrito.js`) **devuelve un carrito nuevo** con `.map()` y spread, **sin modificar el original**.
+4. **React repinta** → al cambiar el **estado**, React **re-renderiza** los componentes que lo usan.
+5. **Se guarda** → el `useEffect` de `App.jsx` hace `localStorage.setItem('carrito', JSON.stringify(carrito))`, así **no se pierde al recargar**.
+6. **Se refleja en el menú** → `const totalItems = contarItems(carrito)` se recalcula y baja **por props** al `Navbar`, que lo muestra en el `Badge` del carrito.
+7. **Se ve el carrito** → en `pages/Carrito.jsx`, `obtenerItemsCompletos` **une** el carrito con el catálogo (`.find()`) y `calcularTotal` **suma** (`.reduce()`) el total.
+8. **Finalizar compra** → el botón `as={Link} to="/ventas"` navega al checkout. En `pages/Ventas.jsx`, con `useState` se piden dirección y método de pago; se **genera la orden** (`ORD-######`) y se guarda en `localStorage.ordenes`; finalmente se **vacía el carrito**.
+
+> En una frase: **`Producto` avisa → `App` cambia el estado → `carrito.js` calcula → `useEffect` guarda → `Navbar` y `Carrito` se actualizan → `Ventas` cierra la compra.**
+
+---
+
+## 9. Glosario rápido A–Z
 
 | Término | En palabras simples |
 |---|---|
