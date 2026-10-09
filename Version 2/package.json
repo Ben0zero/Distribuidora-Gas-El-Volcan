@@ -9,7 +9,8 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "karma start karma.conf.cjs --single-run",
-    "test:watch": "karma start karma.conf.cjs"
+    "test:watch": "karma start karma.conf.cjs",
+    "test:visible": "karma start karma.conf.cjs --browsers Chrome"
   },
   "dependencies": {
     "bootstrap": "^5.3.8",

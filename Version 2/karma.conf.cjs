@@ -123,7 +123,10 @@ module.exports = function (config) {
       },
     },
 
-    singleRun: true,
+    // El script "test" pasa --single-run por la CLI, así que aquí usamos
+    // false por defecto: así "test:watch" y "--browsers Chrome" mantienen la
+    // ventana del navegador abierta (modo vigilancia).
+    singleRun: false,
     concurrency: 1,
     logLevel: config.LOG_INFO,
   })
