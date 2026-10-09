@@ -1,78 +1,98 @@
 import { useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import Navbar from './components/Navbar'
+import LayoutPublico from './components/LayoutPublico'
 import Inicio from './pages/Inicio'
 import Productos from './pages/Productos'
 import DetalleProducto from './pages/DetalleProducto'
 import Login from './pages/Login'
 import Registro from './pages/Registro'
 import Carrito from './pages/Carrito'
-
-const CLAVE_CARRITO = 'carrito'
+import Nosotros from './pages/Nosotros'
+import Consejos from './pages/Consejos'
+import Tiendas from './pages/Tiendas'
+import Contacto from './pages/Contacto'
+import Ventas from './pages/Ventas'
+import AdminLayout from './pages/admin/AdminLayout'
+import Dashboard from './pages/admin/Dashboard'
+import Inventario from './pages/admin/Inventario'
+import ListaUsuarios from './pages/admin/ListaUsuarios'
+import NuevoUsuario from './pages/admin/NuevoUsuario'
+import { CLAVES } from './utils/validaciones'
+import {
+  agregarItem,
+  incrementarItem,
+  decrementarItem,
+  eliminarItem,
+  contarItems,
+} from './utils/carrito'
 
 function App() {
+  // El carrito vive aquí (estado compartido) y se persiste en localStorage.
   const [carrito, setCarrito] = useState(() => {
     try {
-      return JSON.parse(localStorage.getItem(CLAVE_CARRITO)) || []
+      return JSON.parse(localStorage.getItem(CLAVES.carrito)) || []
     } catch {
       return []
     }
   })
 
   useEffect(() => {
-    localStorage.setItem(CLAVE_CARRITO, JSON.stringify(carrito))
+    localStorage.setItem(CLAVES.carrito, JSON.stringify(carrito))
   }, [carrito])
 
-  function agregar(id) {
-    setCarrito((anterior) => {
-      const existente = anterior.find((item) => item.id === id)
-      if (existente) {
-        return anterior.map((item) => (item.id === id ? { ...item, cantidad: item.cantidad + 1 } : item))
-      }
-      return [...anterior, { id, cantidad: 1 }]
-    })
-  }
+  const agregar = (id) => setCarrito((anterior) => agregarItem(anterior, id))
+  const incrementar = (id) => setCarrito((anterior) => incrementarItem(anterior, id))
+  const decrementar = (id) => setCarrito((anterior) => decrementarItem(anterior, id))
+  const eliminar = (id) => setCarrito((anterior) => eliminarItem(anterior, id))
+  const vaciar = () => setCarrito([])
 
-  function incrementar(id) {
-    setCarrito((anterior) =>
-      anterior.map((item) => (item.id === id ? { ...item, cantidad: item.cantidad + 1 } : item)),
-    )
-  }
-
-  function decrementar(id) {
-    setCarrito((anterior) =>
-      anterior
-        .map((item) => (item.id === id ? { ...item, cantidad: item.cantidad - 1 } : item))
-        .filter((item) => item.cantidad > 0),
-    )
-  }
-
-  function eliminar(id) {
-    setCarrito((anterior) => anterior.filter((item) => item.id !== id))
-  }
-
-  const totalItems = carrito.reduce((suma, item) => suma + item.cantidad, 0)
+  const totalItems = contarItems(carrito)
 
   return (
     <BrowserRouter>
-      <Navbar totalItems={totalItems} />
       <Routes>
-        <Route path="/" element={<Inicio />} />
-        <Route path="/productos" element={<Productos onAgregar={agregar} />} />
-        <Route path="/producto/:id" element={<DetalleProducto onAgregar={agregar} />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/registro" element={<Registro />} />
-        <Route
-          path="/carrito"
-          element={
-            <Carrito
-              carrito={carrito}
-              incrementar={incrementar}
-              decrementar={decrementar}
-              eliminar={eliminar}
-            />
-          }
-        />
+        {/* Parte pública (con Navbar y Footer) */}
+        <Route element={<LayoutPublico totalItems={totalItems} />}>
+          <Route path="/" element={<Inicio />} />
+          <Route path="/productos" element={<Productos onAgregar={agregar} />} />
+          <Route path="/producto/:id" element={<DetalleProducto onAgregar={agregar} />} />
+          <Route path="/nosotros" element={<Nosotros />} />
+          <Route path="/consejos" element={<Consejos />} />
+          <Route path="/tiendas" element={<Tiendas />} />
+          <Route path="/contacto" element={<Contacto />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/registro" element={<Registro />} />
+          <Route
+            path="/carrito"
+            element={
+              <Carrito
+                carrito={carrito}
+                incrementar={incrementar}
+                decrementar={decrementar}
+                eliminar={eliminar}
+              />
+            }
+          />
+          <Route
+            path="/ventas"
+            element={
+              <Ventas
+                carrito={carrito}
+                incrementar={incrementar}
+                decrementar={decrementar}
+                vaciar={vaciar}
+              />
+            }
+          />
+        </Route>
+
+        {/* Panel de administración (con su propio layout) */}
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<Dashboard />} />
+          <Route path="inventario" element={<Inventario />} />
+          <Route path="usuarios" element={<ListaUsuarios />} />
+          <Route path="usuarios/nuevo" element={<NuevoUsuario />} />
+        </Route>
       </Routes>
     </BrowserRouter>
   )
