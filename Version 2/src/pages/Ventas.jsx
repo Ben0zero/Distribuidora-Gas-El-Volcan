@@ -22,6 +22,8 @@ function Ventas({ carrito, incrementar, decrementar, vaciar }) {
   const [metodoPago, setMetodoPago] = useState('')
   const [error, setError] = useState('')
   const [orden, setOrden] = useState(null)
+  const [procesando, setProcesando] = useState(false)
+  const [pagoFallido, setPagoFallido] = useState(false)
 
   const tipo = sesion?.tipoCliente?.toLowerCase() === 'comercial' ? 'comercial' : 'residencial'
   const comunas = REGIONES[0].comunas
@@ -97,6 +99,53 @@ function Ventas({ carrito, incrementar, decrementar, vaciar }) {
     )
   }
 
+  // Procesando el pago (simulación de pasarela).
+  if (procesando) {
+    return (
+      <main className="fondo">
+        <Container className="py-5 text-center">
+          <div className="consejo-instalacion mx-auto" style={{ maxWidth: 560 }}>
+            <div className="spinner-border" role="status" style={{ color: '#ff6600' }}>
+              <span className="visually-hidden">Procesando…</span>
+            </div>
+            <h2 className="mt-3" style={{ color: '#0d3b73' }}>
+              Procesando tu pago…
+            </h2>
+            <p className="text-muted">No cierres esta ventana, estamos verificando tu pago.</p>
+          </div>
+        </Container>
+      </main>
+    )
+  }
+
+  // Pago rechazado por la pasarela (Figura 8 del Anexo 1).
+  if (pagoFallido) {
+    return (
+      <main className="fondo">
+        <Container className="py-5 text-center">
+          <div className="consejo-instalacion mx-auto" style={{ maxWidth: 560 }}>
+            <i className="bi bi-x-circle-fill fs-1" style={{ color: '#dc3545' }} />
+            <h2 className="mt-3" style={{ color: '#dc3545' }}>
+              No se pudo realizar el pago
+            </h2>
+            <p className="mt-3">
+              Tu pago por <strong className="texto-2">{formatearPrecio(total)}</strong> fue rechazado.
+            </p>
+            <p className="text-muted">No se generó ningún pedido. Reintenta o elige otro método de pago.</p>
+            <div className="d-grid gap-2 d-md-flex justify-content-center mt-4">
+              <Button onClick={() => setPagoFallido(false)} className="btn-login border-0">
+                <i className="bi bi-arrow-repeat" /> Reintentar pago
+              </Button>
+              <Button as={Link} to="/carrito" variant="outline-dark rounded-0">
+                Volver al carrito
+              </Button>
+            </div>
+          </div>
+        </Container>
+      </main>
+    )
+  }
+
   const confirmar = (event) => {
     event.preventDefault()
     if (!direccion) {
@@ -112,25 +161,44 @@ function Ventas({ carrito, incrementar, decrementar, vaciar }) {
       return
     }
 
-    const nuevaOrden = {
-      numero: generarNumeroOrden(),
-      fecha: fechaHoy(),
-      cliente: sesion.nombre,
-      correo: sesion.correo || sesion.email,
-      direccion,
-      comuna,
-      metodoPago,
-      items: items.map((i) => ({ id: i.id, nombre: i.producto.nombre, cantidad: i.cantidad })),
-      total,
-    }
-    const ordenes = leerLista(CLAVES.ordenes)
-    ordenes.push(nuevaOrden)
-    localStorage.setItem(CLAVES.ordenes, JSON.stringify(ordenes))
-
     setError('')
-    setOrden(nuevaOrden)
-    vaciar()
-    navigate('/ventas', { replace: true })
+    setProcesando(true)
+
+    // Sin backend todavía: simulamos una pasarela de pago.
+    // - Efectivo → se paga en la entrega: siempre se aprueba.
+    // - Tarjeta  → la pasarela puede rechazar el pago (~20%): se muestra la
+    //   vista "No se pudo realizar el pago" (Figura 8 del Anexo 1) y NO se
+    //   guarda ninguna orden.
+    const aprobar = () => {
+      const nuevaOrden = {
+        numero: generarNumeroOrden(),
+        fecha: fechaHoy(),
+        cliente: sesion.nombre,
+        correo: sesion.correo || sesion.email,
+        direccion,
+        comuna,
+        metodoPago,
+        items: items.map((i) => ({ id: i.id, nombre: i.producto.nombre, cantidad: i.cantidad })),
+        total,
+      }
+      const ordenes = leerLista(CLAVES.ordenes)
+      ordenes.push(nuevaOrden)
+      localStorage.setItem(CLAVES.ordenes, JSON.stringify(ordenes))
+
+      setProcesando(false)
+      setOrden(nuevaOrden)
+      vaciar()
+      navigate('/ventas', { replace: true })
+    }
+
+    setTimeout(() => {
+      if (metodoPago === 'Tarjeta' && Math.random() < 0.2) {
+        setProcesando(false)
+        setPagoFallido(true)
+        return
+      }
+      aprobar()
+    }, 1300)
   }
 
   return (

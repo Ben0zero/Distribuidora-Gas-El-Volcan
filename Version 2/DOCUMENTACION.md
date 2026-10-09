@@ -244,7 +244,10 @@ compra" que lleva al checkout (`/ventas`). Si está vacío, muestra un `Alert` y
 ### 8.5 `Ventas.jsx` — checkout
 - Requiere **sesión iniciada**; si no hay, invita a iniciar sesión/registrarse (comparando con `localStorage.sesion`).
 - Toma dirección y comuna de la sesión (se pueden editar) y pide **método de pago** (Efectivo / Tarjeta).
-- Valida, **genera una orden** (`ORD-######`) con fecha, cliente, ítems y total, la guarda en `localStorage.ordenes`
+- Simula una **pasarela de pago** (sin backend): Efectivo siempre aprueba (se paga en la entrega); Tarjeta puede ser
+  rechazada (~20%), mostrando la vista **"No se pudo realizar el pago"** — en ese caso **no se guarda la orden** y se
+  puede **reintentar** sin perder los datos.
+- Al aprobar, **genera una orden** (`ORD-######`) con fecha, cliente, ítems y total, la guarda en `localStorage.ordenes`
   y **vacía el carrito** (`vaciar`).
 - Muestra una confirmación con el número de orden y el total.
 

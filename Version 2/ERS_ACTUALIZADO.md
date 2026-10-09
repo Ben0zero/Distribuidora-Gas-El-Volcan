@@ -227,7 +227,7 @@ Estado: **✅ Implementado (EP2)**, **🟡 Parcial**, **⬜ Planificado**.
 | **RF-21** | El usuario debe poder **revisar** su pedido (ítems, cantidades y subtotales) antes de confirmar. | A | ✅ |
 | **RF-22** | El usuario debe ingresar **dirección de despacho** y **comuna**, y elegir **método de pago** (Efectivo / Tarjeta). | A | ✅ |
 | **RF-23** | El sistema debe **generar una orden** con número, fecha, cliente, dirección, ítems y total, y **registrarla**. | A | ✅ |
-| **RF-24** | Tras confirmar, el sistema debe mostrar una **confirmación** con el número de orden y el total, y **vaciar el carrito**. | A | ✅ |
+| **RF-24** | Tras confirmar, el sistema debe **simular la pasarela de pago**: en éxito mostrar una **confirmación** con el número de orden, el total y **vaciar el carrito**; en rechazo mostrar la vista **"No se pudo realizar el pago"** sin guardar la orden. | A | ✅ |
 | **RF-25** | El sistema debe mostrar el estado del pedido al cliente *(tiempo real con mapas)*. | M | ⬜ |
 
 ### 4.5 Módulo de contacto e información
