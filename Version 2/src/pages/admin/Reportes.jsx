@@ -43,8 +43,41 @@ const REPORTES_GENERADOS = [
 ]
 
 function Reportes() {
-    return <></>
+    return (
+    <>
+      {/* Encabezado */}
+        <div className="d-flex justify-content-between align-items-center mb-4 border-bottom border-secondary pb-3">
+        <h1 className="h2 fw-bold text-dark">REPORTES</h1>
+        <span className="text-dark fs-4" aria-label="Notificaciones">
+            <i className="bi bi-bell-fill" />
+        </span>
+        </div>
+
+        <div className="container-fluid px-0">
+        {/* Tarjetas de resumen */}
+        <div className="row g-3 mb-4">
+            {KPI.map((k) => (
+            <div className="col-md-6 col-xl-3" key={k.titulo}>
+                <div className="card border-0 shadow-sm rounded-0">
+                <div className="card-body d-flex align-items-center">
+                    <div
+                    className={`${k.color} p-3 me-3 fs-4 d-flex align-items-center justify-content-center`}
+                    style={{ width: 50, height: 50 }}
+                    >
+                    <i className={`bi ${k.icono}`} />
+                    </div>
+                    <div>
+                    <h6 className="text-muted mb-0" style={{ fontSize: '0.8rem', textTransform: 'uppercase' }}>
+                        {k.titulo}
+                    </h6>
+                    <h4 className="mb-0 fw-bold">{k.valor}</h4>
+                    </div>
+                </div>
+                </div>
+            </div>
+            ))}
+        </div>
+        </div>
+    </>
+    )
 }
-
-
-export default Reportes
