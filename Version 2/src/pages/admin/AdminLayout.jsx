@@ -7,12 +7,12 @@ const PRINCIPAL = [
   { to: '/admin/inventario', icono: 'bi-box-seam', label: 'Inventario' },
   { to: '/admin/usuarios', icono: 'bi-person-badge', label: 'Empleados' },
   { to: '/admin/ordenes', icono: 'bi-receipt', label: 'Órdenes' },
+  { to: '/admin/reportes', icono: 'bi-file-earmark-bar-graph', label: 'Reportes' },
 ]
 
 const SECUNDARIA = [{ to: '/admin/usuarios/nuevo', icono: 'bi-person-plus', label: '+Profile' }]
 
 const inactivos = [
-  { icono: 'bi-file-earmark-bar-graph', label: 'Reportes' },
   { icono: 'bi-people', label: 'Clientes' },
 ]
 
