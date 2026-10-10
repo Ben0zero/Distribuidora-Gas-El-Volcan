@@ -11,7 +11,12 @@ const PRINCIPAL = [
   { to: '/admin/clientes', icono: 'bi-people', label: 'Clientes' },
 ]
 
-const SECUNDARIA = [{ to: '/admin/usuarios/nuevo', icono: 'bi-person-plus', label: '+Profile' }]
+const SECUNDARIA = [
+  { icono: 'bi-gear', label: 'Configuración' },
+  { to: '/admin/usuarios/nuevo', icono: 'bi-person-plus', label: '+Profile' },
+  { icono: 'bi-search', label: 'Buscar' },
+  { icono: 'bi-question-circle', label: 'Ayuda' },
+]
 
 const inactivos = []
 
@@ -30,7 +35,7 @@ function AdminLayout() {
 
   return (
     <>
-      {/* Barra superior solo en móvil */}
+      {/* Barra superior solo en movil */}
       <nav className="d-lg-none d-flex align-items-center justify-content-between bg-white border-bottom px-3 py-2 sticky-top">
         <Link to="/admin" className="d-flex align-items-center text-decoration-none link-dark">
           <img src="/IMAGENES/Logo Gas.png" alt="Logo El Volcán" width="40" className="me-2" />
@@ -82,10 +87,16 @@ function AdminLayout() {
           <hr />
           <div className="nav nav-pills flex-column mb-3">
             {SECUNDARIA.map((l) => (
-              <div className="nav-item mb-1" key={l.to}>
-                <NavLink to={l.to} end className={classNav}>
-                  <i className={`bi ${l.icono} me-2`} /> {l.label}
-                </NavLink>
+              <div className="nav-item mb-1" key={l.label}>
+                {l.to ? (
+                  <NavLink to={l.to} end className={classNav}>
+                    <i className={`bi ${l.icono} me-2`} /> {l.label}
+                  </NavLink>
+                ) : (
+                  <span className="nav-link link-dark" style={{ cursor: 'default' }}>
+                    <i className={`bi ${l.icono} me-2`} /> {l.label}
+                  </span>
+                )}
               </div>
             ))}
           </div>
