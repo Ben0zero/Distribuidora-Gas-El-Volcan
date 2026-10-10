@@ -17,6 +17,7 @@ import Dashboard from './pages/admin/Dashboard'
 import Inventario from './pages/admin/Inventario'
 import ListaUsuarios from './pages/admin/ListaUsuarios'
 import NuevoUsuario from './pages/admin/NuevoUsuario'
+import Ordenes from './pages/admin/Ordenes'
 import { CLAVES } from './utils/validaciones'
 import {
   agregarItem,
@@ -92,6 +93,7 @@ function App() {
           <Route path="inventario" element={<Inventario />} />
           <Route path="usuarios" element={<ListaUsuarios />} />
           <Route path="usuarios/nuevo" element={<NuevoUsuario />} />
+          <Route path="ordenes" element={<Ordenes />} />
         </Route>
       </Routes>
     </BrowserRouter>
