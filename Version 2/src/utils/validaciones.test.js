@@ -63,12 +63,21 @@ describe('validaciones (lógica de formularios)', () => {
     expect(validarFormularioRegistro(validoRegistro)).toBe('')
 
     expect(validarFormularioRegistro({ ...validoRegistro, nombre: '' })).toBe('Ingresa tu nombre completo')
+    expect(validarFormularioRegistro({ ...validoRegistro, nombre: 'x'.repeat(101) })).toBe(
+      'El nombre no puede superar los 100 caracteres',
+    )
     expect(validarFormularioRegistro({ ...validoRegistro, run: '1' })).toBe(
       'El RUN debe tener entre 7 y 9 dígitos, sin puntos y sin guion',
     )
     expect(validarFormularioRegistro({ ...validoRegistro, correo: 'x@hotmail.com' })).toBe(
       'El correo debe ser @duoc.cl, @profesor.duoc.cl o @gmail.com',
     )
+    expect(validarFormularioRegistro({ ...validoRegistro, telefono: '12' })).toBe(
+      'Ingresa un teléfono válido (ej: +56 9 1234 5678)',
+    )
+    expect(validarFormularioRegistro({ ...validoRegistro, direccion: '' })).toBe('Ingresa tu dirección de despacho')
+    expect(validarFormularioRegistro({ ...validoRegistro, region: '' })).toBe('Selecciona tu región')
+    expect(validarFormularioRegistro({ ...validoRegistro, comuna: '' })).toBe('Selecciona tu comuna de despacho')
     expect(validarFormularioRegistro({ ...validoRegistro, password: 'abc', confirmar: 'abc' })).toBe(
       'La contraseña debe tener entre 4 y 10 caracteres',
     )
@@ -87,11 +96,18 @@ describe('validaciones (lógica de formularios)', () => {
 
     expect(validarFormularioContacto(validoContacto)).toBe('')
     expect(validarFormularioContacto({ ...validoContacto, nombre: '' })).toBe('Ingresa tu nombre')
+    expect(validarFormularioContacto({ ...validoContacto, nombre: 'x'.repeat(101) })).toBe(
+      'El nombre no puede superar los 100 caracteres',
+    )
     expect(validarFormularioContacto({ ...validoContacto, correo: 'mal' })).toBe('Ingresa un correo válido')
+    expect(validarFormularioContacto({ ...validoContacto, telefono: 'abc' })).toBe('Ingresa un teléfono válido')
     expect(validarFormularioContacto({ ...validoContacto, asunto: 'Seleccione una opción' })).toBe(
       'Selecciona un asunto',
     )
     expect(validarFormularioContacto({ ...validoContacto, mensaje: '' })).toBe('Escribe tu mensaje')
+    expect(validarFormularioContacto({ ...validoContacto, mensaje: 'x'.repeat(501) })).toBe(
+      'El mensaje no puede superar los 500 caracteres',
+    )
 
     // leerLista: devuelve solo arreglos válidos y tolera JSON corrupto
     localStorage.setItem('lista', JSON.stringify([1, 2, 3]))

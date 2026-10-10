@@ -30,6 +30,32 @@ describe('carrito (lógica pura)', () => {
 
     // incrementarItem hace lo mismo que agregar sobre uno existente
     expect(incrementarItem(conDos, 'p1')).toEqual([{ id: 'p1', cantidad: 3 }])
+
+    // Mezcla de item que coincide y otro que no: cubre ambas mitades del ternario
+    expect(
+      agregarItem(
+        [
+          { id: 'p1', cantidad: 1 },
+          { id: 'p2', cantidad: 1 },
+        ],
+        'p1',
+      ),
+    ).toEqual([
+      { id: 'p1', cantidad: 2 },
+      { id: 'p2', cantidad: 1 },
+    ])
+    expect(
+      incrementarItem(
+        [
+          { id: 'p1', cantidad: 1 },
+          { id: 'p2', cantidad: 1 },
+        ],
+        'p2',
+      ),
+    ).toEqual([
+      { id: 'p1', cantidad: 1 },
+      { id: 'p2', cantidad: 2 },
+    ])
   })
 
   test('decrementarItem y eliminarItem quitan unidades y productos; contarItems cuenta el total', () => {
@@ -53,6 +79,9 @@ describe('carrito (lógica pura)', () => {
     // contarItems suma las cantidades
     expect(contarItems(carrito)).toBe(5)
     expect(contarItems([])).toBe(0)
+
+    // Cantidad no numérica cuenta como 0 (defensa ante datos corruptos)
+    expect(contarItems([{ id: 'p1', cantidad: 'abc' }])).toBe(0)
   })
 
   test('obtenerItemsCompletos une con el catálogo y calcularTotal suma según el tipo', () => {

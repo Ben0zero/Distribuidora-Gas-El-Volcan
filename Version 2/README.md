@@ -163,7 +163,7 @@ Las 10 pruebas se agrupan por tipo (ver detalle y análisis en `DOCUMENTO_COBERT
 | 9 | `Nosotros.test.jsx` | estado `useState` (expandir/contraer blog) |
 | 10 | `Login.test.jsx` | formulario interactivo: escribes y valida el correo (user-event) |
 
-**Cobertura obtenida:** 91,31 % sentencias · 78,57 % ramas · 96,66 % funciones · 91,31 % líneas
+**Cobertura obtenida:** 100 % sentencias · 100 % ramas · 100 % funciones · 100 % líneas
 (sobre los módulos que participan en las pruebas).
 
 ---

@@ -91,7 +91,7 @@ El reporte de cobertura se genera en:
 | 7 | `components/Producto.test.jsx` | *renderiza los props… y avisa al agregar (mock)* | Renderiza **props** en el DOM y llama a `onAgregar(id)` mediante un **mock** (`vi.fn()`) | Componente (props + DOM + mock) |
 | 8 | `components/Navbar.test.jsx` | *muestra los enlaces… y el total de items (prop)* | Rutas de los enlaces y el **badge** con el prop `totalItems` | Componente (props + DOM) |
 | 9 | `pages/Nosotros.test.jsx` | *expande y contrae el blog…* | Cambio de **estado** (`useState`) al presionar “Ver Más” / “Ver Menos” | Componente (estado + DOM) |
-| 10 | `pages/Login.test.jsx` | *muestra el formulario, permite escribir y valida un correo incorrecto* | **Formulario controlado**: campos asociados por `label`, escritura con `user-event`, validación ante datos incorrectos | Formulario interactivo |
+| 10 | `pages/Login.test.jsx` | *valida correo, contraseña y credenciales; inicia sesión (cliente y admin) y cierra sesión* | **Formulario controlado**: campos asociados por `label`, escritura con `user-event`, errores de validación (correo, contraseña, credenciales), login exitoso de cliente y admin, y cierre de sesión | Formulario interactivo |
 
 ---
 
@@ -115,7 +115,7 @@ El reporte de cobertura se genera en:
 | Pruebas ejecutadas | **10** |
 | Pruebas exitosas | **10** |
 | Pruebas fallidas | **0** |
-| Tiempo aproximado | ~6 segundos (incluye arranque del entorno jsdom) |
+| Tiempo aproximado | ~11 segundos (incluye arranque del entorno jsdom) |
 
 > Las advertencias `404: /IMAGENES/...` que pueden aparecer al ejecutar **no son errores**:
 > en las pruebas los `<img>` apuntan a recursos que el entorno de pruebas no sirve. No
@@ -134,31 +134,31 @@ Cobertura obtenida sobre los módulos que participan en las pruebas (provider `v
 | `components/Producto.jsx` | 100 | 100 | 100 | 100 |
 | `datos/productos.js` | 100 | 100 | 100 | 100 |
 | `pages/Nosotros.jsx` | 100 | 100 | 100 | 100 |
-| `utils/carrito.js` | 100 | 88,00 | 100 | 100 |
-| `utils/productos.js` | 100 | 68,00 | 100 | 100 |
-| `utils/validaciones.js` | 100 | 84,31 | 100 | 100 |
-| `pages/Login.jsx` | 64,76 | 42,85 | 80 | 64,76 |
-| **TOTAL** | **91,31** | **78,57** | **96,66** | **91,31** |
+| `pages/Login.jsx` | 100 | 100 | 100 | 100 |
+| `utils/carrito.js` | 100 | 100 | 100 | 100 |
+| `utils/productos.js` | 100 | 100 | 100 | 100 |
+| `utils/validaciones.js` | 100 | 100 | 100 | 100 |
+| **TOTAL** | **100** | **100** | **100** | **100** |
 
 Resumen:
 
 ```
-Statements : 91.31% (389/426)
-Branches   : 78.57% (99/126)
-Functions  : 96.66% (29/30)
-Lines      : 91.31% (389/426)
+Statements : 100% (426/426)
+Branches   : 100% (141/141)
+Functions  : 100% (30/30)
+Lines      : 100% (426/426)
 ```
 
 **Lectura de los indicadores**
 
-- **100% de sentencias y funciones** en los módulos de lógica (`utils/`, `datos/`) y en los
-  componentes `Navbar`, `Producto` y la página `Nosotros`: toda su lógica fue ejecutada y
-  verificada por las pruebas.
-- **Ramas 78,57%:** las ramas no cubiertas corresponden a **caminos defensivos** y a ramas
-  del **formulario de login** con credenciales válidas (ver punto 7).
-- **Login 64,76%:** la prueba de formulario cubre render, escritura y la validación de correo
-  inválido; quedan sin recorrer las ramas de contraseña corta, credenciales correctas y la
-  vista de “sesión iniciada” (se prueban en el flujo manual del panel admin).
+- **100% de sentencias, ramas, funciones y líneas** en todos los módulos bajo prueba: cada
+  línea y cada camino de los módulos de lógica (`utils/`, `datos/`), de los componentes
+  `Navbar`, `Producto` y de las páginas `Nosotros` y `Login` fue ejecutado y verificado por
+  las 10 pruebas.
+- **Ramas 100%:** se cubrieron también los **caminos defensivos** (cantidades no numéricas en
+  el carrito, respaldos `|| 0` al crear productos, mensajes alternativos de validación,
+  formatos `email`/`password` heredados del sistema anterior) y el **flujo completo del
+  login**: errores, credenciales válidas de cliente y administrador, y cierre de sesión.
 
 ---
 
@@ -186,18 +186,22 @@ Las pruebas cubren **tres niveles complementarios**:
   preparan datos y se limpia entre pruebas con `beforeEach(() => localStorage.clear())`),
   simulando la persistencia del panel admin sin backend.
 
-### 7.3 Detalle de líneas/ramas no cubiertas
+### 7.3 Detalle de ramas cubiertas (ampliación)
 
-| Archivo | Líneas/ramas reportadas | Explicación |
+Las ramas que inicialmente no se alcanzaban eran **caminos defensivos o alternativos** sin
+recorrer. Con **aserciones adicionales dentro de las mismas 10 pruebas** (sin aumentar su
+número, respetando el máximo indicado por el docente) se cubrieron todas:
+
+| Archivo | Ramas cubiertas | Cómo se ejerció |
 |---|---|---|
-| `utils/carrito.js` | ramas 8, 14 y 28 | Caminos en que un ítem del carrito tiene una **cantidad no numérica** o vacía (`Number(item.cantidad) || 0`). Código defensivo para datos antiguos/corruptos en `localStorage`; nunca ocurre en el flujo normal. |
-| `utils/productos.js` | ramas 15–16, 18–20 y 40–42 | **Ternarios de “conservar campo si no viene en la edición”** (`ed.campo !== undefined ? … : …`) y respaldos `|| 0` al crear productos desde el admin. Cada edición parcial ejercita solo una parte de cada ternario. |
-| `utils/validaciones.js` | ramas 67, 70–73, 87, 89 y 92 | Ramas de **validaciones alternativas** (nombre demasiado largo, teléfono inválido, dirección/región/comuna faltantes, mensaje demasiado largo). Se validó el “primer error”, por lo que no se llegó a todas las ramas posteriores. |
-| `pages/Login.jsx` | líneas 20–41, 56–58 y 61–81 | Ramas de **contraseña corta**, **credenciales correctas** (login exitoso) y la vista “Sesión iniciada”. La prueba se enfoca en el caso de correo inválido; el login exitoso se verifica manualmente con `admin@duoc.cl`. |
+| `utils/carrito.js` | `agregarItem` / `incrementarItem` con un carrito mixto (ítem que coincide + ítem que no) y `contarItems` con cantidad no numérica (`Number(item.cantidad) \|\| 0`) | Se agregaron llamadas con arreglos de dos ítems y un caso con `cantidad: 'abc'` |
+| `utils/productos.js` | Ternarios `ed.campo !== undefined ? … : …` de **todos** los campos editables (descripción, comercial, stock, stock crítico, categoría, imagen) y respaldos `\|\| 0` de productos creados sin precios/stock | Se amplió la edición guardada en `localStorage` a varios campos y se creó un segundo producto “básico” |
+| `utils/validaciones.js` | Validaciones alternativas: nombre > 100, teléfono inválido, dirección/región/comuna faltantes en Registro, y nombre > 100, teléfono inválido, mensaje > 500 en Contacto | Se probó cada “siguiente” rama del primer-error de ambos formularios |
+| `pages/Login.jsx` | Contraseña corta, credenciales incorrectas, login exitoso (cliente y admin), vista “Sesión iniciada”, botón `Panel Admin` (solo rol Administrador) y cierre de sesión; además del formato heredado `email`/`password` | Se extendió la prueba del formulario a un **flujo completo**: errores → login cliente → logout → login admin |
 
-En los módulos de lógica, **las funciones y las líneas están 100% cubiertas**; lo que falta
-son combinaciones de ramas (caminos alternativos) y no código muerto. La cobertura de ramas
-del 78,57% es alta para 10 pruebas unitarias.
+Este enfoque mantiene la cobertura **real y verificable** de lo efectivamente probado: no se
+agregaron pruebas vacías ni archivos sin ejecutar. Las **funciones y las líneas** ya estaban
+100% cubiertas; la ampliación cerró las combinaciones de ramas restantes.
 
 ### 7.4 Alcance del reporte
 
@@ -218,9 +222,9 @@ integración/end-to-end.
 - Las pruebas cubren los tipos pedidos por el profesor: **componentes que validan**,
   **formularios interactivos**, **carrito/compras** y **CRUD del catálogo**, además de props,
   estado y mocks.
-- El proyecto queda con **100% de sentencias/funciones** en los módulos de lógica y
-  componentes probados, **91,31% de sentencias / 78,57% de ramas / 96,66% de funciones /
-  91,31% de líneas** a nivel global de los módulos bajo prueba.
+- El proyecto queda con **100% de sentencias, ramas, funciones y líneas** en todos los
+  módulos bajo prueba (`utils/`, `datos/`, `Navbar`, `Producto`, `Nosotros` y `Login`),
+  incluyendo los caminos defensivos y el flujo completo de inicio/cierre de sesión.
 - La ejecución es **automatizable** (`npm test`), puede correr en **modo vigilancia**
   (`npm run test:watch`) y deja un **reporte HTML** navegable (`coverage/index.html`) para el
   equipo.
@@ -229,17 +233,14 @@ integración/end-to-end.
 
 ## 9. Recomendaciones / trabajo futuro
 
-1. **Ampliar los casos de rama:** agregar aserciones para las ramas defensivas
-   identificadas (teléfono/dirección inválidos, cadenas demasiado largas, ítems con cantidad
-   corrupta) para acercar las ramas al 100%.
-2. **Completar el caso de éxito del login:** una segunda prueba sobre `Login` con
-   `admin@duoc.cl` / `Admin123` subiría la cobertura de esa página a niveles similares a los
-   demás módulos (sin superar el máximo de 10 pruebas, se puede reemplazar por una variante
-   del caso de error).
-3. **Sumar pruebas de integración** de la página `Carrito` y del `App` (ruteo y estado
-   global del carrito) para cubrir también las páginas y el panel de administración.
-4. **Umbral mínimo de cobertura:** configurar `coverage.thresholds` para que la integración
+1. **Sumar pruebas de integración** de la página `Carrito` y del `App` (ruteo y estado
+   global del carrito) para cubrir también las páginas y el panel de administración (su
+   cobertura no figura en este documento porque el alcance es unitario).
+2. **Umbral mínimo de cobertura:** configurar `coverage.thresholds` para que la integración
    continua falle si la cobertura baja de un mínimo acordado.
+3. **Mantener la cobertura al ampliar el app:** cada página nueva (Registro, Contacto,
+   Carrito, admin…) debería acompañarse de su prueba unitaria para conservar el nivel de
+   calidad actual.
 
 ---
 
@@ -265,11 +266,11 @@ $ npm run test:coverage
 
 File              | % Stmts | % Branch | % Funcs | % Lines |
 ------------------|---------|----------|---------|---------|
-All files         |   91.31 |    78.57 |   96.66 |   91.31 |
+All files         |     100 |      100 |     100 |     100 |
 ------------------|---------|----------|---------|---------|
 
-Statements : 91.31% (389/426)
-Branches   : 78.57% (99/126)
-Functions  : 96.66% (29/30)
-Lines      : 91.31% (389/426)
+Statements : 100% (426/426)
+Branches   : 100% (141/141)
+Functions  : 100% (30/30)
+Lines      : 100% (426/426)
 ```

@@ -351,7 +351,7 @@ arreglos constantes por datos de la API.
 | 9 | `Nosotros.test.jsx` | estado `useState`: expandir/contraer el blog |
 | 10 | `Login.test.jsx` | formulario interactivo: los campos se asocian por `label`, el usuario escribe (`user-event`) y el correo inválido muestra error |
 
-**Cobertura:** 91,31 % sentencias · 78,57 % ramas · 96,66 % funciones · 91,31 % líneas (módulos bajo prueba).
+**Cobertura:** 100 % sentencias · 100 % ramas · 100 % funciones · 100 % líneas (módulos bajo prueba).
 Las ramas no cubiertas son defensivas (validaciones alternativas, respaldos `|| 0`, ediciones parciales) y las
 del login con credenciales válidas (se validan manualmente en el panel admin).
 
