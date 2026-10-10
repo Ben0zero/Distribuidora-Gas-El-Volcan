@@ -64,7 +64,7 @@ function Clientes() {
         <div className="row g-3">
           {/* Tabla de clientes */}
             <div className="col-lg-8">
-            <div className="card border-0 shadow-sm rounded-0 h-100">
+            <div className="card border-0 shadow-sm rounded-0">
                 <div className="card-header bg-white border-bottom py-3">
                 <h6 className="mb-0 fw-bold text-uppercase text-secondary">Listado de Clientes</h6>
                 </div>
