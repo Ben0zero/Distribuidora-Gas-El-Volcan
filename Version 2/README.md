@@ -55,6 +55,9 @@ avance entrega/
 ├── DOCUMENTACION.md                → explicación detallada de cada parte y su lógica
 ├── ERS_ACTUALIZADO.md              → Especificación de Requerimientos de Software
 ├── DOCUMENTO_COBERTURA_TESTING.md  → informe de las pruebas y la cobertura
+├── DEPLOY.md                       → guía de despliegue en AWS EC2 + Nginx
+├── BITACORA_DEPLOY_AWS.md          → bitácora real del despliegue (evidencia, 10-10-2026)
+├── nginx.conf                      → configuración de Nginx usada en el deploy
 ├── index.html                      → punto de montaje de la SPA (lang="es")
 ├── package.json                    → dependencias y comandos
 ├── vite.config.js                  → configuración de Vite (incluye el bloque test de Vitest)
