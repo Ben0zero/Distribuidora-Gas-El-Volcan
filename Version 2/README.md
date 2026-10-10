@@ -110,6 +110,9 @@ avance entrega/
     │   └── admin/                  → panel de administración (layout propio)
     │       ├── AdminLayout.jsx     → menú lateral, sesión y cierre de sesión
     │       ├── Dashboard.jsx       → indicadores, órdenes y stock crítico
+    │       ├── Ordenes.jsx         → panel de órdenes (datos de ejemplo)
+    │       ├── Clientes.jsx        → panel de clientes (datos de ejemplo)
+    │       ├── Reportes.jsx        → panel de reportes (datos de ejemplo)
     │       ├── Inventario.jsx      → CRUD de productos
     │       ├── ListaUsuarios.jsx   → listado y filtro de usuarios
     │       └── NuevoUsuario.jsx    → creación de usuarios

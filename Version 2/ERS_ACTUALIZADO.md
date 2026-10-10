@@ -161,6 +161,7 @@ main.jsx
 
 - **Parte pública** (`LayoutPublico`): incluye `Navbar` y `Footer` en todas las vistas.
 - **Panel de administración** (`AdminLayout`): layout propio con menú lateral colapsable (botón *hamburguesa* en móvil) y cierre de sesión.
+  - Vistas del panel: **Dashboard** (indicadores), **Ordenes**, **Clientes** y **Reportes** (maquetas con datos de ejemplo), **Inventario** (CRUD) y **Usuarios**. Las rutas `/admin/ordenes`, `/admin/clientes` y `/admin/reportes` se agregaron en esta integración final.
 - El carrito y el total de ítems viven en `App` y se comunican por **props** a `Navbar` y a las páginas.
 
 ### 3.4 Gestión del estado
@@ -338,7 +339,8 @@ Entidades principales y sus atributos clave:
 | RF-20 – RF-24 | `pages/Ventas.jsx` | — *(integración)* |
 | RF-26, RF-27 | `pages/Contacto.jsx`, `utils/validaciones.js` | `validaciones.test.js` |
 | RF-28 | `pages/Nosotros.jsx`, `Consejos.jsx`, `Tiendas.jsx` | `Nosotros.test.jsx` (estado) |
-| RF-29, RF-30 | `pages/admin/Dashboard.jsx`, `Inventario.jsx` | — *(integración)* |
+| RF-29, RF-30 | `pages/admin/Dashboard.jsx`, `Inventario.jsx` (indicadores y stock crítico) | — *(integración)* |
+| Vista admin | `pages/admin/Ordenes.jsx`, `Clientes.jsx`, `Reportes.jsx` (paneles con datos de ejemplo, integrados por el compañero) | — *(integración, maquetas)* |
 | RF-31 – RF-33, RF-36 | `pages/admin/Inventario.jsx`, `utils/productos.js` | `productos.test.js` (CRUD) |
 | RF-34, RF-35 | `pages/admin/ListaUsuarios.jsx`, `NuevoUsuario.jsx` | — *(integración)* |
 

@@ -84,6 +84,9 @@ avance entrega/
 │  │  └─ admin/
 │  │     ├─ AdminLayout.jsx
 │  │     ├─ Dashboard.jsx
+│  │     ├─ Ordenes.jsx             → panel de órdenes (datos de ejemplo)
+│  │     ├─ Clientes.jsx            → panel de clientes (datos de ejemplo)
+│  │     ├─ Reportes.jsx            → panel de reportes (datos de ejemplo)
 │  │     ├─ Inventario.jsx
 │  │     ├─ ListaUsuarios.jsx
 │  │     └─ NuevoUsuario.jsx
@@ -286,8 +289,8 @@ Valida con `validarFormularioContacto` (nombre, correo, teléfono, asunto y mens
 ### 9.1 `admin/AdminLayout.jsx`
 Layout propio del panel: menú lateral (`NavLink`) con Dashboard, Inventario y Empleados, un acceso a "+Profile"
 (Nuevo usuario), el nombre del usuario de la sesión y el botón **Cerrar sesión** (elimina `localStorage.sesion` y
-vuelve a `/login`). En móvil el menú se colapsa. Los ítems "Órdenes", "Reportes" y "Clientes" quedan como
-**próximamente** (deshabilitados).
+vuelve a `/login`). En móvil el menú se colapsa. Los ítems **Órdenes**, **Reportes** y **Clientes** ya cuentan con
+vistas propias (integradas por el compañero; ver 9.6).
 
 ### 9.2 `admin/Dashboard.jsx`
 Indicadores (ventas del día, órdenes en ruta, clientes nuevos), tabla de últimas órdenes con estados (badges) y
@@ -307,6 +310,18 @@ Clientes, Vendedores) y botón para crear un usuario nuevo.
 ### 9.5 `admin/NuevoUsuario.jsx`
 Formulario para crear usuarios con rol (`Administrador` / `Cliente` / `Vendedor`), reutilizando `validarRun`,
 `validarTelefono`, `correoDominioPermitido` y los selectores Región → Comuna. Guarda en `localStorage.usuarios`.
+
+### 9.6 Vistas integradas por el compañero (maquetas con datos de ejemplo)
+- `admin/Ordenes.jsx` (`/admin/ordenes`): KPI de órdenes del mes, tabla de órdenes con estados (badges) y
+  distribución por comuna.
+- `admin/Clientes.jsx` (`/admin/clientes`): KPI de clientes, listado con tipo y últimas compras, mejores clientes
+  y distribución por comuna.
+- `admin/Reportes.jsx` (`/admin/reportes`): KPI de ingresos, ventas mensuales (barras), productos más vendidos,
+  ventas por categoría y tipo de cliente, y reportes generados.
+
+Estas vistas usan contenido estático de ejemplo (no dependen de `localStorage`) y reutilizan clases de
+Bootstrap + íconos `bi-*`, coherentes con el resto del panel. Al conectar el futuro backend se reemplazarán los
+arreglos constantes por datos de la API.
 
 ---
 
