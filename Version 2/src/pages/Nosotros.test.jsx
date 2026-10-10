@@ -1,9 +1,10 @@
 // Prueba de estado: el blog se expande/contrae con useState al presionar un botón.
 import { render, screen, fireEvent } from '@testing-library/react'
+import { describe, test, expect } from 'vitest'
 import Nosotros from './Nosotros'
 
 describe('Página <Nosotros /> (estado con useState)', () => {
-  it('expande y contrae el blog al presionar Ver Más / Ver Menos', () => {
+  test('expande y contrae el blog al presionar Ver Más / Ver Menos', () => {
     render(<Nosotros />)
 
     const parrafoOculto = /hemos crecido constantemente/

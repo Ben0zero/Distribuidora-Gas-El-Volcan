@@ -39,7 +39,7 @@ El ERS sirve como:
 - Diseño **responsive** con Bootstrap (móvil, tableta y escritorio).
 - Flujo de compra con **carrito** persistente y **checkout**.
 - Módulo de **administración** (dashboard, inventario, usuarios).
-- **Pruebas unitarias automatizadas** con Jasmine + Karma y reporte de cobertura.
+- **Pruebas unitarias automatizadas** con Vitest + React Testing Library y reporte de cobertura.
 - Persistencia temporal en el **navegador** (`localStorage`), en ausencia de backend.
 
 **Fuera del alcance de esta entrega (planificado para etapas posteriores):**
@@ -123,7 +123,7 @@ El proceso actual es **manual** (teléfono y cuadernos), lo que genera: clientes
 | Base de datos *(planificado)* | **MySQL** | Modelo relacional (3FN). |
 | Mapas *(planificado)* | **Leaflet / Google Maps** | Seguimiento del pedido. |
 | Cloud *(planificado)* | **AWS + Docker** | Despliegue. |
-| Pruebas | **Jasmine + Karma** | Pruebas unitarias y cobertura. |
+| Pruebas | **Vitest** + React Testing Library | Pruebas unitarias y cobertura (`npm test` / `test:coverage`). |
 
 ### 3.2 Arquitectura del frontend (componentes)
 
@@ -328,18 +328,18 @@ Entidades principales y sus atributos clave:
 
 | RF | Implementación (frontend EP2) | Prueba asociada |
 |----|-------------------------------|-----------------|
-| RF-02, RF-06 | `pages/Productos.jsx`, `components/Producto.jsx` | `Producto.spec.jsx` (props/DOM) |
+| RF-02, RF-06 | `pages/Productos.jsx`, `components/Producto.jsx` | `Producto.test.jsx` (props/DOM + mock) |
 | RF-03 | `pages/Productos.jsx` (filtro por categoría) | — *(integración)* |
 | RF-04, RF-05 | `pages/DetalleProducto.jsx` | — *(integración)* |
-| RF-07 – RF-10, RF-12 | `utils/carrito.js`, `pages/Carrito.jsx`, `App.jsx` | `carrito.spec.js` (lógica pura) |
-| RF-11 | `components/Navbar.jsx` | `Navbar.spec.jsx` (prop `totalItems`) |
-| RF-14 – RF-16, RF-19 | `pages/Registro.jsx`, `utils/validaciones.js` | `validaciones.spec.js` |
-| RF-17, RF-18 | `pages/Login.jsx`, `AdminLayout.jsx` | — *(integración)* |
+| RF-07 – RF-10, RF-12 | `utils/carrito.js`, `pages/Carrito.jsx`, `App.jsx` | `carrito.test.js` (lógica pura) |
+| RF-11 | `components/Navbar.jsx` | `Navbar.test.jsx` (prop `totalItems`) |
+| RF-14 – RF-16, RF-19 | `pages/Registro.jsx`, `utils/validaciones.js` | `validaciones.test.js` |
+| RF-17, RF-18 | `pages/Login.jsx`, `AdminLayout.jsx` | `Login.test.jsx` (formulario interactivo) |
 | RF-20 – RF-24 | `pages/Ventas.jsx` | — *(integración)* |
-| RF-26, RF-27 | `pages/Contacto.jsx`, `utils/validaciones.js` | `validaciones.spec.js` |
-| RF-28 | `pages/Nosotros.jsx`, `Consejos.jsx`, `Tiendas.jsx` | `Nosotros.spec.jsx` (estado) |
+| RF-26, RF-27 | `pages/Contacto.jsx`, `utils/validaciones.js` | `validaciones.test.js` |
+| RF-28 | `pages/Nosotros.jsx`, `Consejos.jsx`, `Tiendas.jsx` | `Nosotros.test.jsx` (estado) |
 | RF-29, RF-30 | `pages/admin/Dashboard.jsx`, `Inventario.jsx` | — *(integración)* |
-| RF-31 – RF-33, RF-36 | `pages/admin/Inventario.jsx`, `utils/productos.js` | `productos.spec.js` |
+| RF-31 – RF-33, RF-36 | `pages/admin/Inventario.jsx`, `utils/productos.js` | `productos.test.js` (CRUD) |
 | RF-34, RF-35 | `pages/admin/ListaUsuarios.jsx`, `NuevoUsuario.jsx` | — *(integración)* |
 
 ---

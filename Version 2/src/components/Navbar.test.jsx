@@ -1,10 +1,11 @@
 // Prueba de componente: la barra de navegación recibe el total por props.
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
+import { describe, test, expect } from 'vitest'
 import Navbar from './Navbar'
 
 describe('Componente <Navbar />', () => {
-  it('muestra los enlaces de navegación y el total de items del carrito (prop)', () => {
+  test('muestra los enlaces de navegación y el total de items del carrito (prop)', () => {
     render(
       <MemoryRouter>
         <Navbar totalItems={3} />

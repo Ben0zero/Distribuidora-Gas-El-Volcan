@@ -1,6 +1,7 @@
 // Prueba de componente: verifica props, render en el DOM y el callback (mock).
 import { render, screen, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
+import { describe, test, expect, vi } from 'vitest'
 import Producto from './Producto'
 
 describe('Componente <Producto />', () => {
@@ -13,9 +14,9 @@ describe('Componente <Producto />', () => {
     imagen: '/x.png',
   }
 
-  it('renderiza los props del producto y avisa al agregar (mock)', () => {
+  test('renderiza los props del producto y avisa al agregar (mock)', () => {
     // Mock de la función que manejaría el carrito en el componente padre.
-    const onAgregar = jasmine.createSpy('onAgregar')
+    const onAgregar = vi.fn()
 
     render(
       <MemoryRouter>

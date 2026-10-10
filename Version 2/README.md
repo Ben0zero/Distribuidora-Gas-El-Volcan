@@ -20,25 +20,27 @@ Los datos se guardan en `localStorage` (navegador) hasta que existan los microse
 | Bootstrap | 5.3.8 | Estilos CSS |
 | bootstrap-icons | 1.13 | Íconos |
 | oxlint | 1.81 | Linter (`npm run lint`) |
-| Karma + Jasmine | 6.4 / 4.6 | Pruebas unitarias (`npm test`) |
-| karma-esbuild | 2.3 | Compila los specs con esbuild |
-| karma-coverage | 2.2 | Reporte de cobertura |
+| Vitest | 3.2 | Pruebas unitarias (`npm test`) |
+| @testing-library/react + jest-dom + user-event | 16.3 / 6.6 / 14.6 | Renderizado, matchers DOM e interacción con el usuario |
+| jsdom | 26.1 | Entorno navegador simulado para las pruebas |
+| @vitest/coverage-v8 | 3.2 | Reporte de cobertura (`npm run test:coverage`) |
 
 ---
 
 ## Cómo correrlo
 
 ```bash
-npm install          # instala dependencias (solo la primera vez)
-npm run dev          # servidor de desarrollo → http://localhost:5173
-npm run lint         # oxlint: 0 errores
-npm run build        # build de producción → carpeta dist/
-npm test             # 10 pruebas unitarias + reporte de cobertura (una vez)
-npm run test:watch   # pruebas en modo vigilancia (se re-ejecutan al guardar)
+npm install           # instala dependencias (solo la primera vez)
+npm run dev           # servidor de desarrollo → http://localhost:5173
+npm run lint          # oxlint: 0 errores
+npm run build         # build de producción → carpeta dist/
+npm test              # ejecuta las 10 pruebas unitarias (una sola vez)
+npm run test:watch    # pruebas en modo vigilancia (se re-ejecutan al guardar)
+npm run test:coverage # pruebas + reporte de cobertura en coverage/
 ```
 
 > En PowerShell usar `npm.cmd` (la política de ejecución puede bloquear `npm.ps1`).
-> Los tests necesitan **Google Chrome** instalado; se ejecutan en modo headless.
+> Las pruebas corren en **jsdom** (DOM simulado de Node), sin necesidad de abrir un navegador.
 
 **Credenciales de prueba (administrador):** `admin@duoc.cl` / `Admin123`
 
@@ -55,8 +57,7 @@ avance entrega/
 ├── DOCUMENTO_COBERTURA_TESTING.md  → informe de las pruebas y la cobertura
 ├── index.html                      → punto de montaje de la SPA (lang="es")
 ├── package.json                    → dependencias y comandos
-├── vite.config.js                  → configuración de Vite
-├── karma.conf.cjs                  → configuración de Karma + Jasmine
+├── vite.config.js                  → configuración de Vite (incluye el bloque test de Vitest)
 ├── .oxlintrc.json                  → reglas del linter
 ├── .gitignore                      → archivos que NO se suben (node_modules, dist, coverage)
 │
@@ -69,6 +70,7 @@ avance entrega/
     ├── main.jsx                    → punto de entrada: monta React y carga los CSS
     ├── index.css                   → estilos globales mínimos
     ├── estilos.css                 → hoja de estilos heredada de la Versión 1
+    ├── setupTests.js               → configuración global de Vitest (jest-dom)
     ├── App.jsx                     → rutas de la SPA + estado global del carrito
     │
     ├── datos/
@@ -78,9 +80,9 @@ avance entrega/
     │   ├── validaciones.js         → validaciones, regiones/comunas y helpers de localStorage
     │   ├── carrito.js              → operaciones del carrito (agregar, quitar, total)
     │   ├── productos.js            → catálogo real (base + ediciones + productos creados)
-    │   ├── validaciones.spec.js    → 3 pruebas
-    │   ├── carrito.spec.js         → 3 pruebas
-    │   └── productos.spec.js       → 1 prueba
+    │   ├── validaciones.test.js    → 2 pruebas
+    │   ├── carrito.test.js         → 3 pruebas
+    │   └── productos.test.js       → 1 prueba
     │
     ├── components/                 → piezas reutilizables
     │   ├── Navbar.jsx              → barra de navegación (todas las páginas públicas)
@@ -88,8 +90,8 @@ avance entrega/
     │   ├── BotonTienda.jsx         → botón flotante "encuentra tu tienda"
     │   ├── LayoutPublico.jsx       → layout público: BotonTienda + Navbar + contenido + Footer
     │   ├── Producto.jsx            → tarjeta de producto (recibe props)
-    │   ├── Producto.spec.jsx       → 1 prueba (componente)
-    │   └── Navbar.spec.jsx         → 1 prueba (componente)
+    │   ├── Producto.test.jsx       → 1 prueba (componente)
+    │   └── Navbar.test.jsx         → 1 prueba (componente)
     │
     ├── pages/                      → una página por cada ruta
     │   ├── Inicio.jsx              → portada
@@ -103,16 +105,14 @@ avance entrega/
     │   ├── Consejos.jsx            → consejos de seguridad y uso del gas
     │   ├── Tiendas.jsx             → sucursales y mapa
     │   ├── Contacto.jsx            → formulario de contacto
-    │   ├── Nosotros.spec.jsx       → 1 prueba (estado)
+    │   ├── Nosotros.test.jsx       → 1 prueba (estado)
+    │   ├── Login.test.jsx          → 1 prueba (formulario interactivo)
     │   └── admin/                  → panel de administración (layout propio)
     │       ├── AdminLayout.jsx     → menú lateral, sesión y cierre de sesión
     │       ├── Dashboard.jsx       → indicadores, órdenes y stock crítico
     │       ├── Inventario.jsx      → CRUD de productos
     │       ├── ListaUsuarios.jsx   → listado y filtro de usuarios
     │       └── NuevoUsuario.jsx    → creación de usuarios
-    │
-    └── test/
-        └── setup.js                → arranque de Jasmine DOM y limpieza de localStorage
 ```
 
 ---
@@ -137,8 +137,9 @@ avance entrega/
 - **Usuarios**: listar y filtrar por rol, y crear nuevos usuarios.
 
 ### Pruebas
-- **10 pruebas unitarias** con **Jasmine + Karma** (`npm test`) sobre utilidades y componentes.
-- Reporte de cobertura en `coverage/html/index.html`.
+- **10 pruebas unitarias** con **Vitest** (`npm test`, jsdom + React Testing Library) sobre utilidades y componentes.
+- Incluyen **validaciones**, **formulario interactivo** (`Login`), **carrito/compras**, **CRUD del catálogo**, props, estado y mocks.
+- Reporte de cobertura en `coverage/index.html` (`npm run test:coverage`).
 
 ---
 
@@ -146,20 +147,21 @@ avance entrega/
 
 Las 10 pruebas se agrupan por tipo (ver detalle y análisis en `DOCUMENTO_COBERTURA_TESTING.md`):
 
-| # | Spec | Cubre |
+| # | Test | Cubre |
 |---|---|---|
-| 1 | `validaciones.spec.js` | RUN, teléfono, correo, dominio y formato de precio |
-| 2 | `validaciones.spec.js` | `validarFormularioRegistro` (todos los errores) |
-| 3 | `validaciones.spec.js` | `validarFormularioContacto` + helpers de `localStorage` |
-| 4 | `carrito.spec.js` | `agregarItem` / `incrementarItem` (sin mutar) |
-| 5 | `carrito.spec.js` | `decrementarItem` / `eliminarItem` / `contarItems` |
-| 6 | `carrito.spec.js` | `obtenerItemsCompletos` / `calcularTotal` (residencial y comercial) |
-| 7 | `productos.spec.js` | `aplicarEdiciones` / `catalogoActual` / `productosConCreados` |
-| 8 | `Producto.spec.jsx` | props en el DOM y callback `onAgregar` (mock con `jasmine.createSpy`) |
-| 9 | `Navbar.spec.jsx` | enlaces y prop `totalItems` |
-| 10 | `Nosotros.spec.jsx` | estado `useState` (expandir/contraer blog) |
+| 1 | `validaciones.test.js` | RUN, teléfono, correo, dominio y formato de precio |
+| 2 | `validaciones.test.js` | `validarFormularioRegistro` + `validarFormularioContacto` (errores) y helpers de `localStorage` |
+| 3 | `carrito.test.js` | `agregarItem` / `incrementarItem` (sin mutar) |
+| 4 | `carrito.test.js` | `decrementarItem` / `eliminarItem` / `contarItems` |
+| 5 | `carrito.test.js` | `obtenerItemsCompletos` / `calcularTotal` (residencial y comercial) |
+| 6 | `productos.test.js` | `aplicarEdiciones` / `catalogoActual` / `productosConCreados` (CRUD) |
+| 7 | `Producto.test.jsx` | props en el DOM y callback `onAgregar` (mock con `vi.fn()`) |
+| 8 | `Navbar.test.jsx` | enlaces y prop `totalItems` |
+| 9 | `Nosotros.test.jsx` | estado `useState` (expandir/contraer blog) |
+| 10 | `Login.test.jsx` | formulario interactivo: escribes y valida el correo (user-event) |
 
-**Cobertura obtenida:** 92,15 % sentencias · 80 % ramas · 100 % funciones · 100 % líneas.
+**Cobertura obtenida:** 91,31 % sentencias · 78,57 % ramas · 96,66 % funciones · 91,31 % líneas
+(sobre los módulos que participan en las pruebas).
 
 ---
 

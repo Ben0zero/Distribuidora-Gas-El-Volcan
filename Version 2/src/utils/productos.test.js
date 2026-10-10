@@ -1,9 +1,14 @@
-// Pruebas unitarias del catálogo: aplicación de ediciones y productos creados.
+// Pruebas unitarias del catálogo: aplicación de ediciones y productos creados (CRUD).
 import { aplicarEdiciones, catalogoActual, productosConCreados } from './productos'
 import { CLAVES } from './validaciones'
+import { describe, test, expect, beforeEach } from 'vitest'
 
 describe('productos (catálogo)', () => {
-  it('aplicarEdiciones, catalogoActual y productosConCreados construyen el catálogo real', () => {
+  beforeEach(() => {
+    localStorage.clear()
+  })
+
+  test('aplicarEdiciones, catalogoActual y productosConCreados construyen el catálogo real', () => {
     const base = [
       { id: 'a', codigo: 'A1', nombre: 'Uno', residencial: 100, comercial: 90, stock: 5 },
       { id: 'b', codigo: 'B1', nombre: 'Dos', residencial: 200, comercial: 180, stock: 8 },
@@ -34,7 +39,7 @@ describe('productos (catálogo)', () => {
     expect(inventario.length).toBe(15)
     const creado = inventario.find((p) => p.codigo === 'NU1')
     expect(creado).toBeTruthy()
-    expect(creado.base).toBeFalse()
+    expect(creado.base).toBe(false)
     expect(creado.nombre).toBe('Producto nuevo')
   })
 })

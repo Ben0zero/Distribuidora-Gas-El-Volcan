@@ -10,9 +10,10 @@ import {
   calcularTotal,
 } from './carrito'
 import { PRODUCTOS } from '../datos/productos'
+import { describe, test, expect } from 'vitest'
 
 describe('carrito (lógica pura)', () => {
-  it('agregarItem e incrementarItem agregan y acumulan cantidad sin mutar el original', () => {
+  test('agregarItem e incrementarItem agregan y acumulan cantidad sin mutar el original', () => {
     const inicial = []
     const conUno = agregarItem(inicial, 'p1')
 
@@ -31,7 +32,7 @@ describe('carrito (lógica pura)', () => {
     expect(incrementarItem(conDos, 'p1')).toEqual([{ id: 'p1', cantidad: 3 }])
   })
 
-  it('decrementarItem y eliminarItem quitan unidades y productos; contarItems cuenta el total', () => {
+  test('decrementarItem y eliminarItem quitan unidades y productos; contarItems cuenta el total', () => {
     const carrito = [
       { id: 'p1', cantidad: 2 },
       { id: 'p2', cantidad: 3 },
@@ -54,7 +55,7 @@ describe('carrito (lógica pura)', () => {
     expect(contarItems([])).toBe(0)
   })
 
-  it('obtenerItemsCompletos une con el catálogo y calcularTotal suma según el tipo', () => {
+  test('obtenerItemsCompletos une con el catálogo y calcularTotal suma según el tipo', () => {
     const carrito = [
       { id: 'p1', cantidad: 2 },
       { id: 'p2', cantidad: 1 },

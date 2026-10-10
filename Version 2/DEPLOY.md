@@ -223,7 +223,7 @@ sudo systemctl reload nginx
 ## 12. Notas finales
 
 - El **servidor de desarrollo (5173)** es solo para probar; la **publicación real** es Nginx en el **80**.
-- **No es necesario** ejecutar `npm test` en la EC2 (los tests requieren Google Chrome). Eso se corre en tu PC.
+- **No es necesario** ejecutar `npm test` en la EC2 (las pruebas en jsdom no aportan a la instalación). Eso se corre en tu PC antes de cada commit.
 - Para **HTTPS** con un dominio, usa `certbot` (instrucciones al final de `nginx.conf`).
 - Cuando existan los **microservicios** (Spring Boot), se agregará en Nginx un `location /api { proxy_pass ... }`
   y se reemplazará `localStorage` por `fetch()` en el frontend.

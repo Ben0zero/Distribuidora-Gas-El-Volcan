@@ -15,7 +15,7 @@ que te sirva para la **presentación**.
 3. [React Router (las rutas)](#3-react-router-las-rutas)
 4. [React Bootstrap (los componentes visuales)](#4-react-bootstrap-los-componentes-visuales)
 5. [localStorage (los datos guardados en el navegador)](#5-localstorage-los-datos-guardados-en-el-navegador)
-6. [Pruebas unitarias (Jasmine + Karma)](#6-pruebas-unitarias-jasmine--karma)
+6. [Pruebas unitarias (Vitest)](#6-pruebas-unitarias-vitest)
 7. [Herramientas (Vite, npm, lint)](#7-herramientas-vite-npm-lint)
 8. [Cómo se relaciona con tu proyecto](#8-cómo-se-relaciona-con-tu-proyecto)
 9. [Glosario rápido A–Z](#9-glosario-rápido-az)
@@ -495,21 +495,21 @@ Se leen con funciones **seguras** (`leerLista`, `leerObjeto`) que **no rompen** 
 
 ---
 
-## 6. Pruebas unitarias (Jasmine + Karma)
+## 6. Pruebas unitarias (Vitest)
 
 Una **prueba unitaria** es código que **revisa automáticamente** que otra parte del código funcione. Si algo se
 rompe más adelante, `npm test` te avisa.
 
-### `describe` / `it` / `expect`
+### `describe` / `test` / `expect`
 ```jsx
-describe('carrito (lógica pura)', () => {       // agrupa pruebas de un tema
-  it('suma las cantidades', () => {             // una prueba puntual
+describe('carrito (lógica pura)', () => {     // agrupa pruebas de un tema
+  test('suma las cantidades', () => {         // una prueba puntual
     expect(contarItems([{ cantidad: 2 }])).toBe(2)  // lo que esperas
   })
 })
 ```
 - `describe` → agrupa.
-- `it` → un caso (describe **qué** debería pasar).
+- `test` → un caso (describe **qué** debería pasar).
 - `expect(valorReal)` → el resultado; seguido de un **matcher**.
 - El `matcher` (`.toBe`, `.toEqual`…) expresa **lo esperado**.
 
@@ -518,25 +518,28 @@ describe('carrito (lógica pura)', () => {       // agrupa pruebas de un tema
 |---|---|
 | `.toBe(x)` | es **exactamente** `x` |
 | `.toEqual(x)` | es **igual en contenido** (objetos/arreglos) |
-| `.toBeTrue()` / `.toBeFalse()` | es verdadero / falso |
+| `.toBe(true)` / `.toBe(false)` | es verdadero / falso |
 | `.toBeTruthy()` / `.toBeFalsy()` | existe / no existe (verdadero/falso genérico) |
 | `.toBeNull()` | es `null` |
-| `.toBeInTheDocument()` | el elemento está en el DOM (viene de Jasmine DOM) |
+| `.toBeInTheDocument()` | el elemento está en el DOM (viene de jest-dom) |
 | `.toHaveTextContent('x')` | el elemento **contiene** ese texto |
 | `.toHaveAttribute('href', '/')` | tiene ese atributo con ese valor |
+| `.toHaveValue('hernan')` | un input **tiene** ese valor escrito |
 | `.toHaveBeenCalledWith(x)` | el mock fue llamado con `x` |
 
-### Mocks / spies (`jasmine.createSpy`)
+### Mocks / spies (`vi.fn()`)
 Un **mock** (o *spy*) es una **función falsa** que "espía" si la llamaron y con qué argumentos. Sirve para probar
 **sin depender** del componente real.
 
 ```jsx
-const onAgregar = jasmine.createSpy('onAgregar')   // función falsa
+import { vi } from 'vitest'
+
+const onAgregar = vi.fn()                     // función falsa (Vitest)
 
 // ... se renderiza y se hace click ...
 
-expect(onAgregar).toHaveBeenCalledWith('p1')        // ¿la llamaron con 'p1'?
-expect(onAgregar).toHaveBeenCalledTimes(1)          // ¿una vez?
+expect(onAgregar).toHaveBeenCalledWith('p1')   // ¿la llamaron con 'p1'?
+expect(onAgregar).toHaveBeenCalledTimes(1)     // ¿una vez?
 ```
 
 ### `beforeEach`
@@ -548,14 +551,20 @@ beforeEach(() => {
 })
 ```
 
-### Testing Library: `render`, `screen`, `fireEvent`
+### Testing Library: `render`, `screen`, `fireEvent` y `user-event`
 - `render(<Componente />)` → "dibuja" el componente para probarlo.
 - `screen` → busca elementos en lo que se dibujó.
 - `fireEvent.click(...)` → **simula** un clic del usuario.
+- `userEvent` (`user.type(campo, 'texto')`, `user.click(...)`) → simula la **interacción real** (tecleo, clic).
 
 ```jsx
 render(<Producto {...producto} onAgregar={onAgregar} />)
 fireEvent.click(screen.getByRole('button', { name: 'Agregar' }))
+```
+
+```jsx
+const user = userEvent.setup()
+await user.type(screen.getByLabelText('Correo electrónico'), 'hernan')
 ```
 
 ### Consultas (queries)
@@ -566,9 +575,10 @@ fireEvent.click(screen.getByRole('button', { name: 'Agregar' }))
 | `screen.getByLabelText('Correo')` | la etiqueta de un input |
 | `screen.queryByText('x')` | igual, pero devuelve `null` si no está (para comprobar AUSENCIA) |
 
-### `setup.js`
-Archivo que se ejecuta **antes de todas** las pruebas. Activa los matchers de Jasmine DOM (`toBeInTheDocument`) y
-limpia `localStorage`.
+### `setupTests.js`
+Archivo que se ejecuta **antes de todas** las pruebas (se declara en `vite.config.js` →
+`setupFiles: './src/setupTests.js'`). Carga `@testing-library/jest-dom`, que agrega los matchers de DOM
+(`toBeInTheDocument`, `toHaveValue`, etc.).
 
 ---
 
@@ -598,8 +608,9 @@ Importar un CSS hace que sus estilos se apliquen a toda la app.
 | `npm run dev` | Levanta el servidor de desarrollo (http://localhost:5173) |
 | `npm run build` | Genera la carpeta `dist/` para producción |
 | `npm run lint` | Revisa el estilo/errores del código (oxlint) |
-| `npm test` | Ejecuta las 10 pruebas con Jasmine + Karma y la cobertura |
-| `npm run test:watch` | Pruebas en modo vigilancia |
+| `npm test` | Ejecuta las 10 pruebas con Vitest (una sola vez) |
+| `npm run test:watch` | Pruebas en modo vigilancia (se re-ejecutan al guardar) |
+| `npm run test:coverage` | Ejecuta las pruebas y genera el reporte de cobertura en `coverage/` |
 
 ### `.env` e `import.meta.env` (adelanto)
 Cuando exista backend, la URL de la API se guardará en un archivo `.env` y se leerá así:
@@ -636,13 +647,14 @@ Acá está lo más importante: **dónde vive cada concepto** y **cómo se conect
 | **`useParams`** | `DetalleProducto.jsx` | Leer el `:id` de `/producto/:id`. |
 | **`useLocation` + `URLSearchParams`** | `Productos.jsx` | Leer `?categoria=` para filtrar el catálogo. |
 | **`useNavigate`** | `Login`, `Registro`, `Ventas`, `AdminLayout` | Redirigir por código (tras login, registro o cerrar sesión). |
-| **`MemoryRouter`** | `Producto.spec.jsx`, `Navbar.spec.jsx` | Dar un Router falso en las pruebas. |
+| **`MemoryRouter`** | `Producto.test.jsx`, `Navbar.test.jsx`, `Login.test.jsx` | Dar un Router falso en las pruebas. |
 | **`localStorage`** | `App.jsx`, `utils/validaciones.js`, `utils/productos.js`, `Login`, `Registro`, `Contacto`, `Ventas`, `Inventario`, `ListaUsuarios`, `NuevoUsuario` | Guardar carrito, usuarios, sesión, productos, órdenes y solicitudes. |
 | **`JSON.parse` / `stringify`** | `App.jsx`, `utils/validaciones.js` | Convertir objetos ↔ texto para guardar/leer. |
 | **`map`/`filter`/`find`/`reduce`** | `utils/carrito.js`, `utils/productos.js`, `Productos`, `Inventario`, `Dashboard`, `ListaUsuarios` | Transformar, filtrar, buscar y sumar. |
 | **Ternario / `&&` / `||` / `??` / `?.`** | `utils/carrito.js`, `utils/productos.js`, `Login`, `Navbar`, `Carrito` | Condiciones cortas y valores por defecto. |
-| **Mocks / spies** | `Producto.spec.jsx` (`jasmine.createSpy`) | Espiar si se llamó `onAgregar` con el id correcto. |
-| **`render` / `screen` / `fireEvent`** | `Producto.spec.jsx`, `Navbar.spec.jsx`, `Nosotros.spec.jsx` | Dibujar componentes y simular clics en las pruebas. |
+| **Mocks / spies** | `Producto.test.jsx` (`vi.fn()`) | Espiar si se llamó `onAgregar` con el id correcto. |
+| **`render` / `screen` / `fireEvent`** | `Producto.test.jsx`, `Navbar.test.jsx`, `Nosotros.test.jsx` | Dibujar componentes y simular clics en las pruebas. |
+| **`user-event` (`user.type`)** | `Login.test.jsx` | Simular que un usuario escribe en un formulario. |
 
 ### 8.2 Recorrido: qué hace cada archivo y qué conceptos aplica
 

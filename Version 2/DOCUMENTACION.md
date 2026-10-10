@@ -16,7 +16,7 @@ Aplicación **SPA** de la **Distribuidora de Gas El Volcán** construida con Rea
 - **React Router** (SPA con varias rutas y rutas anidadas).
 - **Formularios controlados** con validación.
 - **Diseño responsivo** con Bootstrap / React Bootstrap.
-- **Pruebas unitarias** con Jasmine + Karma.
+- **Pruebas unitarias** con Vitest + React Testing Library.
 
 Datos de negocio reales: 14 productos de gas, precios residencial/comercial y el login del administrador
 (`admin@duoc.cl`).
@@ -34,13 +34,14 @@ Datos de negocio reales: 14 productos de gas, precios residencial/comercial y el
 | bootstrap | 5.3.8 | CSS base (grillas y estilos). Importado en `main.jsx`. |
 | bootstrap-icons | 1.13 | Íconos (`bi-*`) usados en el sitio y el admin. |
 | oxlint | 1.81 | Linter (`npm run lint`). |
-| Karma + Jasmine | 6.4 / 4.6 | Pruebas unitarias (`npm test`). |
-| karma-esbuild | 2.3 | Compila los specs (soporta JSX y Vite/React 19). |
-| karma-coverage | 2.2 | Reporte de cobertura (`coverage/`). |
+| Vitest | 3.2 | Pruebas unitarias (`npm test`), integrado con Vite. |
+| @testing-library/react + jest-dom + user-event | 16.3 / 6.6 / 14.6 | Renderizado, matchers de DOM e interacción real del usuario. |
+| jsdom | 26.1 | Navegador simulado (DOM + `localStorage`) para las pruebas. |
+| @vitest/coverage-v8 | 3.2 | Reporte de cobertura (`npm run test:coverage`). |
 
 **Por qué este stack**: es el mismo de la asignatura (ver `Semana react/mi-primer-react`). Para las pruebas,
-Jasmine es el framework pedido y Karma el runner; como `karma-vite` no es compatible con Vite 8 + React 19, se
-usa `karma-esbuild`, que compila los `.jsx` con esbuild.
+**Vitest es el framework indicado por el docente** para esta evaluación: reutiliza la configuración de Vite, corre
+sobre **jsdom** (sin abrir un navegador) y produce cobertura con el provider `v8` de Node.
 
 ---
 
@@ -49,9 +50,10 @@ usa `karma-esbuild`, que compila los `.jsx` con esbuild.
 ```
 avance entrega/
 ├─ index.html                       → punto de montaje de la SPA (lang="es")
-├─ karma.conf.cjs                   → configuración de Karma + Jasmine
+├─ vite.config.js                   → config de Vite (incluye el bloque `test` de Vitest)
 ├─ src/
 │  ├─ main.jsx                      → arranca React y carga Bootstrap, íconos y CSS
+│  ├─ setupTests.js                 → config global de Vitest (matchers de jest-dom)
 │  ├─ estilos.css                   → estilos heredados de la Versión 1 (incluye .fondo)
 │  ├─ index.css                     → estilos globales mínimos
 │  ├─ App.jsx                       → rutas + estado global del carrito
@@ -85,8 +87,7 @@ avance entrega/
 │  │     ├─ Inventario.jsx
 │  │     ├─ ListaUsuarios.jsx
 │  │     └─ NuevoUsuario.jsx
-│  └─ test/
-│     └─ setup.js                   → arranque de Jasmine DOM y limpieza
+│  └─ (las pruebas **.test.js(x)** viven junto a cada módulo: utils/, components/, pages/)
 └─ public/
    └─ IMAGENES/                     → imágenes de los productos y del sitio
 ```
@@ -309,36 +310,35 @@ Formulario para crear usuarios con rol (`Administrador` / `Cliente` / `Vendedor`
 
 ---
 
-## 10. Pruebas unitarias (Jasmine + Karma)
+## 10. Pruebas unitarias (Vitest)
 
-**Configuración** (`karma.conf.cjs`):
-- Framework `jasmine` con `karma-esbuild` como preprocesador (compila JSX con esbuild).
-- Navegador `ChromeHeadlessCI` (`--no-sandbox --disable-gpu --disable-dev-shm-usage`), con `CHROME_BIN`
-  autodetectado.
-- Reportes: `spec` (en consola) y `coverage` (en `coverage/`).
-- Se instrumenta el código con `istanbul-lib-instrument` **dentro del bundle de esbuild** y con `parserPlugins:
-  ['jsx']` (Karma core no recolecta `window.__coverage__` por sí solo).
+**Configuración** (`vite.config.js`):
 
-**Arranque** (`src/test/setup.js`): activa `IS_REACT_ACT_ENVIRONMENT`, registra los matchers de
-`@testing-library/jasmine-dom` y limpia `localStorage` antes de cada prueba.
+- Bloque `test` con `environment: 'jsdom'`, `setupFiles: './src/setupTests.js'`, `globals: true` y `css: false`.
+- `esbuild: { jsx: 'automatic' }` para que los tests `.jsx` usen el runtime automático de React 19 sin importar React.
+- Cobertura con el **provider `v8`** (`@vitest/coverage-v8`) que reporta en consola, `coverage/index.html` y `coverage/lcov.info`.
+
+**Arranque** (`src/setupTests.js`): importa `@testing-library/jest-dom` para los matchers de DOM
+(`toBeInTheDocument`, `toHaveTextContent`, `toHaveValue`, `toHaveAttribute`).
 
 **Las 10 pruebas** (agrupadas por cohesión, ver `DOCUMENTO_COBERTURA_TESTING.md`):
 
-| # | Spec | Qué verifica |
+| # | Test | Qué verifica |
 |---|---|---|
-| 1 | `validaciones.spec.js` | RUN, teléfono, correo, dominio permitido y `formatearPrecio` |
-| 2 | `validaciones.spec.js` | `validarFormularioRegistro`: caso válido y cada mensaje de error |
-| 3 | `validaciones.spec.js` | `validarFormularioContacto` + `leerLista`/`leerObjeto` (incluye JSON corrupto) |
-| 4 | `carrito.spec.js` | `agregarItem`/`incrementarItem` acumulan sin mutar el original |
-| 5 | `carrito.spec.js` | `decrementarItem` (elimina en 0), `eliminarItem` y `contarItems` |
-| 6 | `carrito.spec.js` | `obtenerItemsCompletos` (descarta ids) y `calcularTotal` (residencial/comercial) |
-| 7 | `productos.spec.js` | `aplicarEdiciones`, `catalogoActual` y `productosConCreados` |
-| 8 | `Producto.spec.jsx` | props en el DOM y callback `onAgregar` (mock `jasmine.createSpy`) |
-| 9 | `Navbar.spec.jsx` | enlaces (`href`) y prop `totalItems` en el badge |
-| 10 | `Nosotros.spec.jsx` | estado `useState`: expandir/contraer el blog |
+| 1 | `validaciones.test.js` | RUN, teléfono, correo, dominio permitido y `formatearPrecio` |
+| 2 | `validaciones.test.js` | `validarFormularioRegistro` + `validarFormularioContacto` (primer error) y `leerLista`/`leerObjeto` (JSON corrupto) |
+| 3 | `carrito.test.js` | `agregarItem`/`incrementarItem` acumulan sin mutar el original (carrito) |
+| 4 | `carrito.test.js` | `decrementarItem` (elimina en 0), `eliminarItem` y `contarItems` |
+| 5 | `carrito.test.js` | `obtenerItemsCompletos` (descarta ids) y `calcularTotal` (residencial/comercial) — compras |
+| 6 | `productos.test.js` | `aplicarEdiciones`, `catalogoActual` y `productosConCreados` — CRUD |
+| 7 | `Producto.test.jsx` | props en el DOM y callback `onAgregar` (mock `vi.fn()`) |
+| 8 | `Navbar.test.jsx` | enlaces (`href`) y prop `totalItems` en el badge |
+| 9 | `Nosotros.test.jsx` | estado `useState`: expandir/contraer el blog |
+| 10 | `Login.test.jsx` | formulario interactivo: los campos se asocian por `label`, el usuario escribe (`user-event`) y el correo inválido muestra error |
 
-**Cobertura:** 92,15 % sentencias · 80 % ramas · 100 % funciones · 100 % líneas.
-Las ramas no cubiertas son defensivas (validaciones alternativas, respaldos `|| 0`, ediciones parciales).
+**Cobertura:** 91,31 % sentencias · 78,57 % ramas · 96,66 % funciones · 91,31 % líneas (módulos bajo prueba).
+Las ramas no cubiertas son defensivas (validaciones alternativas, respaldos `|| 0`, ediciones parciales) y las
+del login con credenciales válidas (se validan manualmente en el panel admin).
 
 ---
 
@@ -369,7 +369,7 @@ Las ramas no cubiertas son defensivas (validaciones alternativas, respaldos `|| 
 - **Renderizado condicional** (`{error && <Alert/>}`) y **listas** con `.map()` + `key`.
 - **Atomic Design** (componentes pequeños reutilizables → páginas).
 - **Diseño responsivo** con grillas de Bootstrap.
-- **Pruebas unitarias** (Jasmine) de funciones puras y de componentes (Jasmine DOM + spies).
+- **Pruebas unitarias** (Vitest + React Testing Library) de funciones puras y de componentes (jest-dom + `vi.fn()`).
 
 ---
 
@@ -380,12 +380,13 @@ npm.cmd install     # la primera vez
 npm.cmd run dev     # desarrollo → http://localhost:5173
 npm run lint        # oxlint: 0 errores
 npm run build       # producción → carpeta dist/
-npm test            # 10 pruebas + cobertura (una vez)
+npm test            # 10 pruebas (una sola vez)
 npm run test:watch  # pruebas en modo vigilancia
+npm run test:coverage # pruebas + cobertura en coverage/
 ```
 
 > En PowerShell usar `npm.cmd` (la política de ejecución puede bloquear `npm.ps1`).
-> Los tests requieren **Google Chrome** instalado (se ejecutan en headless).
+> Las pruebas corren en **jsdom** (DOM simulado de Node), sin necesidad de abrir un navegador.
 
 **Credenciales de prueba (admin):** `admin@duoc.cl` / `Admin123`.
 
