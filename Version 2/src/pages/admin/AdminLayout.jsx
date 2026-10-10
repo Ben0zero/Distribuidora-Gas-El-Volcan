@@ -8,13 +8,12 @@ const PRINCIPAL = [
   { to: '/admin/usuarios', icono: 'bi-person-badge', label: 'Empleados' },
   { to: '/admin/ordenes', icono: 'bi-receipt', label: 'Órdenes' },
   { to: '/admin/reportes', icono: 'bi-file-earmark-bar-graph', label: 'Reportes' },
+  { to: '/admin/clientes', icono: 'bi-people', label: 'Clientes' },
 ]
 
 const SECUNDARIA = [{ to: '/admin/usuarios/nuevo', icono: 'bi-person-plus', label: '+Profile' }]
 
-const inactivos = [
-  { icono: 'bi-people', label: 'Clientes' },
-]
+const inactivos = []
 
 function classNav({ isActive }) {
   return 'nav-link ' + (isActive ? 'active' : 'link-dark')
