@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Container, Button, Row, Col } from 'react-bootstrap'
+import '../estilos.css'
 
 function Inicio() {
   return (
@@ -7,7 +8,7 @@ function Inicio() {
       <Container className="py-5 text-center">
         <h1 className="texto-2">Bienvenido a Distribuidora de Gas El Volcán</h1>
         <p className="lead texto-2">Venta y distribución de cilindros de gas GLP, reguladores, mangueras y accesorios.</p>
-        <Button as={Link} to="/productos" variant="primary">
+        <Button as={Link} to="/productos" className="btn-login">
           Ver productos
         </Button>
         <img src="/IMAGENES/cilindros.png" alt="Cilindros El Volcán" className="d-block mx-auto mt-4"
