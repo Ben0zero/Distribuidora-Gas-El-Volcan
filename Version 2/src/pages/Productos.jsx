@@ -18,7 +18,7 @@ function Productos({ onAgregar }) {
         <h1 className="text-center mb-4 texto-2">Nuestros Productos</h1>
 
         <div className="text-center mb-3">
-          <Button as={Link} to="/productos" variant={categoria ? 'outline-primary' : 'primary'} className="me-2 mb-1">
+          <Button as={Link} to="/productos" variant={categoria ? 'outline-primary' : 'primary'} className="btn-login me-2 mb-1">
             Todos
           </Button>
           {CATEGORIAS.map((c) => (
@@ -27,14 +27,14 @@ function Productos({ onAgregar }) {
               as={Link}
               to={`/productos?categoria=${encodeURIComponent(c)}`}
               variant={categoria === c ? 'primary' : 'outline-primary'}
-              className="me-2 mb-1"
+              className="btn-login me-2 mb-1"
             >
               {c}
             </Button>
           ))}
         </div>
 
-        {categoria && <p className="text-center texto-2 fw-bold">Categoría seleccionada: {categoria}</p>}
+        {categoria && <h3 className="text-center texto-2 fw-bold">Categoría seleccionada: {categoria}</h3>}
 
         <div className="catalogo p-3 p-md-4">
           <Row xs={1} sm={2} md={3} lg={4} className="g-4">

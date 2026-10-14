@@ -61,7 +61,8 @@ header{
 }
 
 .btn-login:hover {
-    background-color: white;
+    font-weight: bold;
+    background-color: transparent;
     color: #FF6B00;
     border-color: #FF6B00;  
 }
