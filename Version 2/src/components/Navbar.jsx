@@ -1,9 +1,10 @@
-import { Link } from 'react-router-dom'
+import { Link,NavLink } from 'react-router-dom'
 import { Navbar as BootstrapNavbar, Nav, Container, Badge } from 'react-bootstrap'
+import '../navbar.css'
 
 function Navbar({ totalItems }) {
   return (
-    <BootstrapNavbar bg="dark" data-bs-theme="dark" expand="lg" sticky="top">
+    <BootstrapNavbar expand="lg" sticky="top" className="navbar-gas">
       <Container>
         <BootstrapNavbar.Brand as={Link} to="/" className="d-flex align-items-center gap-2">
           <img src="/IMAGENES/Logo Gas.png" alt="Logo El Volcán" width="40" height="40" />
@@ -12,31 +13,31 @@ function Navbar({ totalItems }) {
         <BootstrapNavbar.Toggle aria-controls="menu-principal" />
         <BootstrapNavbar.Collapse id="menu-principal">
           <Nav className="ms-auto align-items-lg-center">
-            <Nav.Link as={Link} to="/">
-              Inicio
+            <Nav.Link as={NavLink} to="/" end>
+            Inicio
             </Nav.Link>
-            <Nav.Link as={Link} to="/productos">
+            <Nav.Link as={NavLink} to="/productos">
               Productos
             </Nav.Link>
-            <Nav.Link as={Link} to="/nosotros">
+            <Nav.Link as={NavLink} to="/nosotros">
               Nosotros
             </Nav.Link>
-            <Nav.Link as={Link} to="/consejos">
+            <Nav.Link as={NavLink} to="/consejos">
               Consejos
             </Nav.Link>
-            <Nav.Link as={Link} to="/tiendas">
+            <Nav.Link as={NavLink} to="/tiendas">
               Tiendas
             </Nav.Link>
-            <Nav.Link as={Link} to="/contacto">
+            <Nav.Link as={NavLink} to="/contacto">
               Contacto
             </Nav.Link>
-            <Nav.Link as={Link} to="/carrito">
+            <Nav.Link as={NavLink} to="/carrito">
               Carrito <Badge bg="light" text="dark">{totalItems}</Badge>
             </Nav.Link>
-            <Nav.Link as={Link} to="/login">
+            <Nav.Link as={NavLink} to="/login">
               Login
             </Nav.Link>
-            <Nav.Link as={Link} to="/registro">
+            <Nav.Link as={NavLink} to="/registro">
               Registro
             </Nav.Link>
           </Nav>
