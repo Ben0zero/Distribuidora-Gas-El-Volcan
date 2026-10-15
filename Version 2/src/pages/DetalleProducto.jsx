@@ -11,7 +11,7 @@ function DetalleProducto({ onAgregar }) {
       <main className="fondo">
         <Container className="py-4">
           <Alert variant="warning">Producto no encontrado.</Alert>
-          <Button as={Link} to="/productos" variant="primary">
+          <Button as={Link} to="/productos" variant="primary" className="btn-login">
             Volver a Productos
           </Button>
         </Container>
@@ -21,11 +21,11 @@ function DetalleProducto({ onAgregar }) {
 
   return (
     <main className="fondo">
-      <Container className="py-4">
+      <Container className="py-4 text-center align-items-center" >
         <Row className="justify-content-center">
           <Col md={8} lg={6}>
-            <Card>
-              <Card.Img variant="top" src={producto.imagen} alt={producto.nombre} />
+            <Card className="tarjeta-producto-detalle">
+              <Card.Img className="imagen-producto-detalle px-3" variant="top" src={producto.imagen} alt={producto.nombre} />
               <Card.Body>
                 <Card.Title>{producto.nombre}</Card.Title>
                 <Card.Text className="text-muted">{producto.descripcion}</Card.Text>
@@ -38,11 +38,11 @@ function DetalleProducto({ onAgregar }) {
                   Precio comercial: ${producto.comercial.toLocaleString('es-CL')}
                 </Card.Text>
                 <Card.Text>Stock disponible: {producto.stock}</Card.Text>
-                <div className="d-flex gap-2">
-                  <Button variant="primary" onClick={() => onAgregar(producto.id)}>
+                <div className="d-flex gap-2 justify-content-center">
+                  <Button className="btn-login" variant="primary" onClick={() => onAgregar(producto.id)}>
                     Agregar al carrito
                   </Button>
-                  <Button as={Link} to="/productos" variant="outline-secondary">
+                  <Button className="btn-login" as={Link} to="/productos" variant="outline-secondary">
                     Volver
                   </Button>
                 </div>

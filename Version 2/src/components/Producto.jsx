@@ -4,7 +4,7 @@ import '../productos.css'
 
 function Producto(props) {
   return (
-    <Card className="h-100">
+    <Card className="h-100 tarjeta-producto">
       <Card.Img className="imagen-producto" variant="top" src={props.imagen} alt={props.nombre} />
       <Card.Body className="d-flex flex-column">
         <Card.Title>{props.nombre}</Card.Title>

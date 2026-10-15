@@ -38,18 +38,18 @@ function Carrito({ carrito, incrementar, decrementar, eliminar }) {
                   <span className="text-muted">${item.producto.residencial.toLocaleString('es-CL')} c/u</span>
                 </Col>
                 <Col xs={6} md={3} className="d-flex align-items-center gap-2">
-                  <Button variant="outline-danger" size="sm" onClick={() => decrementar(item.id)}>
-                    -
+                  <Button className="px-3 py-2 mx-2" variant="outline-danger" size="sm" onClick={() => decrementar(item.id)}>
+                    <h2>-</h2>
                   </Button>
-                  <span>{item.cantidad}</span>
-                  <Button variant="outline-success" size="sm" onClick={() => incrementar(item.id)}>
-                    +
+                  <span><h3>{item.cantidad}</h3></span>
+                  <Button className="px-3 py-2 mx-2" variant="outline-success" size="sm" onClick={() => incrementar(item.id)}>
+                    <h2>+</h2>
                   </Button>
                 </Col>
                 <Col xs={6} md={3} className="text-md-end">
-                  <strong>Subtotal: ${(item.producto.residencial * item.cantidad).toLocaleString('es-CL')}</strong>
+                  <strong><h3>Subtotal: ${(item.producto.residencial * item.cantidad).toLocaleString('es-CL')}</h3></strong>
                   <br />
-                  <Button variant="link" size="sm" className="p-0" onClick={() => eliminar(item.id)}>
+                  <Button variant="link" size="sm" className="btn-login my-2 px-5" onClick={() => eliminar(item.id)}>
                     Quitar
                   </Button>
                 </Col>

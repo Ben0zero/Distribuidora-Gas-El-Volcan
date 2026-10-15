@@ -111,7 +111,7 @@ function Contacto() {
                   {error && <Alert variant="danger">{error}</Alert>}
                   {ok && <Alert variant="success">{ok}</Alert>}
 
-                  <Button type="submit" className="btn-login border-0">
+                  <Button type="submit" className="btn-login">
                     Enviar mensaje
                   </Button>
                 </Form>
