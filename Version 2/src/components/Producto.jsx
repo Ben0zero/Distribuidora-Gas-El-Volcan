@@ -14,8 +14,8 @@ function Producto(props) {
           <Button className="btn-login" variant="primary" onClick={() => props.onAgregar(props.id)}>
             Agregar
           </Button>
-          <Button className="btn-login" as={Link} to={`/producto/${props.id}`} variant="outline-primary">
-            Ver detalle
+          <Button className="btn-producto-detalle" as={Link} to={`/producto/${props.id}`}>
+            Ver detalles
           </Button>
         </div>
       </Card.Body>

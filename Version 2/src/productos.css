@@ -55,3 +55,17 @@
 .catalogo {
     background-color: transparent;
 }
+
+.btn-producto-detalle {
+    background-color: white;
+    color: #FF6B00;
+    border: 2px solid transparent; 
+    transition: all 0.15s ease;    
+}
+
+.btn-producto-detalle:hover {
+    background-color: white;
+    color: #FF6B00;
+    border: 2px solid white; 
+    transition: all 0.15s ease;    
+}

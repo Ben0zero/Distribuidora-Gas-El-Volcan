@@ -170,7 +170,7 @@ function Registro() {
                   {error && <Alert variant="danger">{error}</Alert>}
                   {ok && <Alert variant="success">{ok}</Alert>}
 
-                  <Button type="submit" variant="success">
+                  <Button className="btn-login" type="submit" variant="success">
                     Registrarse
                   </Button>
                 </Form>

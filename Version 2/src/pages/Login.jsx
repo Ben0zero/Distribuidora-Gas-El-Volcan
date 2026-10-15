@@ -106,7 +106,7 @@ function Login() {
                     />
                   </Form.Group>
                   {error && <Alert variant="danger">{error}</Alert>}
-                  <Button type="submit" variant="primary">
+                  <Button className="btn-login" type="submit" variant="primary">
                     Ingresar
                   </Button>
                 </Form>
