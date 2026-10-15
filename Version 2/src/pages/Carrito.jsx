@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { Container, Row, Col, ListGroup, Button, Alert } from 'react-bootstrap'
 import { catalogoActual } from '../utils/productos'
 import { obtenerItemsCompletos, calcularTotal } from '../utils/carrito'
+import '../carrito.css'
 
 function Carrito({ carrito, incrementar, decrementar, eliminar }) {
   const productos = catalogoActual()
@@ -28,10 +29,10 @@ function Carrito({ carrito, incrementar, decrementar, eliminar }) {
         <h1 className="texto-2">Carrito</h1>
         <ListGroup>
           {items.map((item) => (
-            <ListGroup.Item key={item.id}>
+            <ListGroup.Item className='my-2'  key={item.id} style={{ borderRadius: '12px' }}>
               <Row className="align-items-center g-3">
                 <Col xs={3} md={2}>
-                  <img src={item.producto.imagen} alt={item.producto.nombre} className="img-fluid" />
+                  <img src={item.producto.imagen} alt={item.producto.nombre} className="imagen-producto-carrito" />
                 </Col>
                 <Col xs={9} md={4}>
                   <h5 className="mb-1">{item.producto.nombre}</h5>
@@ -49,7 +50,7 @@ function Carrito({ carrito, incrementar, decrementar, eliminar }) {
                 <Col xs={6} md={3} className="text-md-end">
                   <strong><h3>Subtotal: ${(item.producto.residencial * item.cantidad).toLocaleString('es-CL')}</h3></strong>
                   <br />
-                  <Button variant="link" size="sm" className="btn-login my-2 px-5" onClick={() => eliminar(item.id)}>
+                  <Button variant="link" size="sm" className="btn-carrito-quitar my-2 mx-5 px-5" onClick={() => eliminar(item.id)}>
                     Quitar
                   </Button>
                 </Col>
@@ -58,12 +59,12 @@ function Carrito({ carrito, incrementar, decrementar, eliminar }) {
           ))}
         </ListGroup>
         <div className="mt-3 d-flex justify-content-between align-items-center">
-          <Button as={Link} to="/productos" variant="outline-secondary">
+          <Button className="btn-login" as={Link} to="/productos" variant="outline-secondary">
             Seguir comprando
           </Button>
           <div className="text-end">
             <h4 className="mb-2 texto-2">Total: ${total.toLocaleString('es-CL')}</h4>
-            <Button as={Link} to="/ventas" variant="success">
+            <Button className="btn-carrito py-3 px-3" as={Link} to="/ventas" variant="success">
               Finalizar compra
             </Button>
           </div>

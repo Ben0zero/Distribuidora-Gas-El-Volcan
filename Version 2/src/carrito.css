@@ -1,0 +1,36 @@
+.btn-carrito {
+    background-color: #FF6B00;
+    color: white;
+    border: 2px solid transparent; 
+    transition: all 0.15s ease; 
+    font-weight: bold;   
+}
+
+.btn-carrito:hover {
+    background-color: transparent;
+    color: #FF6B00;
+    border-color: #FF6B00; 
+    font-weight: bold;  
+}
+
+.btn-carrito-quitar {
+    background-color: red;
+    color: white;
+    border: 2px solid transparent; 
+    transition: all 0.15s ease;  
+}
+
+.btn-carrito-quitar:hover {
+    background-color: white;
+    color: red;
+    border-color: red;  
+}
+
+.imagen-producto-carrito {
+  width: 200px;
+  height: 180px;
+  object-fit: contain;
+  display: block;
+  padding-top: 10px;
+  margin: 0 auto;
+}
