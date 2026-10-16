@@ -40,10 +40,10 @@ function Ventas({ carrito, incrementar, decrementar, vaciar }) {
             <h2 className="mt-3">Inicia sesión para comprar</h2>
             <p>Necesitas una cuenta para finalizar tu pedido.</p>
             <div className="d-flex gap-2 justify-content-center">
-              <Button as={Link} to="/login" className="btn-login border-0">
+              <Button as={Link} to="/login" className="btn-login">
                 Ir a Login
               </Button>
-              <Button as={Link} to="/registro" variant="outline-dark rounded-0">
+              <Button as={Link} to="/registro" className="btn-login">
                 Crear cuenta
               </Button>
             </div>

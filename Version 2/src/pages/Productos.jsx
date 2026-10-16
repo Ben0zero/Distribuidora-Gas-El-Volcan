@@ -37,7 +37,7 @@ function Productos({ onAgregar }) {
         {categoria && <h3 className="text-center texto-2 fw-bold">Categoría seleccionada: {categoria}</h3>}
 
         <div className="catalogo p-3 p-md-4">
-          <Row xs={1} sm={2} md={3} lg={4} className="g-4">
+          <Row xs={1} sm={1} md={2} lg={3} xl={3} xxl={4} className="g-4">
             {productos.map((p) => (
               <Col key={p.id}>
                 <Producto {...p} onAgregar={onAgregar} />

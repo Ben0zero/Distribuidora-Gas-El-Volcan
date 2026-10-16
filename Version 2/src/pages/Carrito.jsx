@@ -15,7 +15,7 @@ function Carrito({ carrito, incrementar, decrementar, eliminar }) {
         <Container className="py-4">
           <h1 className="texto-2">Carrito</h1>
           <Alert variant="info">Aún no hay productos en el carrito.</Alert>
-          <Button as={Link} to="/productos" variant="primary">
+          <Button className="btn-login" as={Link} to="/productos" variant="primary">
             Ir a Productos
           </Button>
         </Container>
