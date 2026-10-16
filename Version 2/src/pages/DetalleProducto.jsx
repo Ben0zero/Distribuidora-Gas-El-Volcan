@@ -1,10 +1,10 @@
 import { useParams, Link } from 'react-router-dom'
 import { Container, Row, Col, Card, Button, Alert } from 'react-bootstrap'
-import { catalogoActual } from '../utils/productos'
+import { productosConCreados } from '../utils/productos'
 
 function DetalleProducto({ onAgregar }) {
   const { id } = useParams()
-  const producto = catalogoActual().find((p) => p.id === id)
+  const producto = productosConCreados().find((p) => p.id === id)
 
   if (!producto) {
     return (

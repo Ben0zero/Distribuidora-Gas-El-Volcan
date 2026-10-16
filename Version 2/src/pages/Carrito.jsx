@@ -1,11 +1,11 @@
 import { Link } from 'react-router-dom'
 import { Container, Row, Col, ListGroup, Button, Alert } from 'react-bootstrap'
-import { catalogoActual } from '../utils/productos'
+import { productosConCreados } from '../utils/productos'
 import { obtenerItemsCompletos, calcularTotal } from '../utils/carrito'
 import '../carrito.css'
 
 function Carrito({ carrito, incrementar, decrementar, eliminar }) {
-  const productos = catalogoActual()
+  const productos = productosConCreados()
   const items = obtenerItemsCompletos(carrito, productos)
   const total = calcularTotal(carrito, productos)
 

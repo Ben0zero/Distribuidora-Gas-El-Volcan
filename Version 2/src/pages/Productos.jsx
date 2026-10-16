@@ -2,14 +2,14 @@ import { useLocation, Link } from 'react-router-dom'
 import { Container, Row, Col, Button } from 'react-bootstrap'
 import Producto from '../components/Producto'
 import { CATEGORIAS } from '../utils/validaciones'
-import { catalogoActual } from '../utils/productos'
+import { productosConCreados } from '../utils/productos'
 
 function Productos({ onAgregar }) {
   const location = useLocation()
   const parametros = new URLSearchParams(location.search)
   const categoria = parametros.get('categoria')
 
-  const todos = catalogoActual()
+  const todos = productosConCreados()
   const productos = categoria ? todos.filter((p) => p.categoria === categoria) : todos
 
   return (

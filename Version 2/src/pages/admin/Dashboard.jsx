@@ -1,4 +1,4 @@
-import { catalogoActual } from '../../utils/productos'
+import { productosConCreados } from '../../utils/productos'
 import { formatearPrecio } from '../../utils/validaciones'
 
 const ORDENES = [
@@ -15,7 +15,7 @@ const KPI = [
 ]
 
 function Dashboard() {
-  const productos = catalogoActual()
+  const productos = productosConCreados()
   const criticos = productos.filter((p) => p.stock <= p.stockCritico)
   const cilindros = productos.filter((p) => p.categoria === 'Cilindros de Gas')
 

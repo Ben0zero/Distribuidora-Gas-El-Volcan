@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Container, Row, Col, Button, Alert, Form } from 'react-bootstrap'
 import { CLAVES, leerLista, leerObjeto, REGIONES, formatearPrecio } from '../utils/validaciones'
 import { calcularTotal, obtenerItemsCompletos } from '../utils/carrito'
-import { catalogoActual } from '../utils/productos'
+import { productosConCreados } from '../utils/productos'
 
 function generarNumeroOrden() {
   return 'ORD-' + String(Math.floor(100000 + Math.random() * 900000))
@@ -27,8 +27,8 @@ function Ventas({ carrito, incrementar, decrementar, vaciar }) {
 
   const tipo = sesion?.tipoCliente?.toLowerCase() === 'comercial' ? 'comercial' : 'residencial'
   const comunas = REGIONES[0].comunas
-  const items = obtenerItemsCompletos(carrito, catalogoActual())
-  const total = calcularTotal(carrito, catalogoActual(), tipo)
+  const items = obtenerItemsCompletos(carrito, productosConCreados())
+  const total = calcularTotal(carrito, productosConCreados(), tipo)
 
   // Sin sesión: invitamos a iniciar sesión para continuar la compra.
   if (!sesion) {
