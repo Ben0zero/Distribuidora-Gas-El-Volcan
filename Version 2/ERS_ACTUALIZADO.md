@@ -5,7 +5,7 @@
 **Asignatura:** DSY1104 — Desarrollo Fullstack II
 **Evaluación:** Evaluación Parcial N° 2 (migración del sitio a React)
 **Tecnología principal de esta entrega:** React (SPA)
-**Versión del documento:** 2.0 (actualización del ERS de la EP1)
+**Versión del documento:** 2.1 (actualización de la EP2: interfaz y catálogo unificado)
 **Fecha:** Octubre 2026
 
 ---
@@ -16,6 +16,7 @@
 |--------:|-------|-------------|-------|
 | 1.0 | EP1 | ERS inicial del sitio estático (HTML/CSS/JS) | Equipo |
 | **2.0** | **EP2** | **Actualización: la solución se reespecifica como SPA en React, se agregan requisitos de testing y arquitectura de componentes** | **Equipo** |
+| **2.1** | **EP2** | **Actualización de la interfaz (identidad visual, diseño responsive y CSS modular por componente) y del catálogo público unificado: los productos creados por el administrador ahora se reflejan en el sitio del cliente.** | **Equipo** |
 
 ---
 
@@ -36,7 +37,9 @@ El ERS sirve como:
 **Dentro del alcance (EP2):**
 
 - Migración completa del sitio a **React** con componentes, props y `state`.
-- Diseño **responsive** con Bootstrap (móvil, tableta y escritorio).
+- Diseño **responsive** con Bootstrap (móvil, tableta y escritorio) e **identidad visual** de marca (portada con imagen de cilindros, tarjetas de beneficios con iconos y navegación con pestaña activa).
+- **CSS modular** por componente (`navbar.css`, `productos.css`, `carrito.css`) sobre una hoja base (`estilos.css`).
+- **Catálogo público unificado**: catálogo base + ediciones + **productos creados** en el panel de administración.
 - Flujo de compra con **carrito** persistente y **checkout**.
 - Módulo de **administración** (dashboard, inventario, usuarios).
 - **Pruebas unitarias automatizadas** con Vitest + React Testing Library y reporte de cobertura.
@@ -115,7 +118,8 @@ El proceso actual es **manual** (teléfono y cuadernos), lo que genera: clientes
 | Capa | Tecnología | Rol |
 |------|-----------|-----|
 | Frontend | **React (SPA)** | Interfaz completa. |
-| Diseño | **Bootstrap / CSS** | Responsive (≥360, ≥768, ≥1280 px). |
+| Diseño | **Bootstrap 5 + CSS modular** | Responsive (≥360, ≥768, ≥1280 px); hoja base (`estilos.css`) y hojas por componente (`navbar.css`, `productos.css`, `carrito.css`). |
+| Iconografía | **Bootstrap Icons** | Iconos de beneficios (portada) y de acciones de la interfaz. |
 | Ruteo | **React Router** | Navegación entre vistas sin recargar. |
 | Estado | **Hooks (`useState`, `useEffect`)** | Carrito, formularios y filtros. |
 | Persistencia (EP2) | **`localStorage`** | Simula la base de datos mientras no hay API. |
@@ -155,11 +159,13 @@ main.jsx
 
 - `utils/validaciones.js`: validación de RUN, teléfono, correo, formularios y helpers de `localStorage`.
 - `utils/carrito.js`: operaciones puras del carrito (`agregarItem`, `decrementarItem`, `calcularTotal`, etc.).
-- `utils/productos.js`: catálogo real (base + ediciones del admin + productos creados).
+- `utils/productos.js`: catálogo de productos. `catalogoActual()` (base + ediciones del administrador) y `productosConCreados()` (catálogo actual + **productos creados**), que es la fuente **unificada** del sitio público y del panel.
+
+**Estilos e identidad visual:** Bootstrap 5 se complementa con **CSS modular por componente** y **Bootstrap Icons** (ver §3.6).
 
 ### 3.3 Ruteo y layout
 
-- **Parte pública** (`LayoutPublico`): incluye `Navbar` y `Footer` en todas las vistas.
+- **Parte pública** (`LayoutPublico`): incluye `Navbar` (barra superior *sticky* con **pestaña activa** resaltada mediante `NavLink` y contador del carrito) y `Footer` en todas las vistas.
 - **Panel de administración** (`AdminLayout`): layout propio con menú lateral colapsable (botón *hamburguesa* en móvil) y cierre de sesión.
   - Vistas del panel: **Dashboard** (indicadores), **Ordenes**, **Clientes** y **Reportes** (maquetas con datos de ejemplo), **Inventario** (CRUD) y **Usuarios**. Las rutas `/admin/ordenes`, `/admin/clientes` y `/admin/reportes` se agregaron en esta integración final.
 - El carrito y el total de ítems viven en `App` y se comunican por **props** a `Navbar` y a las páginas.
@@ -179,6 +185,25 @@ En etapas posteriores, el frontend consumirá vía HTTP (GET/POST/PUT/DELETE) **
 
 No se permite comunicación directa del frontend con la base de datos. Cada servicio tendrá su propia configuración, su base de datos y responderá en **JSON**.
 
+### 3.6 Identidad visual y diseño de la interfaz
+
+La interfaz mantiene una identidad visual coherente con la marca **El Volcán**:
+
+- **Navegación:** barra superior *sticky* con estilo propio (`navbar-gas`), que resalta la **sección activa** mediante `NavLink`.
+- **Portada (Inicio):** mensaje de bienvenida, imagen de **cilindros de gas** y una tarjeta con **4 beneficios** ilustrados con **Bootstrap Icons** —*entrega a domicilio*, *cilindros certificados*, *equipo local* y *cobertura en Chillán*— en una grilla responsive (`xs=12`, `sm=6`, `lg=3`).
+- **Catálogo y carrito:** tarjetas de producto y controles con estilo propio (`productos.css`, `carrito.css`), botones unificados (`btn-login`) y esquinas redondeadas.
+- **CSS modular:** los estilos de cada sección viven en su propia hoja (`navbar.css`, `productos.css`, `carrito.css`), lo que reduce el CSS global y facilita el mantenimiento.
+
+### 3.7 Catálogo unificado (público ↔ administración)
+
+El catálogo que ve el cliente es el **mismo** que administra el panel. La función `productosConCreados()` combina:
+
+1. el **catálogo base** (productos precargados),
+2. las **ediciones** hechas por el administrador (`edicionesProductos`), y
+3. los **productos creados** en el panel (`productos`).
+
+Esta fuente única alimenta el **catálogo público**, el **detalle**, el **carrito**, el **checkout** y los **indicadores del dashboard**. Así, cualquier producto creado o editado por el administrador se refleja de inmediato en el sitio del cliente (ver **RF-37**).
+
 ---
 
 ## 4. Requisitos funcionales (RF)
@@ -190,12 +215,13 @@ Estado: **✅ Implementado (EP2)**, **🟡 Parcial**, **⬜ Planificado**.
 
 | Cód. | Requerimiento | Prioridad | Estado |
 |------|---------------|:---------:|:------:|
-| **RF-01** | El sistema debe mostrar una página de **inicio** con un mensaje de bienvenida y acceso directo al catálogo. | A | ✅ |
-| **RF-02** | El sistema debe mostrar el **catálogo de productos** en tarjetas, con imagen, nombre, descripción, precio y stock. | A | ✅ |
+| **RF-01** | El sistema debe mostrar una página de **inicio** con un mensaje de bienvenida, la imagen de cilindros, los **beneficios del servicio** (iconos) y acceso directo al catálogo. | A | ✅ |
+| **RF-02** | El sistema debe mostrar el **catálogo público unificado** (base, ediciones y **productos creados** por el administrador) en tarjetas, con imagen, nombre, descripción, precio y stock. | A | ✅ |
 | **RF-03** | El usuario debe poder **filtrar** los productos por **categoría** (Cilindros de Gas, Reguladores, Mangueras y Conexiones, Accesorios) y ver “Todos”. | A | ✅ |
 | **RF-04** | El usuario debe poder abrir el **detalle** de un producto con toda su información (código, categoría, precios residencial/comercial y stock). | A | ✅ |
 | **RF-05** | El sistema debe indicar claramente cuando un producto **no existe**. | M | ✅ |
 | **RF-06** | El sistema debe mostrar precios formateados en **pesos chilenos** (separador de miles). | M | ✅ |
+| **RF-37** | Todo **producto creado** por el administrador debe reflejarse de inmediato en el **catálogo público**, el **detalle**, el **carrito** y el **checkout**, y contabilizarse en los indicadores del panel. | A | ✅ |
 
 ### 4.2 Módulo carrito
 
@@ -245,7 +271,7 @@ Estado: **✅ Implementado (EP2)**, **🟡 Parcial**, **⬜ Planificado**.
 |------|---------------|:---------:|:------:|
 | **RF-29** | El panel de administración debe tener un **dashboard** con indicadores (ventas del día, en ruta, clientes nuevos, stock crítico) y últimas órdenes. | A | ✅ |
 | **RF-30** | El administrador debe poder **listar el inventario** con código, nombre, categoría, stock y precios, resaltando el **stock crítico**. | A | ✅ |
-| **RF-31** | El administrador debe poder **crear** productos con validación (código único, nombre, precios, stock entero, categoría). | A | ✅ |
+| **RF-31** | El administrador debe poder **crear** productos con validación (código único, nombre, precios, stock entero, categoría); el producto creado queda **disponible en el catálogo público** (ver RF-37). | A | ✅ |
 | **RF-32** | El administrador debe poder **editar** productos (tanto base como creados). | A | ✅ |
 | **RF-33** | El administrador debe poder **eliminar** los productos creados. | M | ✅ |
 | **RF-34** | El administrador debe poder **listar y filtrar usuarios** por rol (Administradores, Clientes, Vendedores). | A | ✅ |
@@ -258,7 +284,7 @@ Estado: **✅ Implementado (EP2)**, **🟡 Parcial**, **⬜ Planificado**.
 
 | Cód. | Categoría | Requerimiento |
 |------|-----------|---------------|
-| **RNF-01** | **Responsive** | La interfaz debe verse correctamente en móvil (≥360 px), tableta (≥768 px) y escritorio (≥1280 px); los menús se colapsan en “hamburguesa”. |
+| **RNF-01** | **Responsive** | La interfaz debe verse correctamente en móvil (≥360 px), tableta (≥768 px) y escritorio (≥1280 px); los menús se colapsan en “hamburguesa” y las grillas se reorganizan según el tamaño (los beneficios de la portada pasan de 4 a 2 y a 1 columna). |
 | **RNF-02** | **Usabilidad** | Los formularios deben ser simples y con **pocos pasos**; los errores se muestran en español de forma clara. |
 | **RNF-03** | **Compatibilidad** | Debe funcionar en navegadores modernos (Chrome, Edge, Firefox) y en teléfonos Android de gama media-baja. |
 | **RNF-04** | **Rendimiento** | La aplicación debe cargar rápido incluso con conexión lenta o inestable; el bundle de producción debe estar optimizado. |
@@ -329,6 +355,7 @@ Entidades principales y sus atributos clave:
 
 | RF | Implementación (frontend EP2) | Prueba asociada |
 |----|-------------------------------|-----------------|
+| RF-01, RNF-01 | `pages/Inicio.jsx`, `components/Navbar.jsx` (`navbar.css`), CSS modular (`productos.css`, `carrito.css`) | `Navbar.test.jsx` (props/render) |
 | RF-02, RF-06 | `pages/Productos.jsx`, `components/Producto.jsx` | `Producto.test.jsx` (props/DOM + mock) |
 | RF-03 | `pages/Productos.jsx` (filtro por categoría) | — *(integración)* |
 | RF-04, RF-05 | `pages/DetalleProducto.jsx` | — *(integración)* |
@@ -343,6 +370,7 @@ Entidades principales y sus atributos clave:
 | Vista admin | `pages/admin/Ordenes.jsx`, `Clientes.jsx`, `Reportes.jsx` (paneles con datos de ejemplo, integrados por el compañero) | — *(integración, maquetas)* |
 | RF-31 – RF-33, RF-36 | `pages/admin/Inventario.jsx`, `utils/productos.js` | `productos.test.js` (CRUD) |
 | RF-34, RF-35 | `pages/admin/ListaUsuarios.jsx`, `NuevoUsuario.jsx` | — *(integración)* |
+| RF-37 | `pages/Productos.jsx`, `Carrito.jsx`, `DetalleProducto.jsx`, `Ventas.jsx`, `admin/Dashboard.jsx`, `utils/productos.js` | `productos.test.js` (catálogo unificado) |
 
 ---
 
@@ -351,9 +379,10 @@ Entidades principales y sus atributos clave:
 1. Todas las vistas cargan **sin errores** en consola y se adaptan a los tres tamaños de pantalla.
 2. Es posible **agregar productos**, modificar cantidades y ver el **total correcto** en el checkout.
 3. El **registro** y el **login** funcionan con sus validaciones; el administrador accede al panel.
-4. El administrador puede **crear/editar/eliminar** productos y **crear/filtrar** usuarios.
+4. El administrador puede **crear/editar/eliminar** productos y **crear/filtrar** usuarios; los productos **creados** aparecen en el catálogo público (RF-37).
 5. La lógica de negocio y los componentes clave están cubiertos por **pruebas unitarias** que pasan y generan **reporte de cobertura**.
 6. `npm run build` y `npm run lint` finalizan **sin errores**.
+7. La interfaz presenta una identidad visual coherente (portada, navegación con pestaña activa, iconos) y se adapta a móvil, tableta y escritorio (RF-01, RNF-01).
 
 ---
 
@@ -363,6 +392,7 @@ Entidades principales y sus atributos clave:
 - **Orden / Pedido:** registro confirmado de una compra, con número, ítems y total.
 - **Stock crítico:** nivel de existencias que activa una alerta de reposición.
 - **Tarifa residencial / comercial:** precio aplicado según el tipo de cliente.
+- **Catálogo unificado:** catálogo base + ediciones + productos creados, expuesto por igual al sitio público y al panel de administración.
 - **RBAC:** control de acceso basado en roles.
 - **Cobertura:** porcentaje del código ejecutado por las pruebas.
 
