@@ -1,7 +1,7 @@
 # Documentación — Versión 2 (El Volcán en React)
 
 Explica qué se construyó en `Evaluacion 2/avance entrega`, cómo funciona cada parte y la lógica detrás de cada
-decisión. Complementa al `README.md`, al `ERS_ACTUALIZADO.md` (requisitos) y al
+decisión. Complementa al `README.md` (en la raíz del proyecto), al `ERS_ACTUALIZADO.md` (requisitos) y al
 `DOCUMENTO_COBERTURA_TESTING.md` (pruebas).
 
 ---

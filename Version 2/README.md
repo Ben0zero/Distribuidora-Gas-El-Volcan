@@ -51,12 +51,15 @@ npm run test:coverage # pruebas + reporte de cobertura en coverage/
 ```
 avance entrega/
 │
-├── README.md                       → este archivo
-├── DOCUMENTACION.md                → explicación detallada de cada parte y su lógica
-├── ERS_ACTUALIZADO.md              → Especificación de Requerimientos de Software
-├── DOCUMENTO_COBERTURA_TESTING.md  → informe de las pruebas y la cobertura
-├── DEPLOY.md                       → guía de despliegue en AWS EC2 + Nginx
-├── BITACORA_DEPLOY_AWS.md          → bitácora real del despliegue (evidencia, 10-10-2026)
+├── README.md                       → este archivo (índice y guía rápida)
+├── docs/                           → documentación (cada doc en .md y .pdf)
+│   ├── DOCUMENTACION.md / .pdf     → explicación detallada de cada parte y su lógica
+│   ├── GUIA_CONCEPTOS_CODIGO.md / .pdf → conceptos de JS/React usados en el código
+│   ├── ERS_ACTUALIZADO.md / .pdf   → Especificación de Requerimientos de Software
+│   ├── DOCUMENTO_COBERTURA_TESTING.md / .pdf → informe de las pruebas y la cobertura
+│   ├── DEPLOY.md / .pdf            → guía de despliegue en AWS EC2 + Nginx
+│   ├── BITACORA_DEPLOY_AWS.md / .pdf → bitácora real del despliegue (evidencia, 10-10-2026)
+│   └── README.pdf                  → este README en PDF
 ├── nginx.conf                      → configuración de Nginx usada en el deploy
 ├── index.html                      → punto de montaje de la SPA (lang="es")
 ├── package.json                    → dependencias y comandos
@@ -173,9 +176,13 @@ Las 10 pruebas se agrupan por tipo (ver detalle y análisis en `DOCUMENTO_COBERT
 
 ## Documentación relacionada
 
-- `DOCUMENTACION.md` — explicación técnica de cada componente, página y decisión de diseño.
-- `ERS_ACTUALIZADO.md` — Especificación de Requerimientos de Software (requisitos funcionales y no funcionales).
-- `DOCUMENTO_COBERTURA_TESTING.md` — inventario de pruebas, resultados y análisis de cobertura.
+- `docs/DOCUMENTACION.md` — explicación técnica de cada componente, página y decisión de diseño.
+- `docs/GUIA_CONCEPTOS_CODIGO.md` — guía de los conceptos de JS/React aplicados en el código.
+- `docs/ERS_ACTUALIZADO.md` — Especificación de Requerimientos de Software (requisitos funcionales y no funcionales).
+- `docs/DOCUMENTO_COBERTURA_TESTING.md` — inventario de pruebas, resultados y análisis de cobertura.
+- `docs/DEPLOY.md` y `docs/BITACORA_DEPLOY_AWS.md` — guía y bitácora del despliegue en AWS.
+
+> 📄 Cada documento de `docs/` está disponible también en **PDF** con el mismo nombre.
 
 ---
 
