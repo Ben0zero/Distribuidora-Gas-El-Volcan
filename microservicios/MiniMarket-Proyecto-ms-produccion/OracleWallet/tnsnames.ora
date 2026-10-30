@@ -1,0 +1,12 @@
+clases_high = (description= (retry_count=20)(retry_delay=3)(address=(protocol=tcps)(port=1522)(host=adb.sa-valparaiso-1.oraclecloud.com))(connect_data=(service_name=ga08215dc2421aa_clases_high.adb.oraclecloud.com))(security=(ssl_server_dn_match=yes)))
+
+clases_medium = (description= (retry_count=20)(retry_delay=3)(address=(protocol=tcps)(port=1522)(host=adb.sa-valparaiso-1.oraclecloud.com))(connect_data=(service_name=ga08215dc2421aa_clases_medium.adb.oraclecloud.com))(security=(ssl_server_dn_match=yes)))
+
+clases_low = (description= (retry_count=20)(retry_delay=3)(address=(protocol=tcps)(port=1522)(host=adb.sa-valparaiso-1.oraclecloud.com))(connect_data=(service_name=ga08215dc2421aa_clases_low.adb.oraclecloud.com))(security=(ssl_server_dn_match=yes)))
+
+clases_tp = (description= (retry_count=20)(retry_delay=3)(address=(protocol=tcps)(port=1522)(host=adb.sa-valparaiso-1.oraclecloud.com))(connect_data=(service_name=ga08215dc2421aa_clases_tp.adb.oraclecloud.com))(security=(ssl_server_dn_match=yes)))
+
+clases_tpurgent = (description= (retry_count=20)(retry_delay=3)(address=(protocol=tcps)(port=1522)(host=adb.sa-valparaiso-1.oraclecloud.com))(connect_data=(service_name=ga08215dc2421aa_clases_tpurgent.adb.oraclecloud.com))(security=(ssl_server_dn_match=yes)))
+
+
+

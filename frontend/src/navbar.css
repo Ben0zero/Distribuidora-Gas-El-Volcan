@@ -1,0 +1,34 @@
+/* Color de fondo de la barra */
+.navbar-gas {
+background-color: #ffffff;
+}
+
+/* Color del nombre junto al logo */
+.navbar-gas .navbar-brand {
+    color: #03244D;
+    font-weight: bold;
+}
+
+/* Color de las letras de los enlaces */
+.navbar-gas .nav-link {
+    color: #03244D;
+    border-bottom: 2px solid transparent;
+    transition: color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Borde naranja y texto del enlace activo */
+.navbar-gas .nav-link.active {
+    color: #03244D;
+    font-weight: bold;
+    border-bottom: 2px solid #e87524;
+}
+
+/* Color del botón del menú en pantallas pequeñas */
+.navbar-gas .navbar-toggler {
+    border-color: #03244D;
+}
+
+/* Color de las líneas del botón del menú */
+.navbar-gas .navbar-toggler-icon {
+    filter: invert(1);
+}

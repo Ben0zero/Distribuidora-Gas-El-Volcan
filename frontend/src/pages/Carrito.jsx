@@ -1,0 +1,97 @@
+import { Link } from 'react-router-dom'
+import { Container, Row, Col, ListGroup, Button, Alert } from 'react-bootstrap'
+import { productosConCreados } from '../utils/productos'
+import { obtenerItemsCompletos, calcularTotal } from '../utils/carrito'
+import '../carrito.css'
+import { crearVenta, confirmarPago } from '../utils/api'
+import { leerObjeto } from '../utils/validaciones'
+
+function Carrito({ carrito, incrementar, decrementar, eliminar }) {
+  const productos = productosConCreados()
+  const items = obtenerItemsCompletos(carrito, productos)
+  const total = calcularTotal(carrito, productos)
+  const sesion = leerObjeto('sesion')
+
+  if (items.length === 0) {
+    return (
+      <main className="fondo">
+        <Container className="py-4">
+          <h1 className="texto-2">Carrito</h1>
+          <Alert variant="info">Aún no hay productos en el carrito.</Alert>
+          <Button className="btn-login" as={Link} to="/productos" variant="primary">
+            Ir a Productos
+          </Button>
+        </Container>
+      </main>
+    )
+  }
+
+  return (
+    <main className="fondo">
+      <Container className="py-4">
+        <h1 className="texto-2">Carrito</h1>
+        <ListGroup>
+          {items.map((item) => (
+            <ListGroup.Item className='my-2'  key={item.id} style={{ borderRadius: '12px' }}>
+              <Row className="align-items-center g-3">
+                <Col xs={3} md={2}>
+                  <img src={item.producto.imagen} alt={item.producto.nombre} className="imagen-producto-carrito" />
+                </Col>
+                <Col xs={9} md={4}>
+                  <h5 className="mb-1">{item.producto.nombre}</h5>
+                  <span className="text-muted">${item.producto.residencial.toLocaleString('es-CL')} c/u</span>
+                </Col>
+                <Col xs={6} md={3} className="d-flex align-items-center gap-2">
+                  <Button className="px-3 py-2 mx-2" variant="outline-danger" size="sm" onClick={() => decrementar(item.id)}>
+                    <h2>-</h2>
+                  </Button>
+                  <span><h3>{item.cantidad}</h3></span>
+                  <Button className="px-3 py-2 mx-2" variant="outline-success" size="sm" onClick={() => incrementar(item.id)}>
+                    <h2>+</h2>
+                  </Button>
+                </Col>
+                <Col xs={6} md={3} className="text-md-end">
+                  <strong><h3>Subtotal: ${(item.producto.residencial * item.cantidad).toLocaleString('es-CL')}</h3></strong>
+                  <br />
+                  <Button variant="link" size="sm" className="btn-carrito-quitar my-2 mx-5 px-5" onClick={() => eliminar(item.id)}>
+                    Quitar
+                  </Button>
+                </Col>
+              </Row>
+            </ListGroup.Item>
+          ))}
+        </ListGroup>
+        <div className="mt-3 d-flex justify-content-between align-items-center">
+          <Button className="btn-login" as={Link} to="/productos" variant="outline-secondary">
+            Seguir comprando
+          </Button>
+          <div className="text-end">
+            <h4 className="mb-2 texto-2">Total: ${total.toLocaleString('es-CL')}</h4>
+            <Button className="btn-carrito py-3 px-3" variant="success" onClick={async () => {
+              if (!sesion || !sesion.token) {
+                alert('Debes iniciar sesión para comprar')
+                window.location.href = '/login'
+                return
+              }
+              try {
+                const detalles = items.map((item) => ({ productoId: item.producto.id, cantidad: item.cantidad }))
+                const tipoCliente = sesion.tipoCliente || 'Residencial'
+                const venta = await crearVenta({ tipoCliente, detalles })
+                await confirmarPago(venta.id)
+                localStorage.removeItem('carrito')
+                alert('Compra realizada con éxito')
+                window.location.href = '/ventas'
+              } catch (e) {
+                alert('Error al procesar la compra')
+              }
+            }}>
+              Finalizar compra
+            </Button>
+          </div>
+        </div>
+      </Container>
+    </main>
+  )
+}
+
+export default Carrito
