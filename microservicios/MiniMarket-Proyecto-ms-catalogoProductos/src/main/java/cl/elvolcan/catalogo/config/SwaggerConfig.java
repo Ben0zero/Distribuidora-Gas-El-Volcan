@@ -18,9 +18,9 @@ public class SwaggerConfig {
         
         return new OpenAPI()
                 .info(new Info()
-                        .title("API de Catálogo de Productos")
+                        .title("API de Catálogo de Productos - Distribuidora de Gas El Volcán")
                         .version("1.0.0")
-                        .description("Microservicio encargado de gestionar la vitrina de productos del sistema. Requiere token JWT para todas las operaciones.")
+                        .description("Microservicio encargado de gestionar el catálogo de productos de gas (cilindros, accesorios). Las consultas GET son públicas. Las operaciones de creación, actualización y eliminación requieren token JWT con rol ADMIN.")
                         .contact(new Contact().name("Nico")))
                 
                 // Configuración global para inyectar el token en las peticiones
