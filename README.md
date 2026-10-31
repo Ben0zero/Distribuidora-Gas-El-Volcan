@@ -1,90 +1,104 @@
-# Distribuidora de Gas El Volcán — Proyecto DSY1104 (Full Stack II)
+# Distribuidora de Gas El Volcán
 
-Proyecto semestral de la asignatura **DSY1104 — Desarrollo Full Stack II** (Duoc UC, Analista Programador).
-Plataforma web para la **Distribuidora de Gas El Volcán**, empresa de comercialización de cilindros de gas GLP
-y accesorios en la **Región de Ñuble, Chile**.
+Sistema de microservicios para la gestión de ventas, catálogo, inventario y autenticación de la Distribuidora de Gas El Volcán. Proyecto adaptado desde un template MiniMarket a un sistema orientado a la distribución de cilindros de gas.
 
-El repositorio contiene **dos versiones** del proyecto: la primera entrega (sitio estático) y la segunda
-(aplicación React), según lo solicitado en la evaluación.
+## Arquitectura
 
----
+La solución está compuesta por **5 microservicios + Eureka Server** con comunicación REST y Feign Client, autenticación JWT y base de datos Oracle Cloud.
 
-## 📁 Estructura del repositorio
+| Microservicio | Puerto | Descripción |
+|---|---|---|
+| **eureka-server** | 8761 | Service Discovery (Netflix Eureka) |
+| **ms-auth** | 8081 | Autenticación, registro de usuarios y generación de tokens JWT |
+| **ms-catalogoProductos** | 8082 | Catálogo de productos de gas con doble precio (Residencial / Comercial) |
+| **ms-inventario** | 8084 | Control de stock con alertas de stock crítico |
+| **ms-ventas** | 8086 | Gestión de ventas, carrito, confirmación de pago e historial de compras por usuario |
 
-```
-Distribuidora-Gas-El-Volcan/
-│
-├── README.md      → este archivo (portada del repositorio)
-│
-├── Version 1/     → PRIMERA ENTREGA: sitio estático (HTML5 + CSS3 + Bootstrap 5 + JavaScript)
-│   ├── index.html, catalogo.html, carrito.html, login.html, ...
-│   ├── admin*.html (panel de administración)
-│   └── README.md  → documentación de la Versión 1
-│
-└── Version 2/     → SEGUNDA ENTREGA: SPA en React (React + Vite + React Bootstrap + React Router)
-    ├── README.md  → índice y guía rápida de la Versión 2
-    ├── src/       → código fuente React
-    ├── docs/      → documentación (cada documento en .md y .pdf)
-    └── ...
-```
+## Tecnologías
 
----
+- **Backend:** Java 17, Spring Boot 3.5.x, Spring Cloud 2025
+- **Seguridad:** Spring Security + JWT
+- **Comunicación:** OpenFeign, Eureka Client/Server
+- **Base de datos:** Oracle Cloud (Wallet)
+- **Frontend:** React + Vite + Bootstrap
+- **Documentación:** Swagger/OpenAPI
 
-## 🚀 Version 2 — SPA en React (entrega actual)
+## Roles
 
-Reescribe el sitio estático de la Versión 1 como una **Single Page Application** con componentes,
-`props`, `state`, rutas y **pruebas unitarias (10/10 · cobertura 100 %)**.
+| Rol | Permisos |
+|---|---|
+| **ADMIN** | Acceso total a todos los microservicios |
+| **VENDEDOR** | Gestión de ventas e inventario |
+| **CLIENTE** | Ver catálogo, crear sus propias compras, ver "Mis compras" |
 
-**Stack:** React 19 · Vite 8 · react-router-dom 7 · react-bootstrap 2 · Bootstrap 5 ·
-Vitest 3 + Testing Library · oxlint.
+## Credenciales de Prueba
 
-**Cómo correrlo:**
+| Usuario | Contraseña | Rol |
+|---|---|---|
+| `admin@duoc.cl` | `Admin123` | ADMIN |
+| `vendedor@elvolcan.cl` | `Vendedor123` | VENDEDOR |
+| `cliente@elvolcan.cl` | `Cliente123` | CLIENTE |
+
+## URLs Importantes
+
+| Servicio | URL |
+|---|---|
+| **Eureka Dashboard** | [http://localhost:8761](http://localhost:8761) |
+| **Frontend React** | [http://127.0.0.1:5174](http://127.0.0.1:5174) |
+| **Swagger ms-auth** | [http://localhost:8081/swagger-ui/index.html](http://localhost:8081/swagger-ui/index.html) |
+| **Swagger ms-catalogoProductos** | [http://localhost:8082/swagger-ui/index.html](http://localhost:8082/swagger-ui/index.html) |
+| **Swagger ms-inventario** | [http://localhost:8084/swagger-ui/index.html](http://localhost:8084/swagger-ui/index.html) |
+| **Swagger ms-ventas** | [http://localhost:8086/swagger-ui/index.html](http://localhost:8086/swagger-ui/index.html) |
+
+## Levantar el Proyecto
+
+### 1) Microservicios
+Desde la carpeta `microservicios/` puedes usar los scripts incluidos:
 
 ```bash
-cd "Version 2"
-npm install           # solo la primera vez
-npm run dev           # servidor de desarrollo → http://localhost:5173
-npm test              # 10 pruebas unitarias
-npm run test:coverage # reporte de cobertura
-npm run build         # build de producción → dist/
+# Levantar todos los servicios
+.\levantar-servicios.ps1
+
+# Detener todos los servicios
+.\detener-servicios.ps1
 ```
 
-> En PowerShell usar `npm.cmd` (la política de ejecución puede bloquear `npm.ps1`).
+O levantar manualmente en orden: `eureka-server` → `ms-auth` → `ms-catalogoProductos` → `ms-inventario` → `ms-ventas`
 
-**Credenciales de prueba (administrador):** `admin@duoc.cl` / `Admin123`
+### 2) Frontend
+Desde la carpeta `frontend/`:
 
-📖 Ver el detalle completo en **[`Version 2/README.md`](Version%202/README.md)**.
+```bash
+npm install
+npm run dev
+```
 
-### Documentación de la Versión 2 (`Version 2/docs/`)
+El frontend quedará disponible en `http://127.0.0.1:5174`
 
-| Documento | Contenido |
-|---|---|
-| [`README`](Version%202/README.md) | Índice y guía rápida |
-| [`DOCUMENTACION.md`](Version%202/docs/DOCUMENTACION.md) | Explicación técnica de cada parte y decisión de diseño |
-| [`GUIA_CONCEPTOS_CODIGO.md`](Version%202/docs/GUIA_CONCEPTOS_CODIGO.md) | Conceptos de JS/React aplicados en el código |
-| [`ERS_ACTUALIZADO.md`](Version%202/docs/ERS_ACTUALIZADO.md) | Especificación de Requerimientos de Software |
-| [`DOCUMENTO_COBERTURA_TESTING.md`](Version%202/docs/DOCUMENTO_COBERTURA_TESTING.md) | Inventario de pruebas y análisis de cobertura |
-| [`DEPLOY.md`](Version%202/docs/DEPLOY.md) | Guía de despliegue en AWS EC2 + Nginx |
-| [`BITACORA_DEPLOY_AWS.md`](Version%202/docs/BITACORA_DEPLOY_AWS.md) | Bitácora real del despliegue (evidencia) |
+## Flujo de Prueba Completo
 
-Cada documento está disponible también en **PDF** dentro de `Version 2/docs/`.
+1. **Eureka** - Verificar que todos los servicios estén en estado `UP`
+2. **Login** - Ingresar con `cliente@elvolcan.cl` / `Cliente123` desde el frontend o `POST /api/auth/login`
+3. **Catálogo** - Ver productos de gas con precios residenciales/comerciales desde `ms-catalogoProductos`
+4. **Comprar** - Agregar al carrito, finalizar compra → Se crea la venta en `ms-ventas`, valida stock en `ms-inventario` y consulta precios en `ms-catalogoProductos`
+5. **Confirmar Pago** - Al confirmar se descuenta el stock automáticamente usando token interno
+6. **Mis Compras** - Ver historial filtrado por usuario con `GET /api/ventas/mis-compras`
 
----
+## Novedades Versión 3
 
-## 📦 Version 1 — Sitio estático (primera entrega)
+- **Adaptación completa a El Volcán:** Paquetes renombrados a `cl.elvolcan.*`, roles unificados (ADMIN/VENDEDOR/CLIENTE), productos de gas con doble precio
+- **ms-ventas mejorado:** Campo `usuario` en ventas, endpoint `GET /api/ventas/mis-compras`, seguridad por roles corregida
+- **Comunicación entre microservicios:** Token interno para operaciones entre servicios, Feign configurado correctamente
+- **Frontend integrado:** Login con `ms-auth`, catálogo desde `ms-catalogoProductos`, carrito conectado con `ms-ventas`, historial de compras desde API
+- **Catálogo público:** `GET /api/productos` accesible sin autenticación para visualizar productos en la tienda
+- **Inventario conectado:** Panel admin obtiene stock desde `ms-inventario`
 
-Sitio frontend en **HTML5, CSS3, Bootstrap 5 y JavaScript (Vanilla)**, con persistencia en `localStorage`.
-Incluye catálogo dinámico, carrito de compras, validación de formularios, selección Región → Comuna y un
-panel administrativo (gestión de usuarios y mantenedor de productos).
+## Estructura del Repositorio
 
-📖 Ver el detalle en **[`Version 1/README.md`](Version%201/README.md)**.
-
----
-
-## 👥 Integrantes
-
-- Nicolás Arancibia
-- Pablo Gómez
-- Benjamín González
-
-**Profesor:** Hernán Saavedra · **Duoc UC — Analista Programador**
+```text
+Distribuidora-Gas-El-Volcan/
+├── microservicios/        # Todos los microservicios Spring Boot
+├── frontend/              # Aplicación React + Vite
+├── Version 1/             # Versiones anteriores
+└── Version 2/
+```
