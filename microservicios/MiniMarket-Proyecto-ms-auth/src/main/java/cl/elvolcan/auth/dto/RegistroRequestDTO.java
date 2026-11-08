@@ -27,9 +27,8 @@ public class RegistroRequestDTO {
     @Size(min = 6, message = "La contraseña debe tener al menos 6 caracteres")
     private String password;
 
-    @Schema(description = "Rol asignado al usuario", example = "CLIENTE")
-    @NotBlank(message = "El rol es obligatorio (ej: CLIENTE, VENDEDOR, ADMIN)")
-    private String nombreRol;
+    // El rol NO se recibe desde el cliente: el registro público siempre crea usuarios CLIENTE.
+    // Los usuarios VENDEDOR o ADMIN solo los crea un ADMIN desde /api/usuarios.
 
     @Schema(description = "Direccion de entrega", example = "Av. Independencia 123")
     @NotBlank(message = "La direccion es obligatoria")

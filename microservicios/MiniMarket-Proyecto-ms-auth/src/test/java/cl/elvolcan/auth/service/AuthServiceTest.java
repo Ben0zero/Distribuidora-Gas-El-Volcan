@@ -11,6 +11,7 @@ import cl.elvolcan.auth.security.jwt.JwtUtil;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -111,7 +112,6 @@ class AuthServiceTest {
         request.setRut("11222333-4");
         request.setUsername("nuevo_user");
         request.setPassword("123456");
-        request.setNombreRol("CLIENTE");
 
         Rol rolCliente = new Rol();
         rolCliente.setNombreRol("CLIENTE");
@@ -143,6 +143,36 @@ class AuthServiceTest {
         verify(rolRepository).findByNombreRol("CLIENTE");
         verify(passwordEncoder).encode("123456");
         verify(usuarioRepository).save(any(Usuario.class));
+    }
+
+    @Test
+    @DisplayName("registrar siempre asigna el rol CLIENTE al usuario guardado")
+    void registrarSiempreAsignaRolCliente() {
+        // Given
+        RegistroRequestDTO request = new RegistroRequestDTO();
+        request.setRut("99888777-6");
+        request.setUsername("intruso");
+        request.setPassword("123456");
+
+        Rol rolCliente = new Rol();
+        rolCliente.setNombreRol("CLIENTE");
+
+        when(usuarioRepository.existsByRut(anyString())).thenReturn(false);
+        when(usuarioRepository.existsByUsername(anyString())).thenReturn(false);
+        when(rolRepository.findByNombreRol("CLIENTE")).thenReturn(Optional.of(rolCliente));
+        when(passwordEncoder.encode(anyString())).thenReturn("hash");
+        when(usuarioRepository.save(any(Usuario.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        // When
+        UsuarioResponseDTO resultado = authService.registrar(request);
+
+        // Then: el usuario guardado tiene rol CLIENTE y nunca se busca otro rol
+        ArgumentCaptor<Usuario> captor = ArgumentCaptor.forClass(Usuario.class);
+        verify(usuarioRepository).save(captor.capture());
+        assertEquals("CLIENTE", captor.getValue().getRol().getNombreRol());
+        assertEquals("CLIENTE", resultado.getNombreRol());
+        verify(rolRepository, never()).findByNombreRol("ADMIN");
+        verify(rolRepository, never()).findByNombreRol("VENDEDOR");
     }
 
     @Test

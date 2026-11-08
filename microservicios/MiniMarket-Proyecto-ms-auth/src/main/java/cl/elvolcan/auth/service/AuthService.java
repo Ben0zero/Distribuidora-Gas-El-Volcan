@@ -16,6 +16,9 @@ import cl.elvolcan.auth.security.jwt.JwtUtil;
 
 @Service
 public class AuthService {
+
+    // Rol que recibe todo usuario creado desde el registro publico (/api/auth/register)
+    public static final String ROL_REGISTRO_PUBLICO = "CLIENTE";
     
 
     
@@ -80,9 +83,9 @@ public class AuthService {
             throw new RuntimeException("Error: El nombre de usuario ya está en uso");
         }
 
-        // aqui se busca que el rol exista en la bd 
-        Rol rolAsignado = rolRepository.findByNombreRol(request.getNombreRol())
-            .orElseThrow(() -> new RuntimeException("Error: El rol especificado no existe"));
+        // el registro publico SIEMPRE asigna el rol CLIENTE (nunca se toma el rol desde el body)
+        Rol rolAsignado = rolRepository.findByNombreRol(ROL_REGISTRO_PUBLICO)
+            .orElseThrow(() -> new RuntimeException("Error: El rol " + ROL_REGISTRO_PUBLICO + " no existe"));
 
         Usuario nuevoUsuario = new Usuario();
         nuevoUsuario.setNombre(request.getNombre());
