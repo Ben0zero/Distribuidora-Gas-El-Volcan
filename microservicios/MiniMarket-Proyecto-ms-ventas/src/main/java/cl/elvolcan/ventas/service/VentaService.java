@@ -18,11 +18,11 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Date;
@@ -41,8 +41,9 @@ public class VentaService {
     private final InventarioClient inventarioClient;
     private final VentaModelAssembler ventaModelAssembler;
 
-    private final String SECRET_STRING = "clave_secreta_super_segura_de_32_caracteres_minimo";
-    private final SecretKey SECRET_KEY = Keys.hmacShaKeyFor(SECRET_STRING.getBytes(StandardCharsets.UTF_8));
+    // Clave JWT compartida, leída desde el archivo externo de secretos (jwt.secret)
+    @Value("${jwt.secret}")
+    private String jwtSecret;
 
     private String getToken() {
         try {
@@ -68,7 +69,7 @@ public class VentaService {
                 .setSubject("ms-ventas")
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60))
-                .signWith(SECRET_KEY, io.jsonwebtoken.SignatureAlgorithm.HS256)
+                .signWith(Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8)), io.jsonwebtoken.SignatureAlgorithm.HS256)
                 .compact();
     }
 
