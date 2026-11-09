@@ -60,7 +60,8 @@ export async function register(data) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data)
   })
-  if (!res.ok) throw new Error('Error al registrar')
+  // 409 = RUT o correo ya registrado; 400 = datos inválidos (mensaje del backend)
+  if (!res.ok) await lanzarError(res, 'No se pudo crear la cuenta')
   return res.json()
 }
 

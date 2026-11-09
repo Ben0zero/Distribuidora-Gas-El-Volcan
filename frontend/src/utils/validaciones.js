@@ -71,8 +71,9 @@ export function validarFormularioRegistro(datos) {
   if (!direccion) return 'Ingresa tu dirección de despacho'
   if (!region) return 'Selecciona tu región'
   if (!comuna) return 'Selecciona tu comuna de despacho'
-  if (String(password).length < 4 || String(password).length > 10)
-    return 'La contraseña debe tener entre 4 y 10 caracteres'
+  // mínimo 6: es la regla de ms-auth (RegistroRequestDTO @Size(min = 6))
+  if (String(password).length < 6 || String(password).length > 10)
+    return 'La contraseña debe tener entre 6 y 10 caracteres'
   if (password !== confirmar) return 'Las contraseñas no coinciden'
   if (!terminos) return 'Debes aceptar los términos y condiciones'
 

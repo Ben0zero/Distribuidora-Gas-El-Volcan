@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { Container, Row, Col, Card, Form, Button, Alert } from 'react-bootstrap'
-import { CLAVES, REGIONES, leerLista, validarFormularioRegistro } from '../utils/validaciones'
+import { REGIONES, validarFormularioRegistro } from '../utils/validaciones'
+import { register, ApiError } from '../utils/api'
 
 function Registro() {
   const [nombre, setNombre] = useState('')
@@ -17,11 +18,12 @@ function Registro() {
   const [terminos, setTerminos] = useState(false)
   const [error, setError] = useState('')
   const [ok, setOk] = useState('')
+  const [enviando, setEnviando] = useState(false)
   const navigate = useNavigate()
 
   const comunasRegion = REGIONES.find((r) => r.nombre === region)
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault()
 
     const mensajeError = validarFormularioRegistro({
@@ -41,33 +43,34 @@ function Registro() {
       return
     }
 
-    const usuarios = leerLista(CLAVES.usuarios)
-
-    if (usuarios.some((u) => u.correo.toLowerCase() === correo.toLowerCase())) {
-      setError('Ese correo ya está registrado')
-      return
-    }
-
-    usuarios.push({
-      fecha: new Date().toISOString().slice(0, 10),
-      run,
-      nombre,
-      correo,
-      telefono,
-      tipoCliente,
-      direccion,
-      region,
-      comuna,
-      contrasena: password,
-      rol: 'Cliente',
-      estado: 'Pendiente',
-    })
-
-    localStorage.setItem(CLAVES.usuarios, JSON.stringify(usuarios))
-
+    // POST /api/v1/auth/register: ms-auth crea el usuario con rol CLIENTE (contraseña con BCrypt)
     setError('')
-    setOk('Cuenta creada correctamente. Ya puedes iniciar sesión.')
-    setTimeout(() => navigate('/login'), 1200)
+    setEnviando(true)
+    try {
+      await register({
+        nombre,
+        rut: run,
+        username: correo.trim().toLowerCase(),
+        password,
+        direccion,
+        region,
+        comuna,
+        tipoCliente,
+        telefono,
+      })
+      setOk('Cuenta creada correctamente. Ya puedes iniciar sesión.')
+      setTimeout(() => navigate('/login'), 1200)
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 409) {
+        setError('Ya existe una cuenta con ese correo o RUN. Inicia sesión o usa otros datos.')
+      } else if (e instanceof ApiError) {
+        setError(e.message.replace(/^Error:\s*/, ''))
+      } else {
+        setError('No se pudo conectar con el servidor. Intenta nuevamente en unos minutos.')
+      }
+    } finally {
+      setEnviando(false)
+    }
   }
 
   return (
@@ -170,8 +173,8 @@ function Registro() {
                   {error && <Alert variant="danger">{error}</Alert>}
                   {ok && <Alert variant="success">{ok}</Alert>}
 
-                  <Button className="btn-login" type="submit" variant="success">
-                    Registrarse
+                  <Button className="btn-login" type="submit" variant="success" disabled={enviando || Boolean(ok)}>
+                    {enviando ? 'Registrando…' : 'Registrarse'}
                   </Button>
                 </Form>
 

@@ -8,6 +8,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import cl.elvolcan.auth.dto.LoginRequestDTO;
 import cl.elvolcan.auth.dto.RegistroRequestDTO;
 import cl.elvolcan.auth.dto.UsuarioResponseDTO;
+import cl.elvolcan.auth.exception.RegistroDuplicadoException;
 import cl.elvolcan.auth.model.Rol;
 import cl.elvolcan.auth.model.Usuario;
 import cl.elvolcan.auth.repository.RolRepository;
@@ -75,12 +76,13 @@ public class AuthService {
     // METODO DE REGISTRO
     public UsuarioResponseDTO registrar(RegistroRequestDTO request){
 
+        // duplicados -> 409 Conflict (antes caían en el handler genérico como 401)
         if (usuarioRepository.existsByRut(request.getRut())) {
-            throw new RuntimeException("Error: Ya existe un usuario registrado con este RUT");
+            throw new RegistroDuplicadoException("Error: Ya existe un usuario registrado con este RUT");
         }
 
         if (usuarioRepository.existsByUsername(request.getUsername())) {
-            throw new RuntimeException("Error: El nombre de usuario ya está en uso");
+            throw new RegistroDuplicadoException("Error: El nombre de usuario ya está en uso");
         }
 
         // el registro publico SIEMPRE asigna el rol CLIENTE (nunca se toma el rol desde el body)

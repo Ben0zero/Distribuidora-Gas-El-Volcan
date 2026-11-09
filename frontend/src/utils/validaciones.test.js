@@ -78,8 +78,8 @@ describe('validaciones (lógica de formularios)', () => {
     expect(validarFormularioRegistro({ ...validoRegistro, direccion: '' })).toBe('Ingresa tu dirección de despacho')
     expect(validarFormularioRegistro({ ...validoRegistro, region: '' })).toBe('Selecciona tu región')
     expect(validarFormularioRegistro({ ...validoRegistro, comuna: '' })).toBe('Selecciona tu comuna de despacho')
-    expect(validarFormularioRegistro({ ...validoRegistro, password: 'abc', confirmar: 'abc' })).toBe(
-      'La contraseña debe tener entre 4 y 10 caracteres',
+    expect(validarFormularioRegistro({ ...validoRegistro, password: 'abc12', confirmar: 'abc12' })).toBe(
+      'La contraseña debe tener entre 6 y 10 caracteres',
     )
     expect(validarFormularioRegistro({ ...validoRegistro, confirmar: 'otra' })).toBe('Las contraseñas no coinciden')
     expect(validarFormularioRegistro({ ...validoRegistro, terminos: false })).toBe(

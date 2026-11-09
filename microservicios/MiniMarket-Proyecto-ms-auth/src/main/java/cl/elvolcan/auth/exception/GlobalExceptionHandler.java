@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -48,6 +49,29 @@ public class GlobalExceptionHandler {
         error.put("mensaje", "Usuario o contraseña incorrectos."); // mensaje generico por ciberseguridad
 
         return new ResponseEntity<>(error, HttpStatus.UNAUTHORIZED);
+    }
+
+    // Registro duplicado (RUT o usuario ya existe): 409 Conflict
+    // Spring elige este handler antes que el de RuntimeException por ser más específico
+    @ExceptionHandler(RegistroDuplicadoException.class)
+    public ResponseEntity<Map<String, String>> handleRegistroDuplicado(RegistroDuplicadoException ex) {
+        Map<String, String> error = new HashMap<>();
+        error.put("error", "Conflicto (409)");
+        error.put("mensaje", ex.getMessage());
+        return new ResponseEntity<>(error, HttpStatus.CONFLICT);
+    }
+
+    // Datos del formulario inválidos (@Valid): 400 con el primer mensaje y el detalle por campo
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<Map<String, Object>> handleValidacion(MethodArgumentNotValidException ex) {
+        Map<String, String> campos = new HashMap<>();
+        ex.getBindingResult().getFieldErrors()
+                .forEach(fe -> campos.putIfAbsent(fe.getField(), fe.getDefaultMessage()));
+        Map<String, Object> error = new HashMap<>();
+        error.put("error", "Datos inválidos (400)");
+        error.put("mensaje", campos.isEmpty() ? "Datos inválidos" : campos.values().iterator().next());
+        error.put("validationErrors", campos);
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }
 
     // 4to Flujo: para peticiones sin Body o JSON mal formado

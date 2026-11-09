@@ -3,6 +3,7 @@ package cl.elvolcan.auth.service;
 import cl.elvolcan.auth.dto.LoginRequestDTO;
 import cl.elvolcan.auth.dto.RegistroRequestDTO;
 import cl.elvolcan.auth.dto.UsuarioResponseDTO;
+import cl.elvolcan.auth.exception.RegistroDuplicadoException;
 import cl.elvolcan.auth.model.Rol;
 import cl.elvolcan.auth.model.Usuario;
 import cl.elvolcan.auth.repository.RolRepository;
@@ -188,13 +189,32 @@ class AuthServiceTest {
         when(usuarioRepository.existsByRut(anyString())).thenReturn(false);
         when(usuarioRepository.existsByUsername("user_duplicado")).thenReturn(true);
 
-        // When + Then
-        RuntimeException exception = assertThrows(
-                RuntimeException.class,
+        // When + Then: excepción propia (se traduce a 409 Conflict)
+        RegistroDuplicadoException exception = assertThrows(
+                RegistroDuplicadoException.class,
                 () -> authService.registrar(request)
         );
 
         assertEquals("Error: El nombre de usuario ya está en uso", exception.getMessage());
         verify(usuarioRepository, never()).save(any(Usuario.class)); // Asegura que nunca llega a guardar
+    }
+
+    @Test
+    @DisplayName("registrar debe lanzar RegistroDuplicadoException cuando el RUT ya existe")
+    void registrarDebeLanzarExcepcionCuandoRutExiste() {
+        RegistroRequestDTO request = new RegistroRequestDTO();
+        request.setRut("17234567");
+        request.setUsername("otro_usuario");
+
+        when(usuarioRepository.existsByRut("17234567")).thenReturn(true);
+
+        RegistroDuplicadoException exception = assertThrows(
+                RegistroDuplicadoException.class,
+                () -> authService.registrar(request)
+        );
+
+        assertEquals("Error: Ya existe un usuario registrado con este RUT", exception.getMessage());
+        verify(usuarioRepository, never()).existsByUsername(anyString());
+        verify(usuarioRepository, never()).save(any(Usuario.class));
     }
 }
