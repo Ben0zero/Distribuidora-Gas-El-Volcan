@@ -80,6 +80,23 @@ export function validarFormularioRegistro(datos) {
   return ''
 }
 
+// Valida el formulario de alta de usuarios del admin (NuevoUsuario); devuelve el primer error o ''.
+// Acepta cualquier correo válido: los empleados usan el dominio de la empresa (@elvolcan.cl).
+export function validarNuevoUsuario(form) {
+  if (!form.nombre.trim()) return 'Ingresa el nombre completo'
+  if (!validarCorreo(form.correo)) return 'Ingresa un correo válido'
+  if (!validarRun(form.run)) return 'El RUN debe tener entre 7 y 9 dígitos, sin puntos y sin guion'
+  // mínimo 6: regla de ms-auth (UsuarioAdminRequestDTO @Size(min = 6))
+  if (String(form.contrasena).length < 6 || String(form.contrasena).length > 10)
+    return 'La contraseña debe tener entre 6 y 10 caracteres'
+  if (form.contrasena !== form.confirmar) return 'Las contraseñas no coinciden'
+  if (form.telefono && !validarTelefono(form.telefono)) return 'Ingresa un teléfono válido'
+  if (!form.rol) return 'Selecciona el rol del usuario'
+  if (!form.region) return 'Selecciona la región'
+  if (!form.comuna) return 'Selecciona la comuna'
+  return ''
+}
+
 // Valida los datos de contacto del formulario público.
 export function validarFormularioContacto(datos) {
   const { nombre, correo, telefono, asunto, mensaje } = datos

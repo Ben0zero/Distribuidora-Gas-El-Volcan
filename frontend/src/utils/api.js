@@ -166,9 +166,17 @@ export async function obtenerVenta(id) {
 
 // ---------- Usuarios (solo ADMIN) ----------
 
-// Lista de usuarios de ms-auth: { id, nombre, rut, username, rol: { nombreRol }, comuna, tipoCliente, ... }
+// Lista de usuarios de ms-auth (UsuarioResponseDTO): { id, nombre, rut, username, nombreRol, comuna, tipoCliente, ... }
 export async function listarUsuarios() {
   const res = await fetch(API_USUARIOS, { headers: authHeaders() })
   if (!res.ok) await lanzarError(res, 'No se pudieron obtener los usuarios')
+  return res.json()
+}
+
+// Alta de usuario por el ADMIN (UsuarioAdminRequestDTO: nombre, rut, username, password, nombreRol, ...)
+// 409 = RUT o correo ya registrado; 400 = datos inválidos
+export async function crearUsuario(usuario) {
+  const res = await fetch(API_USUARIOS, { method: 'POST', headers: authHeaders(), body: JSON.stringify(usuario) })
+  if (!res.ok) await lanzarError(res, 'No se pudo crear el usuario')
   return res.json()
 }

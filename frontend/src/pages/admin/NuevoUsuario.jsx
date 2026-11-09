@@ -1,83 +1,74 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Card, Form, Button, Alert, Row, Col } from 'react-bootstrap'
-import {
-  CLAVES,
-  REGIONES,
-  correoDominioPermitido,
-  leerLista,
-  validarRun,
-  validarTelefono,
-} from '../../utils/validaciones'
+import { REGIONES, validarNuevoUsuario } from '../../utils/validaciones'
+import { crearUsuario, ApiError } from '../../utils/api'
+import { ROLES } from '../../utils/sesion'
 
-const ROLES = ['Administrador', 'Cliente', 'Vendedor']
+// Etiqueta de la interfaz -> nombreRol de ms-auth
+const OPCIONES_ROL = [
+  { etiqueta: ROLES.ADMIN, valor: 'ADMIN' },
+  { etiqueta: ROLES.VENDEDOR, valor: 'VENDEDOR' },
+  { etiqueta: ROLES.CLIENTE, valor: 'CLIENTE' },
+]
 
+const FORM_VACIO = {
+  nombre: '',
+  correo: '',
+  run: '',
+  contrasena: '',
+  confirmar: '',
+  telefono: '',
+  rol: '',
+  tipoCliente: 'Residencial',
+  direccion: '',
+  region: '',
+  comuna: '',
+}
+
+const etiqueta = { fontSize: '0.75rem' }
+
+// Alta de usuarios por el ADMIN: POST /api/v1/usuarios (ms-auth); aquí sí se elige el rol
 function NuevoUsuario() {
-  const [form, setForm] = useState({
-    nombre: '',
-    correo: '',
-    run: '',
-    contrasena: '',
-    confirmar: '',
-    telefono: '',
-    rol: '',
-    region: '',
-    comuna: '',
-  })
+  const [form, setForm] = useState(FORM_VACIO)
   const [error, setError] = useState('')
   const [ok, setOk] = useState('')
+  const [enviando, setEnviando] = useState(false)
 
   const cambiar = (campo) => (e) => setForm({ ...form, [campo]: e.target.value })
-
   const comunasRegion = REGIONES.find((r) => r.nombre === form.region)
 
-  const guardar = (event) => {
+  const guardar = async (event) => {
     event.preventDefault()
     setOk('')
-
-    if (!form.nombre) return setError('Ingresa el nombre completo')
-    if (!correoDominioPermitido(form.correo))
-      return setError('El correo debe ser @duoc.cl, @profesor.duoc.cl o @gmail.com')
-    if (!validarRun(form.run)) return setError('El RUN debe tener entre 7 y 9 dígitos, sin puntos y sin guion')
-    if (String(form.contrasena).length < 4 || String(form.contrasena).length > 10)
-      return setError('La contraseña debe tener entre 4 y 10 caracteres')
-    if (form.contrasena !== form.confirmar) return setError('Las contraseñas no coinciden')
-    if (form.telefono && !validarTelefono(form.telefono)) return setError('Ingresa un teléfono válido')
-    if (!form.region) return setError('Selecciona la región')
-    if (!form.comuna) return setError('Selecciona la comuna')
-    if (!form.rol) return setError('Selecciona el rol del usuario')
-
-    const usuarios = leerLista(CLAVES.usuarios)
-    if (usuarios.some((u) => (u.correo || '').toLowerCase() === form.correo.toLowerCase())) {
-      return setError('Ese correo ya está registrado')
-    }
-
-    usuarios.push({
-      fecha: new Date().toISOString().slice(0, 10),
-      run: form.run,
-      nombre: form.nombre,
-      correo: form.correo,
-      telefono: form.telefono,
-      region: form.region,
-      comuna: form.comuna,
-      contrasena: form.contrasena,
-      rol: form.rol,
-      estado: 'Activo',
-    })
-    localStorage.setItem(CLAVES.usuarios, JSON.stringify(usuarios))
+    const invalido = validarNuevoUsuario(form)
+    if (invalido) return setError(invalido)
 
     setError('')
-    setOk('Usuario registrado correctamente')
-    setForm({
-      nombre: '',
-      correo: '',
-      run: '',
-      contrasena: '',
-      confirmar: '',
-      telefono: '',
-      rol: '',
-      region: '',
-      comuna: '',
-    })
+    setEnviando(true)
+    try {
+      const creado = await crearUsuario({
+        nombre: form.nombre.trim(),
+        rut: form.run,
+        username: form.correo.trim().toLowerCase(),
+        password: form.contrasena,
+        nombreRol: form.rol,
+        telefono: form.telefono || undefined,
+        direccion: form.direccion.trim() || undefined,
+        region: form.region,
+        comuna: form.comuna,
+        tipoCliente: form.rol === 'CLIENTE' ? form.tipoCliente : undefined,
+      })
+      setOk(`Usuario ${creado.username} registrado correctamente con rol ${creado.nombreRol}`)
+      setForm(FORM_VACIO)
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 409) setError('Ya existe un usuario con ese correo o RUN.')
+      else if (e instanceof ApiError && e.status === 403) setError('Tu sesión no tiene permisos de administrador.')
+      else if (e instanceof ApiError) setError(e.message.replace(/^Error:\s*/, ''))
+      else setError('No se pudo conectar con el servidor. Intenta nuevamente en unos minutos.')
+    } finally {
+      setEnviando(false)
+    }
   }
 
   return (
@@ -88,7 +79,10 @@ function NuevoUsuario() {
         </span>
       </div>
 
-      <h1 className="display-6 mb-4 text-dark fw-bold">NUEVO USUARIO</h1>
+      <div className="d-flex align-items-center mb-4 gap-3">
+        <h1 className="display-6 mb-0 text-dark fw-bold">NUEVO USUARIO</h1>
+        <Link to="/admin/usuarios" className="small">← Volver a usuarios</Link>
+      </div>
 
       <Card className="border border-2 shadow-sm rounded-0 mx-auto" style={{ maxWidth: 900 }}>
         <div
@@ -99,27 +93,18 @@ function NuevoUsuario() {
         </div>
         <Card.Body className="p-4">
           <Form onSubmit={guardar} noValidate>
-            <Form.Group className="mb-3">
-              <Form.Label className="text-uppercase fw-bold text-secondary" style={{ fontSize: '0.75rem' }}>
-                Nombre Completo
-              </Form.Label>
+            <Form.Group className="mb-3" controlId="usuario-nombre">
+              <Form.Label className="text-uppercase fw-bold text-secondary" style={etiqueta}>Nombre Completo</Form.Label>
               <Form.Control className="rounded-0 border-dark" value={form.nombre} onChange={cambiar('nombre')} />
             </Form.Group>
 
-            <Form.Group className="mb-3">
-              <Form.Label className="text-uppercase fw-bold text-secondary" style={{ fontSize: '0.75rem' }}>
-                Correo
-              </Form.Label>
-              <Form.Control
-                type="email"
-                className="rounded-0 border-dark"
-                value={form.correo}
-                onChange={cambiar('correo')}
-              />
+            <Form.Group className="mb-3" controlId="usuario-correo">
+              <Form.Label className="text-uppercase fw-bold text-secondary" style={etiqueta}>Correo (será su usuario)</Form.Label>
+              <Form.Control type="email" className="rounded-0 border-dark" value={form.correo} onChange={cambiar('correo')} />
             </Form.Group>
 
-            <Form.Group className="mb-3">
-              <Form.Label className="text-uppercase fw-bold text-secondary" style={{ fontSize: '0.75rem' }}>
+            <Form.Group className="mb-3" controlId="usuario-run">
+              <Form.Label className="text-uppercase fw-bold text-secondary" style={etiqueta}>
                 RUN (7 a 9 dígitos, sin puntos y sin guion)
               </Form.Label>
               <Form.Control
@@ -131,95 +116,88 @@ function NuevoUsuario() {
               />
             </Form.Group>
 
-            <Form.Group className="mb-3">
-              <Form.Label className="text-uppercase fw-bold text-secondary" style={{ fontSize: '0.75rem' }}>
-                Contraseña
-              </Form.Label>
-              <Form.Control
-                type="password"
-                minLength={4}
-                maxLength={10}
-                className="rounded-0 border-dark"
-                value={form.contrasena}
-                onChange={cambiar('contrasena')}
-              />
-            </Form.Group>
+            <Row className="mb-3">
+              <Col md={6} className="mb-3 mb-md-0">
+                <Form.Group controlId="usuario-contrasena">
+                  <Form.Label className="text-uppercase fw-bold text-secondary" style={etiqueta}>Contraseña (6 a 10)</Form.Label>
+                  <Form.Control
+                    type="password"
+                    maxLength={10}
+                    className="rounded-0 border-dark"
+                    value={form.contrasena}
+                    onChange={cambiar('contrasena')}
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group controlId="usuario-confirmar">
+                  <Form.Label className="text-uppercase fw-bold text-secondary" style={etiqueta}>Confirmar Contraseña</Form.Label>
+                  <Form.Control type="password" className="rounded-0 border-dark" value={form.confirmar} onChange={cambiar('confirmar')} />
+                </Form.Group>
+              </Col>
+            </Row>
 
-            <Form.Group className="mb-3">
-              <Form.Label className="text-uppercase fw-bold text-secondary" style={{ fontSize: '0.75rem' }}>
-                Confirmar Contraseña
-              </Form.Label>
-              <Form.Control
-                type="password"
-                className="rounded-0 border-dark"
-                value={form.confirmar}
-                onChange={cambiar('confirmar')}
-              />
-            </Form.Group>
+            <Row className="mb-3">
+              <Col md={6} className="mb-3 mb-md-0">
+                <Form.Group controlId="usuario-rol">
+                  <Form.Label className="text-uppercase fw-bold text-secondary" style={etiqueta}>Rol</Form.Label>
+                  <Form.Select className="rounded-0 border-dark" value={form.rol} onChange={cambiar('rol')}>
+                    <option value="">Elige un rol...</option>
+                    {OPCIONES_ROL.map((r) => (
+                      <option key={r.valor} value={r.valor}>{r.etiqueta}</option>
+                    ))}
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group controlId="usuario-telefono">
+                  <Form.Label className="text-uppercase fw-bold text-secondary" style={etiqueta}>Teléfono (Opcional)</Form.Label>
+                  <Form.Control type="tel" className="rounded-0 border-dark" placeholder="+569..." value={form.telefono} onChange={cambiar('telefono')} />
+                </Form.Group>
+              </Col>
+            </Row>
 
-            <Form.Group className="mb-4">
-              <Form.Label className="text-uppercase fw-bold text-secondary" style={{ fontSize: '0.75rem' }}>
-                Teléfono (Opcional)
-              </Form.Label>
-              <Form.Control
-                type="tel"
-                className="rounded-0 border-dark"
-                placeholder="+569..."
-                value={form.telefono}
-                onChange={cambiar('telefono')}
-              />
-            </Form.Group>
+            {form.rol === 'CLIENTE' && (
+              <Form.Group className="mb-3" controlId="usuario-tipo">
+                <Form.Label className="text-uppercase fw-bold text-secondary" style={etiqueta}>Tipo de cliente</Form.Label>
+                <Form.Select className="rounded-0 border-dark" value={form.tipoCliente} onChange={cambiar('tipoCliente')}>
+                  <option value="Residencial">Residencial</option>
+                  <option value="Comercial">Comercial</option>
+                </Form.Select>
+              </Form.Group>
+            )}
 
-            <Form.Group className="mb-4">
-              <Form.Label className="text-uppercase fw-bold text-secondary" style={{ fontSize: '0.75rem' }}>
-                -- Seleccione el rol --
-              </Form.Label>
-              <Form.Select className="rounded-0 border-dark" value={form.rol} onChange={cambiar('rol')}>
-                <option value="">Elige un rol...</option>
-                {ROLES.map((r) => (
-                  <option key={r} value={r}>
-                    {r}
-                  </option>
-                ))}
-              </Form.Select>
+            <Form.Group className="mb-3" controlId="usuario-direccion">
+              <Form.Label className="text-uppercase fw-bold text-secondary" style={etiqueta}>Dirección (Opcional)</Form.Label>
+              <Form.Control className="rounded-0 border-dark" value={form.direccion} onChange={cambiar('direccion')} />
             </Form.Group>
 
             <Row className="mb-4">
               <Col md={6} className="mb-3 mb-md-0">
-                <Form.Label className="text-uppercase fw-bold text-secondary" style={{ fontSize: '0.75rem' }}>
-                  -- Seleccione la región --
-                </Form.Label>
-                <Form.Select
-                  className="rounded-0 border-dark"
-                  value={form.region}
-                  onChange={(e) => setForm({ ...form, region: e.target.value, comuna: '' })}
-                >
-                  <option value="">Elige una región...</option>
-                  {REGIONES.map((r) => (
-                    <option key={r.nombre} value={r.nombre}>
-                      {r.nombre}
-                    </option>
-                  ))}
-                </Form.Select>
+                <Form.Group controlId="usuario-region">
+                  <Form.Label className="text-uppercase fw-bold text-secondary" style={etiqueta}>Región</Form.Label>
+                  <Form.Select
+                    className="rounded-0 border-dark"
+                    value={form.region}
+                    onChange={(e) => setForm({ ...form, region: e.target.value, comuna: '' })}
+                  >
+                    <option value="">Elige una región...</option>
+                    {REGIONES.map((r) => (
+                      <option key={r.nombre} value={r.nombre}>{r.nombre}</option>
+                    ))}
+                  </Form.Select>
+                </Form.Group>
               </Col>
               <Col md={6}>
-                <Form.Label className="text-uppercase fw-bold text-secondary" style={{ fontSize: '0.75rem' }}>
-                  -- Seleccione la comuna --
-                </Form.Label>
-                <Form.Select
-                  className="rounded-0 border-dark"
-                  value={form.comuna}
-                  onChange={cambiar('comuna')}
-                  disabled={!form.region}
-                >
-                  <option value="">Elige una comuna...</option>
-                  {comunasRegion &&
-                    comunasRegion.comunas.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
+                <Form.Group controlId="usuario-comuna">
+                  <Form.Label className="text-uppercase fw-bold text-secondary" style={etiqueta}>Comuna</Form.Label>
+                  <Form.Select className="rounded-0 border-dark" value={form.comuna} onChange={cambiar('comuna')} disabled={!form.region}>
+                    <option value="">Elige una comuna...</option>
+                    {comunasRegion?.comunas.map((c) => (
+                      <option key={c} value={c}>{c}</option>
                     ))}
-                </Form.Select>
+                  </Form.Select>
+                </Form.Group>
               </Col>
             </Row>
 
@@ -227,13 +205,8 @@ function NuevoUsuario() {
             {ok && <Alert variant="success">{ok}</Alert>}
 
             <div className="text-center mt-4">
-              <Button
-                type="submit"
-                variant="dark"
-                className="text-uppercase px-5 py-2 rounded-0 fw-bold"
-                style={{ fontSize: '0.9rem' }}
-              >
-                Registrar
+              <Button type="submit" variant="dark" className="text-uppercase px-5 py-2 rounded-0 fw-bold" style={{ fontSize: '0.9rem' }} disabled={enviando}>
+                {enviando ? 'Registrando…' : 'Registrar'}
               </Button>
             </div>
           </Form>
