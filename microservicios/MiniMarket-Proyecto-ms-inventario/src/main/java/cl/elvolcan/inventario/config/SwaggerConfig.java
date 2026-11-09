@@ -6,6 +6,7 @@ import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 
+import org.springdoc.core.models.GroupedOpenApi;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -19,10 +20,11 @@ public class SwaggerConfig {
         return new OpenAPI()
                 .info(
                         new Info()
-                                .title("MiniMarket - Inventario Service")
-                                .version("1.0")
+                                .title("API de Inventario - Distribuidora de Gas El Volcán (ms-inventario)")
+                                .version("1.0.0")
                                 .description("""
-                                        Microservicio encargado de la gestión de inventario.
+                                        Microservicio encargado del stock de cilindros de gas y accesorios.
+                                        Disponible en dos versiones: /api/v1 (REST) y /api/v2 (HATEOAS).
 
                                         Funcionalidades:
                                         • Crear inventario
@@ -42,5 +44,24 @@ public class SwaggerConfig {
                                 .type(SecurityScheme.Type.HTTP)
                                 .scheme("bearer")
                                 .bearerFormat("JWT")));
+    }
+
+    // --- Versionado de la API: Swagger UI muestra un selector con ambos grupos ---
+    @Bean
+    public GroupedOpenApi apiV1() {
+        return GroupedOpenApi.builder()
+                .group("v1")
+                .displayName("API v1 (REST)")
+                .pathsToMatch("/api/v1/**")
+                .build();
+    }
+
+    @Bean
+    public GroupedOpenApi apiV2() {
+        return GroupedOpenApi.builder()
+                .group("v2")
+                .displayName("API v2 (HATEOAS)")
+                .pathsToMatch("/api/v2/**")
+                .build();
     }
 }
