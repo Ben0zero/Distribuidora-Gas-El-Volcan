@@ -13,9 +13,11 @@ export function rolDesdeApi(nombreRol) {
   return ROLES[clave] || ROLES.CLIENTE
 }
 
-// Ruta inicial según el rol (el panel del Vendedor se agrega más adelante)
+// Ruta inicial según el rol
 export function rutaInicial(rol) {
-  return rol === ROLES.ADMIN ? '/admin' : '/'
+  if (rol === ROLES.ADMIN) return '/admin'
+  if (rol === ROLES.VENDEDOR) return '/vendedor'
+  return '/'
 }
 
 // Lee el payload de un JWT (sin verificar la firma: eso lo hace el backend en cada petición).

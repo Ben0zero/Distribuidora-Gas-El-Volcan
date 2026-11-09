@@ -4,16 +4,7 @@ import { Container, Table, Badge, Button, Alert, Spinner } from 'react-bootstrap
 import { CLAVES, leerObjeto, formatearPrecio } from '../utils/validaciones'
 import { misCompras, confirmarPago, ApiError } from '../utils/api'
 import { useCatalogo } from '../utils/useCatalogo'
-
-const ESTADOS = {
-  PAGADA: { texto: 'Pagada', color: 'success' },
-  PENDIENTE_PAGO: { texto: 'Pendiente de pago', color: 'warning' },
-  CANCELADA: { texto: 'Cancelada', color: 'secondary' },
-}
-
-function fecha(valor) {
-  return valor ? new Date(valor).toLocaleDateString('es-CL') : '-'
-}
+import { estadoVenta, formatearFecha, numeroOrden, nombreProducto } from '../utils/ventas'
 
 // Historial de compras del usuario autenticado: GET /api/v1/ventas/mis-compras
 function MisCompras() {
@@ -39,8 +30,6 @@ function MisCompras() {
   useEffect(() => {
     if (sesion?.token) cargar()
   }, [sesion?.token, cargar])
-
-  const nombreProducto = (id) => productos.find((p) => p.id === id)?.nombre || `Producto #${id}`
 
   const pagar = async (id) => {
     try {
@@ -97,14 +86,14 @@ function MisCompras() {
             </thead>
             <tbody>
               {compras.map((v) => {
-                const estado = ESTADOS[v.estado] || { texto: v.estado, color: 'light' }
+                const estado = estadoVenta(v.estado)
                 return (
                   <tr key={v.id}>
-                    <td className="fw-bold">ORD-{v.id}</td>
-                    <td>{fecha(v.fechaVenta)}</td>
+                    <td className="fw-bold">{numeroOrden(v.id)}</td>
+                    <td>{formatearFecha(v.fechaVenta)}</td>
                     <td>
                       {(v.detalles || []).map((d) => (
-                        <div key={d.id ?? d.productoId}>{d.cantidad} × {nombreProducto(d.productoId)}</div>
+                        <div key={d.id ?? d.productoId}>{d.cantidad} × {nombreProducto(productos, d.productoId)}</div>
                       ))}
                     </td>
                     <td>{v.direccion ? `${v.direccion}, ${v.comuna}` : '-'}</td>

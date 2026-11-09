@@ -34,6 +34,7 @@ describe('utils/sesion', () => {
     expect(rolDesdeApi(undefined)).toBe(ROLES.CLIENTE)
     expect(rutaInicial(ROLES.ADMIN)).toBe('/admin')
     expect(rutaInicial(ROLES.CLIENTE)).toBe('/')
+    expect(rutaInicial(ROLES.VENDEDOR)).toBe('/vendedor')
   })
 
   test('arma la sesión con los datos devueltos por el login', () => {

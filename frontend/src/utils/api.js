@@ -84,9 +84,10 @@ export async function obtenerInventario() {
   return res.json()
 }
 
+// Stock de un producto por SKU (requiere token: ADMIN, VENDEDOR o CLIENTE)
 export async function obtenerStockPorSku(sku) {
-  const res = await fetch(`${API_INVENTARIO}/${sku}`, { headers: authHeaders() })
-  if (!res.ok) throw new Error('Error al obtener stock')
+  const res = await fetch(`${API_INVENTARIO}/${encodeURIComponent(sku)}`, { headers: authHeaders() })
+  if (!res.ok) await lanzarError(res, 'No se pudo obtener el stock')
   return res.json()
 }
 
@@ -115,8 +116,16 @@ export async function misCompras() {
   return res.json()
 }
 
+// Todas las ventas (ADMIN y VENDEDOR)
 export async function listarVentas() {
   const res = await fetch(API_VENTAS, { headers: authHeaders() })
-  if (!res.ok) throw new Error('Error al obtener ventas')
+  if (!res.ok) await lanzarError(res, 'No se pudieron obtener las órdenes')
+  return res.json()
+}
+
+// Detalle de una venta: ADMIN y VENDEDOR ven cualquiera; un CLIENTE solo las suyas
+export async function obtenerVenta(id) {
+  const res = await fetch(`${API_VENTAS}/${id}`, { headers: authHeaders() })
+  if (!res.ok) await lanzarError(res, 'No se pudo obtener la orden')
   return res.json()
 }

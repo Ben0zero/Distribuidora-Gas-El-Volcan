@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import LayoutPublico from './components/LayoutPublico'
 import Inicio from './pages/Inicio'
 import Productos from './pages/Productos'
@@ -21,6 +21,11 @@ import NuevoUsuario from './pages/admin/NuevoUsuario'
 import Ordenes from './pages/admin/Ordenes'
 import Reportes from './pages/admin/Reportes'
 import Clientes from './pages/admin/Clientes'
+import VendedorLayout from './pages/vendedor/VendedorLayout'
+import ProductosVendedor from './pages/vendedor/ProductosVendedor'
+import DetalleProductoVendedor from './pages/vendedor/DetalleProductoVendedor'
+import OrdenesVendedor from './pages/vendedor/OrdenesVendedor'
+import DetalleOrdenVendedor from './pages/vendedor/DetalleOrdenVendedor'
 import { CLAVES } from './utils/validaciones'
 import RutaProtegida from './components/RutaProtegida'
 import { ROLES } from './utils/sesion'
@@ -122,6 +127,22 @@ function App() {
           <Route path="ordenes" element={<Ordenes />} />
           <Route path="reportes" element={<Reportes />} />
           <Route path="clientes" element={<Clientes />} />
+        </Route>
+
+        {/* Panel del Vendedor: SOLO lista y detalle de productos y de órdenes */}
+        <Route
+          path="/vendedor"
+          element={
+            <RutaProtegida roles={[ROLES.VENDEDOR, ROLES.ADMIN]}>
+              <VendedorLayout />
+            </RutaProtegida>
+          }
+        >
+          <Route index element={<Navigate to="productos" replace />} />
+          <Route path="productos" element={<ProductosVendedor />} />
+          <Route path="productos/:id" element={<DetalleProductoVendedor />} />
+          <Route path="ordenes" element={<OrdenesVendedor />} />
+          <Route path="ordenes/:id" element={<DetalleOrdenVendedor />} />
         </Route>
       </Routes>
     </BrowserRouter>
