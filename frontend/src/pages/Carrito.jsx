@@ -1,22 +1,37 @@
 import { Link } from 'react-router-dom'
-import { Container, Row, Col, ListGroup, Button, Alert } from 'react-bootstrap'
-import { productosConCreados } from '../utils/productos'
+import { Container, Row, Col, ListGroup, Button, Alert, Spinner } from 'react-bootstrap'
 import { obtenerItemsCompletos, calcularTotal } from '../utils/carrito'
+import { useCatalogo } from '../utils/useCatalogo'
+import AvisoSinConexion from '../components/AvisoSinConexion'
 import '../carrito.css'
 import { crearVenta, confirmarPago } from '../utils/api'
-import { leerObjeto } from '../utils/validaciones'
+import { leerObjeto, formatearPrecio } from '../utils/validaciones'
 
 function Carrito({ carrito, incrementar, decrementar, eliminar }) {
-  const productos = productosConCreados()
+  // Las líneas del carrito guardan el id numérico del producto en ms-catalogoProductos
+  const { productos, cargando, sinConexion } = useCatalogo()
   const items = obtenerItemsCompletos(carrito, productos)
   const total = calcularTotal(carrito, productos)
   const sesion = leerObjeto('sesion')
+
+  if (cargando) {
+    return (
+      <main className="fondo">
+        <Container className="py-5 text-center">
+          <Spinner animation="border" role="status" style={{ color: '#ff6600' }}>
+            <span className="visually-hidden">Cargando carrito…</span>
+          </Spinner>
+        </Container>
+      </main>
+    )
+  }
 
   if (items.length === 0) {
     return (
       <main className="fondo">
         <Container className="py-4">
           <h1 className="texto-2">Carrito</h1>
+          {sinConexion && <AvisoSinConexion />}
           <Alert variant="info">Aún no hay productos en el carrito.</Alert>
           <Button className="btn-login" as={Link} to="/productos" variant="primary">
             Ir a Productos
@@ -30,6 +45,7 @@ function Carrito({ carrito, incrementar, decrementar, eliminar }) {
     <main className="fondo">
       <Container className="py-4">
         <h1 className="texto-2">Carrito</h1>
+        {sinConexion && <AvisoSinConexion />}
         <ListGroup>
           {items.map((item) => (
             <ListGroup.Item className='my-2'  key={item.id} style={{ borderRadius: '12px' }}>
@@ -39,7 +55,7 @@ function Carrito({ carrito, incrementar, decrementar, eliminar }) {
                 </Col>
                 <Col xs={9} md={4}>
                   <h5 className="mb-1">{item.producto.nombre}</h5>
-                  <span className="text-muted">${item.producto.residencial.toLocaleString('es-CL')} c/u</span>
+                  <span className="text-muted">{formatearPrecio(item.producto.residencial)} c/u</span>
                 </Col>
                 <Col xs={6} md={3} className="d-flex align-items-center gap-2">
                   <Button className="px-3 py-2 mx-2" variant="outline-danger" size="sm" onClick={() => decrementar(item.id)}>
@@ -51,7 +67,7 @@ function Carrito({ carrito, incrementar, decrementar, eliminar }) {
                   </Button>
                 </Col>
                 <Col xs={6} md={3} className="text-md-end">
-                  <strong><h3>Subtotal: ${(item.producto.residencial * item.cantidad).toLocaleString('es-CL')}</h3></strong>
+                  <strong><h3>Subtotal: {formatearPrecio(item.producto.residencial * item.cantidad)}</h3></strong>
                   <br />
                   <Button variant="link" size="sm" className="btn-carrito-quitar my-2 mx-5 px-5" onClick={() => eliminar(item.id)}>
                     Quitar
@@ -66,8 +82,8 @@ function Carrito({ carrito, incrementar, decrementar, eliminar }) {
             Seguir comprando
           </Button>
           <div className="text-end">
-            <h4 className="mb-2 texto-2">Total: ${total.toLocaleString('es-CL')}</h4>
-            <Button className="btn-carrito py-3 px-3" variant="success" onClick={async () => {
+            <h4 className="mb-2 texto-2">Total: {formatearPrecio(total)}</h4>
+            <Button className="btn-carrito py-3 px-3" variant="success" disabled={sinConexion} onClick={async () => {
               if (!sesion || !sesion.token) {
                 alert('Debes iniciar sesión para comprar')
                 window.location.href = '/login'
@@ -81,7 +97,7 @@ function Carrito({ carrito, incrementar, decrementar, eliminar }) {
                 localStorage.removeItem('carrito')
                 alert('Compra realizada con éxito')
                 window.location.href = '/ventas'
-              } catch (e) {
+              } catch {
                 alert('Error al procesar la compra')
               }
             }}>

@@ -1,29 +1,30 @@
-import { useEffect, useState } from 'react'
 import { useLocation, Link } from 'react-router-dom'
-import { Container, Row, Col, Button } from 'react-bootstrap'
+import { Container, Row, Col, Button, Spinner } from 'react-bootstrap'
 import Producto from '../components/Producto'
+import AvisoSinConexion from '../components/AvisoSinConexion'
 import { CATEGORIAS } from '../utils/validaciones'
-import { productosConCreados, desdeApi } from '../utils/productos'
-import { obtenerProductos } from '../utils/api'
+import { useCatalogo } from '../utils/useCatalogo'
 
 function Productos({ onAgregar }) {
   const location = useLocation()
   const parametros = new URLSearchParams(location.search)
   const categoria = parametros.get('categoria')
-  const [productosApi, setProductosApi] = useState([])
+  const { productos: todos, cargando, sinConexion } = useCatalogo()
 
-  useEffect(() => {
-    // desdeApi deja cada producto con residencial/comercial/imagen, como espera <Producto />
-    obtenerProductos().then((data) => setProductosApi(data.map(desdeApi))).catch(() => {})
-  }, [])
-
-  const todos = productosApi.length > 0 ? productosApi : productosConCreados()
   const productos = categoria ? todos.filter((p) => p.categoria === categoria) : todos
 
   return (
     <main className="fondo py-5">
       <Container>
         <h1 className="text-center mb-4 texto-2">Nuestros Productos</h1>
+        {sinConexion && <AvisoSinConexion />}
+        {cargando && (
+          <div className="text-center my-4">
+            <Spinner animation="border" role="status" style={{ color: '#ff6600' }}>
+              <span className="visually-hidden">Cargando productos…</span>
+            </Spinner>
+          </div>
+        )}
 
         <div className="text-center mb-3">
           <Button as={Link} to="/productos" variant={categoria ? 'outline-primary' : 'primary'} className="btn-login me-2 mb-1">

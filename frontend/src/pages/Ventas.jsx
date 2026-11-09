@@ -3,7 +3,8 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Container, Row, Col, Button, Alert, Form } from 'react-bootstrap'
 import { CLAVES, leerLista, leerObjeto, REGIONES, formatearPrecio } from '../utils/validaciones'
 import { calcularTotal, obtenerItemsCompletos } from '../utils/carrito'
-import { productosConCreados } from '../utils/productos'
+import { useCatalogo } from '../utils/useCatalogo'
+import AvisoSinConexion from '../components/AvisoSinConexion'
 import { misCompras } from '../utils/api'
 
 function generarNumeroOrden() {
@@ -28,8 +29,9 @@ function Ventas({ carrito, incrementar, decrementar, vaciar }) {
 
   const tipo = sesion?.tipoCliente?.toLowerCase() === 'comercial' ? 'comercial' : 'residencial'
   const comunas = REGIONES[0].comunas
-  const items = obtenerItemsCompletos(carrito, productosConCreados())
-  const total = calcularTotal(carrito, productosConCreados(), tipo)
+  const { productos, cargando, sinConexion } = useCatalogo()
+  const items = obtenerItemsCompletos(carrito, productos)
+  const total = calcularTotal(carrito, productos, tipo)
   const [comprasApi, setComprasApi] = useState([])
 
   useEffect(() => {
@@ -95,6 +97,19 @@ function Ventas({ carrito, incrementar, decrementar, vaciar }) {
                 Volver al inicio
               </Button>
             </div>
+          </div>
+        </Container>
+      </main>
+    )
+  }
+
+  // Catálogo cargando desde la API (evita mostrar "carrito vacío" mientras tanto).
+  if (cargando) {
+    return (
+      <main className="fondo">
+        <Container className="py-5 text-center">
+          <div className="spinner-border" role="status" style={{ color: '#ff6600' }}>
+            <span className="visually-hidden">Cargando…</span>
           </div>
         </Container>
       </main>
@@ -225,6 +240,7 @@ function Ventas({ carrito, incrementar, decrementar, vaciar }) {
           <h1>Finalizar tu compra</h1>
           <p>Revisa tu pedido y completa tus datos de despacho.</p>
         </div>
+        {sinConexion && <AvisoSinConexion />}
 
         <Row className="g-4">
           <Col xs={12} lg={7}>
@@ -354,7 +370,7 @@ function Ventas({ carrito, incrementar, decrementar, vaciar }) {
                 {error && <Alert variant="danger">{error}</Alert>}
 
                 <div className="d-grid">
-                  <Button type="submit" className="btn-login py-2 fw-bold text-uppercase border-0">
+                  <Button type="submit" className="btn-login py-2 fw-bold text-uppercase border-0" disabled={sinConexion}>
                     <i className="bi bi-check-circle" /> Confirmar pedido
                   </Button>
                 </div>
