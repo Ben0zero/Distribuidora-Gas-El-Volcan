@@ -1,8 +1,17 @@
-import { useEffect, useState } from 'react'
-import { Card, Table, Button, Form, Modal, Alert, Row, Col } from 'react-bootstrap'
-import { CATEGORIAS, CLAVES, formatearPrecio, leerLista } from '../../utils/validaciones'
-import { productosConCreados } from '../../utils/productos'
-import { obtenerInventario } from '../../utils/api'
+import { useCallback, useEffect, useState } from 'react'
+import { Card, Table, Button, Form, Modal, Alert, Row, Col, Spinner } from 'react-bootstrap'
+import { CATEGORIAS, formatearPrecio } from '../../utils/validaciones'
+import { desdeApi } from '../../utils/productos'
+import { combinarInventario, ajusteDeStock, productoDesdeFormulario, validarProducto } from '../../utils/inventario'
+import {
+  obtenerProductos,
+  obtenerInventario,
+  crearProducto,
+  actualizarProducto,
+  desactivarProducto,
+  ajustarStock,
+  ApiError,
+} from '../../utils/api'
 
 const FORM_VACIO = {
   codigo: '',
@@ -11,143 +20,125 @@ const FORM_VACIO = {
   residencial: '',
   comercial: '',
   stock: '',
-  stockCritico: '',
   categoria: '',
+  imagen: '',
 }
 
-const esEntero = (v) => /^\d+$/.test(String(v).trim())
+const etiqueta = { fontSize: '0.75rem' }
 
+function mensaje(e) {
+  return e instanceof ApiError ? e.message.replace(/^Error:\s*/, '') : 'No se pudo conectar con el servidor.'
+}
+
+// Trae catálogo y stock en paralelo; el stock es opcional (si falla, se muestra el catálogo igual)
+async function cargarInventario() {
+  const [productos, stock] = await Promise.allSettled([obtenerProductos(), obtenerInventario()])
+  if (productos.status === 'rejected') {
+    return { filas: [], error: 'No se pudo cargar el catálogo: ' + mensaje(productos.reason) }
+  }
+  return {
+    filas: combinarInventario(productos.value.map(desdeApi), stock.status === 'fulfilled' ? stock.value : []),
+    error: stock.status === 'rejected' ? 'No se pudo cargar el stock: ' + mensaje(stock.reason) : '',
+  }
+}
+
+// Inventario del administrador: catálogo (ms-catalogoProductos) + stock (ms-inventario)
 function Inventario() {
-  const [filas, setFilas] = useState(() => productosConCreados())
-
-  useEffect(() => {
-    obtenerInventario().then((data) => {
-      const mapped = data.map((inv) => ({
-        id: inv.id,
-        codigo: inv.sku,
-        nombre: inv.sku,
-        descripcion: inv.sku,
-        residencial: inv.precioUnitario || 0,
-        comercial: inv.precioUnitario || 0,
-        stock: inv.stockActual,
-        stockCritico: inv.stockCritico,
-        categoria: 'Cilindros de Gas'
-      }))
-      if (mapped.length > 0) setFilas(mapped)
-    }).catch(() => {})
-  }, [])
+  const [filas, setFilas] = useState(null) // null = cargando
   const [form, setForm] = useState(FORM_VACIO)
   const [error, setError] = useState('')
   const [ok, setOk] = useState('')
   const [editando, setEditando] = useState(null)
+  const [guardando, setGuardando] = useState(false)
 
-  const recargar = () => setFilas(productosConCreados())
+  const aplicar = useCallback(({ filas: nuevas, error: errorCarga }) => {
+    setFilas(nuevas)
+    if (errorCarga) setError(errorCarga)
+  }, [])
+
+  const cargar = useCallback(async () => aplicar(await cargarInventario()), [aplicar])
+
+  useEffect(() => {
+    let activo = true
+    cargarInventario().then((resultado) => activo && aplicar(resultado))
+    return () => {
+      activo = false
+    }
+  }, [aplicar])
 
   const cambiar = (campo) => (e) => setForm({ ...form, [campo]: e.target.value })
 
-  const guardarNuevo = (event) => {
-    event.preventDefault()
-    setOk('')
-
-    if (form.codigo.trim().length < 3) return setError('El código debe tener al menos 3 caracteres')
-    if (!form.nombre.trim()) return setError('Ingresa el nombre del producto')
-    if (form.nombre.length > 100) return setError('El nombre no puede superar los 100 caracteres')
-
-    const precioRes = parseFloat(form.residencial)
-    const precioCom = parseFloat(form.comercial)
-    if (isNaN(precioRes) || precioRes < 0 || isNaN(precioCom) || precioCom < 0) {
-      return setError('Ingresa precios válidos (residencial y comercial)')
-    }
-    if (!esEntero(form.stock)) return setError('El stock debe ser un entero mayor o igual a 0')
-    if (form.stockCritico && !esEntero(form.stockCritico)) return setError('El stock crítico debe ser un entero')
-    if (!form.categoria) return setError('Selecciona una categoría')
-
-    const duplicado = filas.some((f) => f.codigo.toLowerCase() === form.codigo.trim().toLowerCase())
-    if (duplicado) return setError('Ya existe un producto con ese código')
-
-    const creados = leerLista(CLAVES.productos)
-    creados.push({
-      codigo: form.codigo.trim(),
-      nombre: form.nombre.trim(),
-      descripcion: form.descripcion.trim(),
-      residencial: Math.round(precioRes),
-      comercial: Math.round(precioCom),
-      stock: parseInt(form.stock, 10),
-      stockCritico: form.stockCritico ? parseInt(form.stockCritico, 10) : 0,
-      categoria: form.categoria,
-    })
-    localStorage.setItem(CLAVES.productos, JSON.stringify(creados))
-
-    setForm(FORM_VACIO)
+  // Ejecuta una operación contra la API mostrando el resultado
+  const ejecutar = async (accion, textoOk) => {
+    setGuardando(true)
     setError('')
-    setOk('Producto guardado correctamente en el inventario')
-    recargar()
+    setOk('')
+    try {
+      await accion()
+      setOk(textoOk)
+      await cargar()
+      return true
+    } catch (e) {
+      setError(mensaje(e))
+      return false
+    } finally {
+      setGuardando(false)
+    }
+  }
+
+  const guardarNuevo = async (event) => {
+    event.preventDefault()
+    const invalido = validarProducto(form)
+    if (invalido) return setError(invalido)
+
+    const producto = productoDesdeFormulario(form)
+    const creado = await ejecutar(async () => {
+      // 1) POST /api/v1/productos (ms-catalogoProductos crea también su registro de inventario en 0)
+      await crearProducto(producto)
+      // 2) stock inicial: PUT /api/v1/inventario/aumentar
+      const ajuste = ajusteDeStock(0, form.stock || 0)
+      if (ajuste) await ajustarStock(ajuste.operacion, producto.sku, ajuste.cantidad)
+    }, 'Producto guardado correctamente en el inventario')
+    if (creado) setForm(FORM_VACIO)
   }
 
   const abrirEdicion = (fila) => {
     setError('')
     setOk('')
     setEditando({
-      tipo: fila.base ? 'base' : 'creado',
       id: fila.id,
       codigo: fila.codigo,
       nombre: fila.nombre,
-      descripcion: fila.descripcion,
-      residencial: fila.residencial,
-      comercial: fila.comercial,
-      stock: fila.stock,
-      stockCritico: fila.stockCritico,
+      descripcion: fila.descripcion || '',
+      residencial: String(fila.residencial),
+      comercial: String(fila.comercial),
       categoria: fila.categoria,
+      imagen: fila.imagen || '',
+      stock: fila.stock === null ? '' : String(fila.stock),
+      stockOriginal: fila.stock ?? 0,
     })
   }
 
-  const guardarEdicion = (event) => {
+  const guardarEdicion = async (event) => {
     event.preventDefault()
     const e = editando
+    const invalido = validarProducto(e, { nuevo: false })
+    if (invalido) return setError(invalido)
 
-    if (!e.nombre.trim()) return setError('El nombre no puede estar vacío')
-    const precioRes = parseFloat(e.residencial)
-    const precioCom = parseFloat(e.comercial)
-    if (isNaN(precioRes) || precioRes < 0 || isNaN(precioCom) || precioCom < 0) {
-      return setError('Ingresa precios válidos (residencial y comercial)')
-    }
-    if (!esEntero(e.stock)) return setError('El stock debe ser un entero mayor o igual a 0')
-    if (e.stockCritico !== '' && !esEntero(e.stockCritico)) return setError('El stock crítico debe ser un entero')
-
-    const cambios = {
-      nombre: e.nombre.trim(),
-      descripcion: e.descripcion.trim(),
-      residencial: Math.round(precioRes),
-      comercial: Math.round(precioCom),
-      stock: parseInt(e.stock, 10),
-      stockCritico: e.stockCritico !== '' ? parseInt(e.stockCritico, 10) : 0,
-      categoria: e.categoria,
-    }
-
-    if (e.tipo === 'base') {
-      const ediciones = leerLista(CLAVES.edicionesProductos)
-      const idx = ediciones.findIndex((x) => x.id === e.id)
-      if (idx >= 0) ediciones[idx] = { ...ediciones[idx], ...cambios }
-      else ediciones.push({ id: e.id, ...cambios })
-      localStorage.setItem(CLAVES.edicionesProductos, JSON.stringify(ediciones))
-    } else {
-      const creados = leerLista(CLAVES.productos)
-      const idx = creados.findIndex((p) => p.codigo.toLowerCase() === e.codigo.toLowerCase())
-      if (idx >= 0) creados[idx] = { ...creados[idx], ...cambios }
-      localStorage.setItem(CLAVES.productos, JSON.stringify(creados))
-    }
-
-    setEditando(null)
-    setError('')
-    setOk('Producto actualizado correctamente')
-    recargar()
+    const listo = await ejecutar(async () => {
+      // PUT /api/v1/productos/{id} (el SKU no cambia)
+      await actualizarProducto(e.id, productoDesdeFormulario(e))
+      // si cambió el stock se envía solo la diferencia a ms-inventario
+      const ajuste = e.stock === '' ? null : ajusteDeStock(e.stockOriginal, e.stock)
+      if (ajuste) await ajustarStock(ajuste.operacion, e.codigo, ajuste.cantidad)
+    }, 'Producto actualizado correctamente')
+    if (listo) setEditando(null)
   }
 
-  const eliminar = (codigo) => {
-    const creados = leerLista(CLAVES.productos).filter((p) => p.codigo.toLowerCase() !== codigo.toLowerCase())
-    localStorage.setItem(CLAVES.productos, JSON.stringify(creados))
-    setOk('Producto eliminado del inventario')
-    recargar()
+  const eliminar = (fila) => {
+    if (!window.confirm(`¿Eliminar "${fila.nombre}" del catálogo? Dejará de mostrarse en la tienda.`)) return
+    // DELETE /api/v1/productos/{sku}: borrado lógico (activo = false)
+    ejecutar(() => desactivarProducto(fila.codigo), 'Producto eliminado del catálogo')
   }
 
   return (
@@ -170,53 +161,57 @@ function Inventario() {
           Lista de productos
         </div>
         <Card.Body className="p-0">
-          <div className="table-responsive">
-            <Table hover className="align-middle mb-0">
-              <thead className="table-secondary">
-                <tr>
-                  <th>Código</th>
-                  <th>Producto</th>
-                  <th>Categoría</th>
-                  <th>Stock</th>
-                  <th>Precio Res.</th>
-                  <th>Precio Com.</th>
-                  <th className="text-end">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filas.map((f) => {
-                  const critico = f.stock <= f.stockCritico
-                  return (
-                    <tr key={`${f.base ? 'b' : 'c'}-${f.codigo}`}>
+          {filas === null ? (
+            <div className="text-center p-4">
+              <Spinner animation="border" role="status">
+                <span className="visually-hidden">Cargando inventario…</span>
+              </Spinner>
+            </div>
+          ) : (
+            <div className="table-responsive">
+              <Table hover className="align-middle mb-0">
+                <thead className="table-secondary">
+                  <tr>
+                    <th>Código</th>
+                    <th>Producto</th>
+                    <th>Categoría</th>
+                    <th>Stock</th>
+                    <th>Precio Res.</th>
+                    <th>Precio Com.</th>
+                    <th className="text-end">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filas.map((f) => (
+                    <tr key={f.id}>
                       <td className="fw-bold">{f.codigo}</td>
                       <td>{f.nombre}</td>
                       <td>{f.categoria}</td>
                       <td>
-                        <span className={`badge ${critico ? 'bg-danger' : 'bg-success'}`}>{f.stock}</span>
+                        {f.stock === null ? (
+                          <span className="badge bg-secondary">Sin registro</span>
+                        ) : (
+                          <span className={`badge ${f.bajoStock ? 'bg-danger' : 'bg-success'}`} title={f.bajoStock ? 'Stock crítico' : ''}>
+                            {f.stock}
+                          </span>
+                        )}
                       </td>
                       <td>{formatearPrecio(f.residencial)}</td>
                       <td>{formatearPrecio(f.comercial)}</td>
                       <td className="text-end">
-                        <Button
-                          size="sm"
-                          variant="outline-primary"
-                          className="me-1"
-                          onClick={() => abrirEdicion(f)}
-                        >
+                        <Button size="sm" variant="outline-primary" className="me-1" onClick={() => abrirEdicion(f)} disabled={guardando}>
                           Editar
                         </Button>
-                        {!f.base && (
-                          <Button size="sm" variant="outline-danger" onClick={() => eliminar(f.codigo)}>
-                            Eliminar
-                          </Button>
-                        )}
+                        <Button size="sm" variant="outline-danger" onClick={() => eliminar(f)} disabled={guardando}>
+                          Eliminar
+                        </Button>
                       </td>
                     </tr>
-                  )
-                })}
-              </tbody>
-            </Table>
-          </div>
+                  ))}
+                </tbody>
+              </Table>
+            </div>
+          )}
         </Card.Body>
       </Card>
 
@@ -231,33 +226,28 @@ function Inventario() {
         </div>
         <Card.Body className="p-4">
           <Form onSubmit={guardarNuevo} noValidate>
-            <Form.Group className="mb-3">
-              <Form.Label className="text-uppercase fw-bold text-secondary" style={{ fontSize: '0.75rem' }}>
+            <Form.Group className="mb-3" controlId="nuevo-codigo">
+              <Form.Label className="text-uppercase fw-bold text-secondary" style={etiqueta}>
                 Código del Producto (Min. 3 caracteres)
               </Form.Label>
-              <Form.Control
-                className="rounded-0 border-dark"
-                placeholder="Ej: CL001"
-                value={form.codigo}
-                onChange={cambiar('codigo')}
-              />
+              <Form.Control className="rounded-0 border-dark" placeholder="Ej: CL005" value={form.codigo} onChange={cambiar('codigo')} />
             </Form.Group>
 
-            <Form.Group className="mb-3">
-              <Form.Label className="text-uppercase fw-bold text-secondary" style={{ fontSize: '0.75rem' }}>
+            <Form.Group className="mb-3" controlId="nuevo-nombre">
+              <Form.Label className="text-uppercase fw-bold text-secondary" style={etiqueta}>
                 Nombre del Producto (Max. 100 caracteres)
               </Form.Label>
               <Form.Control
                 className="rounded-0 border-dark"
                 maxLength={100}
-                placeholder="Ej: Cilindro de Gas 15 Kg"
+                placeholder="Ej: Cilindro de Gas 25 Kg"
                 value={form.nombre}
                 onChange={cambiar('nombre')}
               />
             </Form.Group>
 
-            <Form.Group className="mb-3">
-              <Form.Label className="text-uppercase fw-bold text-secondary" style={{ fontSize: '0.75rem' }}>
+            <Form.Group className="mb-3" controlId="nuevo-descripcion">
+              <Form.Label className="text-uppercase fw-bold text-secondary" style={etiqueta}>
                 Descripción (Opcional, Max. 500 caracteres)
               </Form.Label>
               <Form.Control
@@ -273,90 +263,49 @@ function Inventario() {
 
             <Row className="mb-3">
               <Col md={6} className="mb-3 mb-md-0">
-                <Form.Label className="text-uppercase fw-bold text-secondary" style={{ fontSize: '0.75rem' }}>
-                  Precio Residencial ($)
-                </Form.Label>
-                <Form.Control
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  className="rounded-0 border-dark"
-                  value={form.residencial}
-                  onChange={cambiar('residencial')}
-                />
+                <Form.Group controlId="nuevo-residencial">
+                  <Form.Label className="text-uppercase fw-bold text-secondary" style={etiqueta}>Precio Residencial ($)</Form.Label>
+                  <Form.Control type="number" min="0" className="rounded-0 border-dark" value={form.residencial} onChange={cambiar('residencial')} />
+                </Form.Group>
               </Col>
               <Col md={6}>
-                <Form.Label className="text-uppercase fw-bold text-secondary" style={{ fontSize: '0.75rem' }}>
-                  Precio Comercial ($)
-                </Form.Label>
-                <Form.Control
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  className="rounded-0 border-dark"
-                  value={form.comercial}
-                  onChange={cambiar('comercial')}
-                />
+                <Form.Group controlId="nuevo-comercial">
+                  <Form.Label className="text-uppercase fw-bold text-secondary" style={etiqueta}>Precio Comercial ($)</Form.Label>
+                  <Form.Control type="number" min="0" className="rounded-0 border-dark" value={form.comercial} onChange={cambiar('comercial')} />
+                </Form.Group>
               </Col>
             </Row>
 
             <Row className="mb-3">
               <Col md={6} className="mb-3 mb-md-0">
-                <Form.Label className="text-uppercase fw-bold text-secondary" style={{ fontSize: '0.75rem' }}>
-                  Stock Inicial (Enteros)
-                </Form.Label>
-                <Form.Control
-                  type="number"
-                  step="1"
-                  min="0"
-                  className="rounded-0 border-dark"
-                  value={form.stock}
-                  onChange={cambiar('stock')}
-                />
+                <Form.Group controlId="nuevo-stock">
+                  <Form.Label className="text-uppercase fw-bold text-secondary" style={etiqueta}>Stock Inicial (Enteros, máx. 500)</Form.Label>
+                  <Form.Control type="number" step="1" min="0" className="rounded-0 border-dark" value={form.stock} onChange={cambiar('stock')} />
+                </Form.Group>
               </Col>
               <Col md={6}>
-                <Form.Label className="text-uppercase fw-bold text-secondary" style={{ fontSize: '0.75rem' }}>
-                  Stock Crítico (Alerta opcional)
-                </Form.Label>
-                <Form.Control
-                  type="number"
-                  step="1"
-                  min="0"
-                  className="rounded-0 border-dark"
-                  value={form.stockCritico}
-                  onChange={cambiar('stockCritico')}
-                />
+                <Form.Group controlId="nuevo-categoria">
+                  <Form.Label className="text-uppercase fw-bold text-secondary" style={etiqueta}>Categoría</Form.Label>
+                  <Form.Select className="rounded-0 border-dark" value={form.categoria} onChange={cambiar('categoria')}>
+                    <option value="">Elige una categoría...</option>
+                    {CATEGORIAS.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </Form.Select>
+                </Form.Group>
               </Col>
             </Row>
 
-            <Row className="mb-4">
-              <Col md={6}>
-                <Form.Label className="text-uppercase fw-bold text-secondary" style={{ fontSize: '0.75rem' }}>
-                  -- Seleccione la Categoría --
-                </Form.Label>
-                <Form.Select
-                  className="rounded-0 border-dark"
-                  value={form.categoria}
-                  onChange={cambiar('categoria')}
-                >
-                  <option value="">Elige una categoría...</option>
-                  {CATEGORIAS.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </Form.Select>
-              </Col>
-            </Row>
+            <Form.Group className="mb-4" controlId="nuevo-imagen">
+              <Form.Label className="text-uppercase fw-bold text-secondary" style={etiqueta}>
+                Imagen (opcional, ruta en /IMAGENES)
+              </Form.Label>
+              <Form.Control className="rounded-0 border-dark" placeholder="/IMAGENES/Logo Gas.png" value={form.imagen} onChange={cambiar('imagen')} />
+            </Form.Group>
 
             <div className="text-center mt-4">
-              <Button
-                type="submit"
-                variant="dark"
-                className="text-uppercase px-5 py-2 rounded-0 fw-bold"
-                style={{ fontSize: '0.9rem' }}
-              >
-                Guardar Producto
+              <Button type="submit" variant="dark" className="text-uppercase px-5 py-2 rounded-0 fw-bold" style={{ fontSize: '0.9rem' }} disabled={guardando}>
+                {guardando ? 'Guardando…' : 'Guardar Producto'}
               </Button>
             </div>
           </Form>
@@ -374,86 +323,66 @@ function Inventario() {
             <Form onSubmit={guardarEdicion} noValidate>
               <Row className="mb-3">
                 <Col md={6} className="mb-3 mb-md-0">
-                  <Form.Label className="text-uppercase fw-bold text-secondary" style={{ fontSize: '0.75rem' }}>
-                    Código
-                  </Form.Label>
-                  <Form.Control className="rounded-0 border-dark bg-light" value={editando.codigo} readOnly />
+                  <Form.Group controlId="editar-codigo">
+                    <Form.Label className="text-uppercase fw-bold text-secondary" style={etiqueta}>Código (no editable)</Form.Label>
+                    <Form.Control className="rounded-0 border-dark bg-light" value={editando.codigo} readOnly />
+                  </Form.Group>
                 </Col>
                 <Col md={6}>
-                  <Form.Label className="text-uppercase fw-bold text-secondary" style={{ fontSize: '0.75rem' }}>
-                    Nombre
-                  </Form.Label>
-                  <Form.Control
-                    className="rounded-0 border-dark"
-                    maxLength={100}
-                    value={editando.nombre}
-                    onChange={(e) => setEditando({ ...editando, nombre: e.target.value })}
-                  />
+                  <Form.Group controlId="editar-nombre">
+                    <Form.Label className="text-uppercase fw-bold text-secondary" style={etiqueta}>Nombre</Form.Label>
+                    <Form.Control
+                      className="rounded-0 border-dark"
+                      maxLength={100}
+                      value={editando.nombre}
+                      onChange={(e) => setEditando({ ...editando, nombre: e.target.value })}
+                    />
+                  </Form.Group>
                 </Col>
               </Row>
 
               <Row className="mb-3">
-                <Col md={6} className="mb-3 mb-md-0">
-                  <Form.Label className="text-uppercase fw-bold text-secondary" style={{ fontSize: '0.75rem' }}>
-                    Precio Residencial ($)
-                  </Form.Label>
-                  <Form.Control
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    className="rounded-0 border-dark"
-                    value={editando.residencial}
-                    onChange={(e) => setEditando({ ...editando, residencial: e.target.value })}
-                  />
+                <Col md={4} className="mb-3 mb-md-0">
+                  <Form.Group controlId="editar-residencial">
+                    <Form.Label className="text-uppercase fw-bold text-secondary" style={etiqueta}>Precio Residencial ($)</Form.Label>
+                    <Form.Control
+                      type="number"
+                      min="0"
+                      className="rounded-0 border-dark"
+                      value={editando.residencial}
+                      onChange={(e) => setEditando({ ...editando, residencial: e.target.value })}
+                    />
+                  </Form.Group>
                 </Col>
-                <Col md={6}>
-                  <Form.Label className="text-uppercase fw-bold text-secondary" style={{ fontSize: '0.75rem' }}>
-                    Precio Comercial ($)
-                  </Form.Label>
-                  <Form.Control
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    className="rounded-0 border-dark"
-                    value={editando.comercial}
-                    onChange={(e) => setEditando({ ...editando, comercial: e.target.value })}
-                  />
+                <Col md={4} className="mb-3 mb-md-0">
+                  <Form.Group controlId="editar-comercial">
+                    <Form.Label className="text-uppercase fw-bold text-secondary" style={etiqueta}>Precio Comercial ($)</Form.Label>
+                    <Form.Control
+                      type="number"
+                      min="0"
+                      className="rounded-0 border-dark"
+                      value={editando.comercial}
+                      onChange={(e) => setEditando({ ...editando, comercial: e.target.value })}
+                    />
+                  </Form.Group>
                 </Col>
-              </Row>
-
-              <Row className="mb-3">
-                <Col md={6} className="mb-3 mb-md-0">
-                  <Form.Label className="text-uppercase fw-bold text-secondary" style={{ fontSize: '0.75rem' }}>
-                    Stock
-                  </Form.Label>
-                  <Form.Control
-                    type="number"
-                    step="1"
-                    min="0"
-                    className="rounded-0 border-dark"
-                    value={editando.stock}
-                    onChange={(e) => setEditando({ ...editando, stock: e.target.value })}
-                  />
-                </Col>
-                <Col md={6}>
-                  <Form.Label className="text-uppercase fw-bold text-secondary" style={{ fontSize: '0.75rem' }}>
-                    Stock Crítico
-                  </Form.Label>
-                  <Form.Control
-                    type="number"
-                    step="1"
-                    min="0"
-                    className="rounded-0 border-dark"
-                    value={editando.stockCritico}
-                    onChange={(e) => setEditando({ ...editando, stockCritico: e.target.value })}
-                  />
+                <Col md={4}>
+                  <Form.Group controlId="editar-stock">
+                    <Form.Label className="text-uppercase fw-bold text-secondary" style={etiqueta}>Stock</Form.Label>
+                    <Form.Control
+                      type="number"
+                      step="1"
+                      min="0"
+                      className="rounded-0 border-dark"
+                      value={editando.stock}
+                      onChange={(e) => setEditando({ ...editando, stock: e.target.value })}
+                    />
+                  </Form.Group>
                 </Col>
               </Row>
 
-              <Form.Group className="mb-3">
-                <Form.Label className="text-uppercase fw-bold text-secondary" style={{ fontSize: '0.75rem' }}>
-                  Categoría
-                </Form.Label>
+              <Form.Group className="mb-3" controlId="editar-categoria">
+                <Form.Label className="text-uppercase fw-bold text-secondary" style={etiqueta}>Categoría</Form.Label>
                 <Form.Select
                   className="rounded-0 border-dark"
                   value={editando.categoria}
@@ -461,17 +390,13 @@ function Inventario() {
                 >
                   <option value="">Elige una categoría...</option>
                   {CATEGORIAS.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
+                    <option key={c} value={c}>{c}</option>
                   ))}
                 </Form.Select>
               </Form.Group>
 
-              <Form.Group className="mb-3">
-                <Form.Label className="text-uppercase fw-bold text-secondary" style={{ fontSize: '0.75rem' }}>
-                  Descripción
-                </Form.Label>
+              <Form.Group className="mb-3" controlId="editar-descripcion">
+                <Form.Label className="text-uppercase fw-bold text-secondary" style={etiqueta}>Descripción</Form.Label>
                 <Form.Control
                   as="textarea"
                   rows={2}
@@ -482,14 +407,18 @@ function Inventario() {
                 />
               </Form.Group>
 
+              <Form.Group className="mb-3" controlId="editar-imagen">
+                <Form.Label className="text-uppercase fw-bold text-secondary" style={etiqueta}>Imagen</Form.Label>
+                <Form.Control
+                  className="rounded-0 border-dark"
+                  value={editando.imagen}
+                  onChange={(e) => setEditando({ ...editando, imagen: e.target.value })}
+                />
+              </Form.Group>
+
               <div className="text-center">
-                <Button
-                  type="submit"
-                  variant="dark"
-                  className="text-uppercase px-5 py-2 rounded-0 fw-bold"
-                  style={{ fontSize: '0.9rem' }}
-                >
-                  Guardar cambios
+                <Button type="submit" variant="dark" className="text-uppercase px-5 py-2 rounded-0 fw-bold" style={{ fontSize: '0.9rem' }} disabled={guardando}>
+                  {guardando ? 'Guardando…' : 'Guardar cambios'}
                 </Button>
               </div>
             </Form>

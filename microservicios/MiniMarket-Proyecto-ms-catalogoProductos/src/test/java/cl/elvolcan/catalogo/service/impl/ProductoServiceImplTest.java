@@ -66,7 +66,10 @@ class ProductoServiceImplTest {
 
         verify(productoRepository).existsBySku("PAN-001");
         verify(productoRepository).save(argThat(p -> "/IMAGENES/pan.png".equals(p.getImagen())));
-        verify(inventarioClient).crearInventario(any(InventarioInitDTO.class));
+        // el inventario del producto nuevo se crea con los mismos niveles que la semilla
+        verify(inventarioClient).crearInventario(argThat((InventarioInitDTO inv) ->
+                "PAN-001".equals(inv.getSku()) && inv.getStockActual() == 0.0
+                        && inv.getNivelCritico() == 5.0 && inv.getNivelMaximo() == 500.0));
     }
 
     @Test

@@ -78,9 +78,42 @@ export async function obtenerProductoPorId(id) {
   return res.json()
 }
 
+// ---------- Administración del catálogo (requiere token de ADMIN) ----------
+
+export async function crearProducto(producto) {
+  const res = await fetch(API_CATALOGO, { method: 'POST', headers: authHeaders(), body: JSON.stringify(producto) })
+  if (!res.ok) await lanzarError(res, 'No se pudo crear el producto')
+  return res.json()
+}
+
+export async function actualizarProducto(id, producto) {
+  const res = await fetch(`${API_CATALOGO}/${id}`, { method: 'PUT', headers: authHeaders(), body: JSON.stringify(producto) })
+  if (!res.ok) await lanzarError(res, 'No se pudo actualizar el producto')
+  return res.json()
+}
+
+// Borrado lógico: el producto deja de mostrarse en la tienda
+export async function desactivarProducto(sku) {
+  const res = await fetch(`${API_CATALOGO}/${encodeURIComponent(sku)}`, { method: 'DELETE', headers: authHeaders() })
+  if (!res.ok) await lanzarError(res, 'No se pudo eliminar el producto')
+}
+
+// ---------- Inventario ----------
+
 export async function obtenerInventario() {
   const res = await fetch(API_INVENTARIO, { headers: authHeaders() })
-  if (!res.ok) throw new Error('Error al obtener inventario')
+  if (!res.ok) await lanzarError(res, 'No se pudo obtener el inventario')
+  return res.json()
+}
+
+// operacion: 'aumentar' | 'disminuir'; cantidad: unidades a sumar o restar (ADMIN)
+export async function ajustarStock(operacion, sku, cantidad) {
+  const res = await fetch(`${API_INVENTARIO}/${operacion}`, {
+    method: 'PUT',
+    headers: authHeaders(),
+    body: JSON.stringify({ sku, stockActual: cantidad }),
+  })
+  if (!res.ok) await lanzarError(res, 'No se pudo ajustar el stock')
   return res.json()
 }
 

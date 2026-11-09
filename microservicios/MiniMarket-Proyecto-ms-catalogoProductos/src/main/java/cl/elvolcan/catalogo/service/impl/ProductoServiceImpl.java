@@ -17,6 +17,10 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class ProductoServiceImpl implements ProductoService {
 
+    // Niveles con que se crea el inventario de un producto nuevo
+    static final double NIVEL_CRITICO_INICIAL = 5.0;
+    static final double NIVEL_MAXIMO_INICIAL = 500.0;
+
     private final ProductoRepository productoRepository;
     private final InventarioClient inventarioClient;
 
@@ -50,8 +54,9 @@ public class ProductoServiceImpl implements ProductoService {
         InventarioInitDTO invDto = new InventarioInitDTO();
         invDto.setSku(guardado.getSku());
         invDto.setStockActual(0.0);
-        invDto.setNivelCritico(10.0);
-        invDto.setNivelMaximo(100.0);
+        // mismos niveles que la semilla de ms-inventario (crítico 5, máximo 500)
+        invDto.setNivelCritico(NIVEL_CRITICO_INICIAL);
+        invDto.setNivelMaximo(NIVEL_MAXIMO_INICIAL);
 
         // 5. Llamar a Inventario vÃ­a Feign (el Interceptor inyectarÃ¡ el token automÃ¡ticamente)
         inventarioClient.crearInventario(invDto);
