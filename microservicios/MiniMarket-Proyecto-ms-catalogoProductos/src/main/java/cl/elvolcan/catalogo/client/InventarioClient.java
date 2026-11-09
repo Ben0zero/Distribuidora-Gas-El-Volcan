@@ -5,7 +5,9 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
-@FeignClient(name = "inventario-service", url = "http://localhost:8084/")
+// Se resuelve por Eureka con el spring.application.name de inventario (sin URL fija),
+// igual que los clientes Feign de ms-ventas
+@FeignClient(name = "ms-inventario")
 public interface InventarioClient {
 
         @PostMapping("/api/v1/inventario/crear")
