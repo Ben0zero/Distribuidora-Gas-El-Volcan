@@ -1,5 +1,5 @@
 // Pruebas unitarias del catálogo: aplicación de ediciones y productos creados (CRUD).
-import { aplicarEdiciones, catalogoActual, productosConCreados } from './productos'
+import { aplicarEdiciones, catalogoActual, productosConCreados, desdeApi, IMAGEN_POR_DEFECTO } from './productos'
 import { CLAVES } from './validaciones'
 import { describe, test, expect, beforeEach } from 'vitest'
 
@@ -75,5 +75,25 @@ describe('productos (catálogo)', () => {
     expect(basico.stock).toBe(0)
     expect(basico.stockCritico).toBe(0)
     expect(basico.imagen).toBe('/IMAGENES/Logo Gas.png') // imagen por defecto
+  })
+
+  test('desdeApi convierte un producto de ms-catalogoProductos al formato del frontend', () => {
+    const api = {
+      id: 2, sku: 'CL002', nombre: 'Cilindro GLP 11 kg', descripcion: 'Estándar doméstico',
+      precioResidencial: 12000, precioComercial: 11000, precio: 12000,
+      categoria: 'Cilindros de Gas', imagen: '/IMAGENES/cilindro de 11K.png', activo: true,
+    }
+    expect(desdeApi(api)).toEqual({
+      id: 2, codigo: 'CL002', nombre: 'Cilindro GLP 11 kg', descripcion: 'Estándar doméstico',
+      residencial: 12000, comercial: 11000, categoria: 'Cilindros de Gas',
+      imagen: '/IMAGENES/cilindro de 11K.png', activo: true,
+    })
+
+    // Producto antiguo (solo "precio", sin imagen ni descripción): usa valores seguros
+    const minimo = desdeApi({ id: 9, sku: 'X1', nombre: 'Antiguo', precio: 5000 })
+    expect(minimo.residencial).toBe(5000)
+    expect(minimo.comercial).toBe(5000)
+    expect(minimo.descripcion).toBe('')
+    expect(minimo.imagen).toBe(IMAGEN_POR_DEFECTO)
   })
 })

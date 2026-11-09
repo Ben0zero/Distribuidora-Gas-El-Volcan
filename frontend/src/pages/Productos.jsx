@@ -3,7 +3,7 @@ import { useLocation, Link } from 'react-router-dom'
 import { Container, Row, Col, Button } from 'react-bootstrap'
 import Producto from '../components/Producto'
 import { CATEGORIAS } from '../utils/validaciones'
-import { productosConCreados } from '../utils/productos'
+import { productosConCreados, desdeApi } from '../utils/productos'
 import { obtenerProductos } from '../utils/api'
 
 function Productos({ onAgregar }) {
@@ -13,18 +13,8 @@ function Productos({ onAgregar }) {
   const [productosApi, setProductosApi] = useState([])
 
   useEffect(() => {
-    obtenerProductos().then((data) => {
-      const mapped = data.map((p) => ({
-        id: p.id,
-        codigo: p.sku,
-        nombre: p.nombre,
-        precio: p.precioResidencial || p.precio,
-        categoria: p.categoria || 'Cilindros de Gas',
-        imagen: p.imagen || '',
-        descripcion: p.descripcion || ''
-      }))
-      setProductosApi(mapped)
-    }).catch(() => {})
+    // desdeApi deja cada producto con residencial/comercial/imagen, como espera <Producto />
+    obtenerProductos().then((data) => setProductosApi(data.map(desdeApi))).catch(() => {})
   }, [])
 
   const todos = productosApi.length > 0 ? productosApi : productosConCreados()

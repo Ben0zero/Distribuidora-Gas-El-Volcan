@@ -56,9 +56,10 @@ export async function obtenerProductos() {
   return res.json()
 }
 
+// GET /api/v1/productos/id/{id} es público (la ruta /{sku} busca por código, no por id)
 export async function obtenerProductoPorId(id) {
-  const res = await fetch(`${API_CATALOGO}/${id}`, { headers: authHeaders() })
-  if (!res.ok) throw new Error('Error al obtener producto')
+  const res = await fetch(`${API_CATALOGO}/id/${id}`)
+  if (!res.ok) throw new ApiError('Producto no encontrado', res.status)
   return res.json()
 }
 

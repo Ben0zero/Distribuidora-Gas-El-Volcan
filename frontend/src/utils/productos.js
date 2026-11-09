@@ -24,6 +24,26 @@ export function aplicarEdiciones(base, ediciones) {
   })
 }
 
+// Convierte un producto de ms-catalogoProductos (ProductoResponseDTO) al formato
+// que usan los componentes del frontend (el mismo de datos/productos.js).
+// API: { id, sku, nombre, descripcion, precioResidencial, precioComercial, precio, categoria, imagen, activo }
+export const IMAGEN_POR_DEFECTO = '/IMAGENES/Logo Gas.png'
+
+export function desdeApi(p) {
+  const residencial = Number(p.precioResidencial ?? p.precio ?? 0)
+  return {
+    id: p.id,
+    codigo: p.sku,
+    nombre: p.nombre,
+    descripcion: p.descripcion || '',
+    residencial,
+    comercial: Number(p.precioComercial ?? residencial),
+    categoria: p.categoria || 'Cilindros de Gas',
+    imagen: p.imagen || IMAGEN_POR_DEFECTO,
+    activo: p.activo !== false,
+  }
+}
+
 // Catálogo con ediciones aplicadas (lo que ve el cliente).
 export function catalogoActual() {
   return aplicarEdiciones(PRODUCTOS, leerLista(CLAVES.edicionesProductos))
