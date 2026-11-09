@@ -19,6 +19,9 @@ import io.jsonwebtoken.security.Keys;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -140,12 +143,32 @@ public class VentaService {
         return ventaModelAssembler.toModel(ventaRepository.save(venta));
     }
 
+    /**
+     * Solo el usuario que creó la venta o un ADMIN pueden operar sobre ella.
+     * Lanza AccessDeniedException (HTTP 403) en cualquier otro caso.
+     */
+    private void verificarPropietarioOAdmin(Venta venta) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || auth.getName() == null || "anonymousUser".equals(auth.getName())) {
+            throw new AccessDeniedException("Usuario no autenticado");
+        }
+        boolean esAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
+        if (esAdmin) {
+            return;
+        }
+        if (venta.getUsuario() == null || !venta.getUsuario().equals(auth.getName())) {
+            throw new AccessDeniedException("No puedes operar sobre una venta que no te pertenece");
+        }
+    }
+
     @Transactional
     public VentaResponseDTO confirmarPago(Long ventaId) {
         String token = getToken();
         String internalToken = getInternalToken();
         Venta venta = ventaRepository.findById(ventaId)
                 .orElseThrow(() -> new ResourceNotFoundException("Venta no encontrada con ID: " + ventaId));
+        verificarPropietarioOAdmin(venta);
         if (venta.getEstado() == Venta.EstadoVenta.PAGADA) return ventaModelAssembler.toModel(venta);
 
         for (DetalleVenta detalle : venta.getDetalles()) {

@@ -9,6 +9,7 @@ import cl.elvolcan.ventas.exception.ResourceNotFoundException;
 import cl.elvolcan.ventas.model.DetalleVenta;
 import cl.elvolcan.ventas.model.Venta;
 import cl.elvolcan.ventas.repository.VentaRepository;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -16,6 +17,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
@@ -49,6 +54,30 @@ class VentaServiceTest {
     void setUp() {
         // Clave solo para pruebas: la real se lee de ~/.elvolcan/secrets.properties
         ReflectionTestUtils.setField(ventaService, "jwtSecret", "clave_solo_para_tests_unitarios_0123456789");
+    }
+
+    @AfterEach
+    void limpiarSeguridad() {
+        SecurityContextHolder.clearContext();
+    }
+
+    // Simula un usuario autenticado con el rol indicado (como lo dejaría el JwtAuthenticationFilter)
+    private void autenticarComo(String username, String rol) {
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(username, null,
+                        List.of(new SimpleGrantedAuthority("ROLE_" + rol))));
+    }
+
+    private Venta ventaPendienteDe(String usuario) {
+        Venta venta = new Venta();
+        venta.setId(5L);
+        venta.setUsuario(usuario);
+        venta.setEstado(Venta.EstadoVenta.PENDIENTE_PAGO);
+        DetalleVenta detalle = new DetalleVenta();
+        detalle.setProductoId(10L);
+        detalle.setCantidad(1);
+        venta.setDetalles(List.of(detalle));
+        return venta;
     }
 
     @Test
@@ -126,8 +155,10 @@ class VentaServiceTest {
     void confirmarPagoDebeCambiarEstadoYDescontarStock() {
         // Given
         Long idVenta = 1L;
+        autenticarComo("cliente@elvolcan.cl", "CLIENTE");
         Venta venta = new Venta();
         venta.setId(idVenta);
+        venta.setUsuario("cliente@elvolcan.cl"); // el dueño confirma su propia venta
         venta.setEstado(Venta.EstadoVenta.PENDIENTE_PAGO);
 
         DetalleVenta detalle = new DetalleVenta();
@@ -156,6 +187,47 @@ class VentaServiceTest {
         assertEquals(Venta.EstadoVenta.PAGADA, resultado.getEstado());
         verify(inventarioClient).disminuirStock(anyString(), any(StockRequestDTO.class)); // Verifica que llame a inventario
         verify(ventaRepository).save(venta);
+    }
+
+    @Test
+    @DisplayName("confirmarPago debe rechazar (403) a un CLIENTE que no es dueño de la venta")
+    void confirmarPagoDebeRechazarVentaAjena() {
+        // Given: la venta es de otro cliente
+        autenticarComo("intruso@elvolcan.cl", "CLIENTE");
+        when(ventaRepository.findById(5L)).thenReturn(Optional.of(ventaPendienteDe("cliente@elvolcan.cl")));
+
+        // When + Then
+        assertThrows(AccessDeniedException.class, () -> ventaService.confirmarPago(5L));
+        verify(inventarioClient, never()).disminuirStock(anyString(), any());
+        verify(ventaRepository, never()).save(any(Venta.class));
+    }
+
+    @Test
+    @DisplayName("confirmarPago debe rechazar (403) a un VENDEDOR sobre una venta ajena")
+    void confirmarPagoDebeRechazarVendedor() {
+        autenticarComo("vendedor@elvolcan.cl", "VENDEDOR");
+        when(ventaRepository.findById(5L)).thenReturn(Optional.of(ventaPendienteDe("cliente@elvolcan.cl")));
+
+        assertThrows(AccessDeniedException.class, () -> ventaService.confirmarPago(5L));
+        verify(inventarioClient, never()).disminuirStock(anyString(), any());
+    }
+
+    @Test
+    @DisplayName("confirmarPago permite a un ADMIN confirmar cualquier venta")
+    void confirmarPagoPermiteAdmin() {
+        autenticarComo("admin@duoc.cl", "ADMIN");
+        Venta venta = ventaPendienteDe("cliente@elvolcan.cl");
+        ProductoDTO productoMock = new ProductoDTO();
+        productoMock.setSku("CL002");
+
+        when(ventaRepository.findById(5L)).thenReturn(Optional.of(venta));
+        when(catalogoClient.obtenerProductoPorId(anyString(), eq(10L))).thenReturn(productoMock);
+        when(ventaRepository.save(any(Venta.class))).thenReturn(venta);
+        when(ventaModelAssembler.toModel(venta)).thenReturn(new VentaResponseDTO());
+
+        assertNotNull(ventaService.confirmarPago(5L));
+        assertEquals(Venta.EstadoVenta.PAGADA, venta.getEstado());
+        verify(inventarioClient).disminuirStock(anyString(), any(StockRequestDTO.class));
     }
 
     @Test
