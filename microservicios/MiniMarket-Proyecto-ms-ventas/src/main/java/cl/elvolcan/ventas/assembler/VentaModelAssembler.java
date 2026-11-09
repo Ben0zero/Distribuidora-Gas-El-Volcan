@@ -27,6 +27,7 @@ public class VentaModelAssembler extends RepresentationModelAssemblerSupport<Ven
 
         // 2. Mapear datos de Venta a VentaResponseDTO
         dto.setId(entity.getId());
+        dto.setUsuario(entity.getUsuario());
         dto.setTotal(entity.getTotal());
         dto.setEstado(entity.getEstado());
         dto.setFechaVenta(entity.getFechaVenta());
@@ -42,6 +43,10 @@ public class VentaModelAssembler extends RepresentationModelAssemblerSupport<Ven
         }
 
         // 4. Agregar Links HATEOAS
+        // Link al detalle de esta venta
+        if (entity.getId() != null) {
+            dto.add(linkTo(methodOn(VentaController.class).obtenerPorId(entity.getId())).withSelfRel());
+        }
         // Link hacia la lista general de ventas
         dto.add(linkTo(methodOn(VentaController.class).listarTodas()).withRel("todas-las-ventas"));
 

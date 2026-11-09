@@ -151,18 +151,37 @@ public class VentaService {
      * Lanza AccessDeniedException (HTTP 403) en cualquier otro caso.
      */
     private void verificarPropietarioOAdmin(Venta venta) {
+        verificarAcceso(venta, false);
+    }
+
+    /**
+     * Verifica el acceso a una venta: ADMIN siempre, el dueño siempre y,
+     * si permitirVendedor es true, también un VENDEDOR (solo lectura de órdenes).
+     */
+    private void verificarAcceso(Venta venta, boolean permitirVendedor) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || auth.getName() == null || "anonymousUser".equals(auth.getName())) {
             throw new AccessDeniedException("Usuario no autenticado");
         }
-        boolean esAdmin = auth.getAuthorities().stream()
-                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
-        if (esAdmin) {
+        if (tieneRol(auth, "ROLE_ADMIN") || (permitirVendedor && tieneRol(auth, "ROLE_VENDEDOR"))) {
             return;
         }
         if (venta.getUsuario() == null || !venta.getUsuario().equals(auth.getName())) {
             throw new AccessDeniedException("No puedes operar sobre una venta que no te pertenece");
         }
+    }
+
+    private boolean tieneRol(Authentication auth, String rol) {
+        return auth.getAuthorities().stream().anyMatch(a -> rol.equals(a.getAuthority()));
+    }
+
+    /** Detalle de una orden: ADMIN y VENDEDOR ven cualquiera; un CLIENTE solo las suyas. */
+    @Transactional
+    public VentaResponseDTO obtenerPorId(Long ventaId) {
+        Venta venta = ventaRepository.findById(ventaId)
+                .orElseThrow(() -> new ResourceNotFoundException("Venta no encontrada con ID: " + ventaId));
+        verificarAcceso(venta, true);
+        return ventaModelAssembler.toModel(venta);
     }
 
     @Transactional

@@ -36,6 +36,18 @@ public class VentaController {
         return ResponseEntity.ok(ventaService.listarMisCompras());
     }
 
+    @Operation(summary = "Detalle de una venta", description = "ADMIN y VENDEDOR pueden ver cualquier orden; un CLIENTE solo las suyas")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Detalle de la venta"),
+        @ApiResponse(responseCode = "403", description = "La venta no pertenece al cliente autenticado"),
+        @ApiResponse(responseCode = "404", description = "Venta no encontrada")
+    })
+    @GetMapping("/{id}")
+    public ResponseEntity<VentaResponseDTO> obtenerPorId(
+            @Parameter(description = "ID numérico de la venta", example = "1") @PathVariable("id") Long id) {
+        return ResponseEntity.ok(ventaService.obtenerPorId(id));
+    }
+
     @Operation(summary = "Registrar un nuevo pedido", description = "Crea una venta de productos de gas y consulta catálogo e inventario")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "201", description = "Venta creada exitosamente"),

@@ -237,6 +237,42 @@ class VentaServiceTest {
     }
 
     @Test
+    @DisplayName("obtenerPorId: VENDEDOR y ADMIN ven el detalle de cualquier orden")
+    void obtenerPorIdPermiteVendedorYAdmin() {
+        Venta venta = ventaPendienteDe("cliente@elvolcan.cl");
+        when(ventaRepository.findById(5L)).thenReturn(Optional.of(venta));
+        when(ventaModelAssembler.toModel(venta)).thenReturn(new VentaResponseDTO());
+
+        autenticarComo("vendedor@elvolcan.cl", "VENDEDOR");
+        assertNotNull(ventaService.obtenerPorId(5L));
+
+        autenticarComo("admin@duoc.cl", "ADMIN");
+        assertNotNull(ventaService.obtenerPorId(5L));
+    }
+
+    @Test
+    @DisplayName("obtenerPorId: un CLIENTE ve sus órdenes pero no las ajenas (403)")
+    void obtenerPorIdClienteSoloLasSuyas() {
+        Venta venta = ventaPendienteDe("cliente@elvolcan.cl");
+        when(ventaRepository.findById(5L)).thenReturn(Optional.of(venta));
+        when(ventaModelAssembler.toModel(venta)).thenReturn(new VentaResponseDTO());
+
+        autenticarComo("cliente@elvolcan.cl", "CLIENTE");
+        assertNotNull(ventaService.obtenerPorId(5L));
+
+        autenticarComo("intruso@elvolcan.cl", "CLIENTE");
+        assertThrows(AccessDeniedException.class, () -> ventaService.obtenerPorId(5L));
+    }
+
+    @Test
+    @DisplayName("obtenerPorId lanza ResourceNotFoundException si la venta no existe")
+    void obtenerPorIdNoExiste() {
+        autenticarComo("admin@duoc.cl", "ADMIN");
+        when(ventaRepository.findById(99L)).thenReturn(Optional.empty());
+        assertThrows(ResourceNotFoundException.class, () -> ventaService.obtenerPorId(99L));
+    }
+
+    @Test
     @DisplayName("confirmarPago debe lanzar ResourceNotFoundException si la venta no existe")
     void confirmarPagoDebeLanzarExcepcionSiVentaNoExiste() {
         // Given

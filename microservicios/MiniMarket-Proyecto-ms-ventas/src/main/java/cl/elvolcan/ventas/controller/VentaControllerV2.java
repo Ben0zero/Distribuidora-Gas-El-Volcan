@@ -49,6 +49,16 @@ public class VentaControllerV2 {
                 linkTo(methodOn(VentaControllerV2.class).misCompras()).withSelfRel()));
     }
 
+    @Operation(summary = "Detalle de una venta (V2)", description = "ADMIN y VENDEDOR ven cualquiera; un CLIENTE solo las suyas")
+    @GetMapping("/{id}")
+    public ResponseEntity<VentaResponseDTO> obtenerPorId(
+            @Parameter(description = "ID numérico de la venta", example = "1") @PathVariable("id") Long id) {
+        VentaResponseDTO venta = ventaService.obtenerPorId(id);
+        venta.add(linkTo(methodOn(VentaControllerV2.class).obtenerPorId(id)).withRel("self-v2"));
+        venta.add(linkTo(methodOn(VentaControllerV2.class).listarTodas()).withRel("ventas-v2"));
+        return ResponseEntity.ok(venta);
+    }
+
     @Operation(summary = "Registrar un nuevo pedido (V2)")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "201", description = "Venta creada exitosamente"),

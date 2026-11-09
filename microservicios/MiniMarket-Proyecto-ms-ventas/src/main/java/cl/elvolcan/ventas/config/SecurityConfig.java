@@ -48,6 +48,8 @@ public class SecurityConfig {
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/ventas", "/api/v2/ventas").hasAnyRole("ADMIN", "VENDEDOR")
                 // Cualquier usuario autenticado puede ver SUS propias compras
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/ventas/mis-compras", "/api/v2/ventas/mis-compras").hasAnyRole("ADMIN", "VENDEDOR", "CLIENTE")
+                // Detalle de una orden (va DESPUÉS de mis-compras): el servicio limita al CLIENTE a sus propias ventas
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/ventas/*", "/api/v2/ventas/*").hasAnyRole("ADMIN", "VENDEDOR", "CLIENTE")
                 // Cualquier usuario autenticado puede crear una venta
                 .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/ventas", "/api/v2/ventas").hasAnyRole("ADMIN", "VENDEDOR", "CLIENTE")
                 // Confirmar pago: el servicio además valida que sea el dueño de la venta o ADMIN

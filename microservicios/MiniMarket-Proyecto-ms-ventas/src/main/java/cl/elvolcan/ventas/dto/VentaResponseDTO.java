@@ -16,6 +16,9 @@ public class VentaResponseDTO extends RepresentationModel<VentaResponseDTO> {
     @Schema(description = "ID único de la venta", example = "1")
     private Long id;
 
+    @Schema(description = "Usuario (correo) del cliente que realizó la compra", example = "cliente@elvolcan.cl")
+    private String usuario;
+
     @Schema(description = "Total a pagar por la venta", example = "4500.0")
     private Double total;
 
