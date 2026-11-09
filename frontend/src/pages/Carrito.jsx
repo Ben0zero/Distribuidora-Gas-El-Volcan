@@ -4,15 +4,13 @@ import { obtenerItemsCompletos, calcularTotal } from '../utils/carrito'
 import { useCatalogo } from '../utils/useCatalogo'
 import AvisoSinConexion from '../components/AvisoSinConexion'
 import '../carrito.css'
-import { crearVenta, confirmarPago } from '../utils/api'
-import { leerObjeto, formatearPrecio } from '../utils/validaciones'
+import { formatearPrecio } from '../utils/validaciones'
 
 function Carrito({ carrito, incrementar, decrementar, eliminar }) {
   // Las líneas del carrito guardan el id numérico del producto en ms-catalogoProductos
   const { productos, cargando, sinConexion } = useCatalogo()
   const items = obtenerItemsCompletos(carrito, productos)
   const total = calcularTotal(carrito, productos)
-  const sesion = leerObjeto('sesion')
 
   if (cargando) {
     return (
@@ -83,25 +81,16 @@ function Carrito({ carrito, incrementar, decrementar, eliminar }) {
           </Button>
           <div className="text-end">
             <h4 className="mb-2 texto-2">Total: {formatearPrecio(total)}</h4>
-            <Button className="btn-carrito py-3 px-3" variant="success" disabled={sinConexion} onClick={async () => {
-              if (!sesion || !sesion.token) {
-                alert('Debes iniciar sesión para comprar')
-                window.location.href = '/login'
-                return
-              }
-              try {
-                const detalles = items.map((item) => ({ productoId: item.producto.id, cantidad: item.cantidad }))
-                const tipoCliente = sesion.tipoCliente || 'Residencial'
-                const venta = await crearVenta({ tipoCliente, detalles })
-                await confirmarPago(venta.id)
-                localStorage.removeItem('carrito')
-                alert('Compra realizada con éxito')
-                window.location.href = '/ventas'
-              } catch {
-                alert('Error al procesar la compra')
-              }
-            }}>
-              Finalizar compra
+            {/* Único checkout: /ventas pide despacho y método de pago y crea la venta en ms-ventas */}
+            <Button
+              className="btn-carrito py-3 px-3"
+              variant="success"
+              as={Link}
+              to="/ventas"
+              disabled={sinConexion}
+              aria-disabled={sinConexion}
+            >
+              Ir a pagar
             </Button>
           </div>
         </div>

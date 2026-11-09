@@ -42,7 +42,9 @@ describe('Página <Carrito />', () => {
     expect(screen.getByText('Subtotal: $24.000')).toBeInTheDocument()
     expect(screen.getByText('Total: $30.500')).toBeInTheDocument()
     expect(screen.queryByText(/No pudimos conectar/)).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Finalizar compra' })).toBeEnabled()
+    // Único checkout: el carrito solo lleva a /ventas
+    // (react-bootstrap renderiza el <a> con role="button")
+    expect(screen.getByRole('button', { name: 'Ir a pagar' })).toHaveAttribute('href', '/ventas')
 
     screen.getAllByRole('button', { name: '+' })[0].click()
     expect(incrementar).toHaveBeenCalledWith(2) // se opera con el id numérico
@@ -54,6 +56,6 @@ describe('Página <Carrito />', () => {
     renderCarrito([{ id: 'p1', cantidad: 1 }])
 
     expect(await screen.findByText(/No pudimos conectar con el servidor/)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Finalizar compra' })).toBeDisabled()
+    expect(screen.getByText('Ir a pagar')).toHaveAttribute('aria-disabled', 'true')
   })
 })

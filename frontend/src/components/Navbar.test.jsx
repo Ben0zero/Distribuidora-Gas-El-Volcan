@@ -19,5 +19,19 @@ describe('Componente <Navbar />', () => {
 
     // El badge del carrito muestra el prop totalItems
     expect(screen.getByText('3')).toBeInTheDocument()
+
+    // Sin sesión no aparece "Mis compras"
+    expect(screen.queryByRole('link', { name: /Mis compras/ })).not.toBeInTheDocument()
+  })
+
+  test('con sesión (token) muestra el enlace a "Mis compras"', () => {
+    localStorage.setItem('sesion', JSON.stringify({ nombre: 'Ana', token: 'tok' }))
+    render(
+      <MemoryRouter>
+        <Navbar totalItems={0} />
+      </MemoryRouter>,
+    )
+    expect(screen.getByRole('link', { name: /Mis compras/ })).toHaveAttribute('href', '/mis-compras')
+    localStorage.clear()
   })
 })

@@ -1,22 +1,20 @@
-import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Container, Row, Col, Button, Alert, Form } from 'react-bootstrap'
-import { CLAVES, leerLista, leerObjeto, REGIONES, formatearPrecio } from '../utils/validaciones'
+import { CLAVES, leerObjeto, REGIONES, formatearPrecio } from '../utils/validaciones'
 import { calcularTotal, obtenerItemsCompletos } from '../utils/carrito'
 import { useCatalogo } from '../utils/useCatalogo'
 import AvisoSinConexion from '../components/AvisoSinConexion'
-import { misCompras } from '../utils/api'
+import { crearVenta, confirmarPago, ApiError } from '../utils/api'
 
-function generarNumeroOrden() {
-  return 'ORD-' + String(Math.floor(100000 + Math.random() * 900000))
-}
-
-function fechaHoy() {
-  return new Date().toISOString().slice(0, 10)
+// Mensaje para el usuario a partir del error de la API (o de red)
+function mensajeDeError(e) {
+  if (!(e instanceof ApiError)) return 'No se pudo conectar con el servidor. Intenta nuevamente en unos minutos.'
+  if (e.status === 401) return 'Tu sesión expiró. Inicia sesión nuevamente para comprar.'
+  return e.message
 }
 
 function Ventas({ carrito, incrementar, decrementar, vaciar }) {
-  const navigate = useNavigate()
   const sesion = leerObjeto(CLAVES.sesion)
 
   const [direccion, setDireccion] = useState(sesion?.direccion || '')
@@ -26,31 +24,17 @@ function Ventas({ carrito, incrementar, decrementar, vaciar }) {
   const [orden, setOrden] = useState(null)
   const [procesando, setProcesando] = useState(false)
   const [pagoFallido, setPagoFallido] = useState(false)
+  // Venta ya creada en ms-ventas cuyo pago no se pudo confirmar (se reintenta sobre la misma)
+  const [ventaPendiente, setVentaPendiente] = useState(null)
 
   const tipo = sesion?.tipoCliente?.toLowerCase() === 'comercial' ? 'comercial' : 'residencial'
   const comunas = REGIONES[0].comunas
   const { productos, cargando, sinConexion } = useCatalogo()
   const items = obtenerItemsCompletos(carrito, productos)
   const total = calcularTotal(carrito, productos, tipo)
-  const [comprasApi, setComprasApi] = useState([])
 
-  useEffect(() => {
-    if (sesion?.token) {
-      misCompras().then((data) => {
-        const mapped = data.map((v) => ({
-          numero: `ORD-${v.id}`,
-          fecha: v.fechaVenta ? v.fechaVenta.split('T')[0] : new Date().toISOString().slice(0, 10),
-          total: v.total,
-          estado: v.estado === 'PAGADA' ? 'Pagada' : 'Pendiente',
-          productos: (v.detalles || []).map((d) => ({ cantidad: d.cantidad, nombre: `Producto #${d.productoId}` }))
-        }))
-        setComprasApi(mapped)
-      }).catch(() => {})
-    }
-  }, [sesion?.token])
-
-  // Sin sesión: invitamos a iniciar sesión para continuar la compra.
-  if (!sesion) {
+  // Sin sesión (o sesión antigua sin token): invitamos a iniciar sesión para continuar la compra.
+  if (!sesion?.token) {
     return (
       <main className="fondo">
         <Container className="py-5 text-center">
@@ -88,8 +72,13 @@ function Ventas({ carrito, incrementar, decrementar, vaciar }) {
             <p className="mb-1">
               Total a pagar: <strong className="texto-2">{formatearPrecio(orden.total)}</strong>
             </p>
-            <p className="text-muted">Te contactaremos para coordinar el despacho.</p>
+            <p className="text-muted">
+              Despacho a {orden.direccion}, {orden.comuna}. Te contactaremos para coordinar la entrega.
+            </p>
             <div className="d-grid gap-2 d-md-flex justify-content-center mt-4">
+              <Button as={Link} to="/mis-compras" className="btn-login border-0">
+                Ver mis compras
+              </Button>
               <Button as={Link} to="/productos" className="btn-login border-0">
                 Seguir comprando
               </Button>
@@ -116,22 +105,7 @@ function Ventas({ carrito, incrementar, decrementar, vaciar }) {
     )
   }
 
-  // Carrito vacío.
-  if (items.length === 0) {
-    return (
-      <main className="fondo">
-        <Container className="py-5 text-center">
-          <i className="bi bi-cart-x fs-1" />
-          <p className="mt-3">Tu carrito está vacío. Agrega productos para continuar.</p>
-          <Button as={Link} to="/productos" className="btn-login border-0">
-            Ir al catálogo
-          </Button>
-        </Container>
-      </main>
-    )
-  }
-
-  // Procesando el pago (simulación de pasarela).
+  // Procesando: se crea la venta en ms-ventas y se confirma el pago.
   if (procesando) {
     return (
       <main className="fondo">
@@ -150,7 +124,7 @@ function Ventas({ carrito, incrementar, decrementar, vaciar }) {
     )
   }
 
-  // Pago rechazado por la pasarela (Figura 8 del Anexo 1).
+  // Pago no confirmado (Figura 8 del Anexo 1): la venta quedó PENDIENTE_PAGO en ms-ventas.
   if (pagoFallido) {
     return (
       <main className="fondo">
@@ -161,11 +135,13 @@ function Ventas({ carrito, incrementar, decrementar, vaciar }) {
               No se pudo realizar el pago
             </h2>
             <p className="mt-3">
-              Tu pago por <strong className="texto-2">{formatearPrecio(total)}</strong> fue rechazado.
+              Tu pedido <strong className="texto-2">ORD-{ventaPendiente?.id}</strong> por{' '}
+              <strong className="texto-2">{formatearPrecio(ventaPendiente?.total ?? total)}</strong> quedó pendiente de pago.
             </p>
-            <p className="text-muted">No se generó ningún pedido. Reintenta o elige otro método de pago.</p>
+            {error && <Alert variant="danger">{error}</Alert>}
+            <p className="text-muted">Puedes reintentar el pago ahora o más tarde desde "Mis compras".</p>
             <div className="d-grid gap-2 d-md-flex justify-content-center mt-4">
-              <Button onClick={() => setPagoFallido(false)} className="btn-login border-0">
+              <Button onClick={() => pagar(ventaPendiente)} className="btn-login border-0">
                 <i className="bi bi-arrow-repeat" /> Reintentar pago
               </Button>
               <Button as={Link} to="/carrito" variant="outline-dark rounded-0">
@@ -178,7 +154,23 @@ function Ventas({ carrito, incrementar, decrementar, vaciar }) {
     )
   }
 
-  const confirmar = (event) => {
+  // Carrito vacío (se evalúa después de "procesando" y "pago fallido", porque el
+  // carrito se vacía apenas ms-ventas crea la venta).
+  if (items.length === 0) {
+    return (
+      <main className="fondo">
+        <Container className="py-5 text-center">
+          <i className="bi bi-cart-x fs-1" />
+          <p className="mt-3">Tu carrito está vacío. Agrega productos para continuar.</p>
+          <Button as={Link} to="/productos" className="btn-login border-0">
+            Ir al catálogo
+          </Button>
+        </Container>
+      </main>
+    )
+  }
+
+  const confirmar = async (event) => {
     event.preventDefault()
     if (!direccion) {
       setError('Ingresa tu dirección de despacho')
@@ -196,41 +188,36 @@ function Ventas({ carrito, incrementar, decrementar, vaciar }) {
     setError('')
     setProcesando(true)
 
-    // Sin backend todavía: simulamos una pasarela de pago.
-    // - Efectivo → se paga en la entrega: siempre se aprueba.
-    // - Tarjeta  → la pasarela puede rechazar el pago (~20%): se muestra la
-    //   vista "No se pudo realizar el pago" (Figura 8 del Anexo 1) y NO se
-    //   guarda ninguna orden.
-    const aprobar = () => {
-      const nuevaOrden = {
-        numero: generarNumeroOrden(),
-        fecha: fechaHoy(),
-        cliente: sesion.nombre,
-        correo: sesion.correo || sesion.email,
-        direccion,
-        comuna,
-        metodoPago,
-        items: items.map((i) => ({ id: i.id, nombre: i.producto.nombre, cantidad: i.cantidad })),
-        total,
-      }
-      const ordenes = leerLista(CLAVES.ordenes)
-      ordenes.push(nuevaOrden)
-      localStorage.setItem(CLAVES.ordenes, JSON.stringify(ordenes))
-
-      setProcesando(false)
-      setOrden(nuevaOrden)
+    // 1) POST /api/v1/ventas: ms-ventas valida productos (catálogo) y stock (inventario) vía Feign
+    const detalles = items.map((item) => ({ productoId: item.producto.id, cantidad: item.cantidad }))
+    try {
+      const venta = await crearVenta({ tipoCliente: sesion.tipoCliente || 'Residencial', direccion, comuna, metodoPago, detalles })
+      // La venta ya existe: el carrito se vacía aunque el pago falle (queda pendiente en "Mis compras")
       vaciar()
-      navigate('/ventas', { replace: true })
+      await pagar(venta)
+    } catch (e) {
+      // La venta no se creó (stock insuficiente, sesión expirada, servidor caído...)
+      setProcesando(false)
+      setError(mensajeDeError(e))
     }
+  }
 
-    setTimeout(() => {
-      if (metodoPago === 'Tarjeta' && Math.random() < 0.2) {
-        setProcesando(false)
-        setPagoFallido(true)
-        return
-      }
-      aprobar()
-    }, 1300)
+  // 2) PUT /api/v1/ventas/{id}/confirmar: marca la venta PAGADA y descuenta el stock
+  async function pagar(venta) {
+    setError('')
+    setProcesando(true)
+    try {
+      const pagada = await confirmarPago(venta.id)
+      setVentaPendiente(null)
+      setPagoFallido(false)
+      setOrden({ numero: `ORD-${pagada.id}`, total: pagada.total, direccion, comuna })
+    } catch (e) {
+      setVentaPendiente(venta)
+      setPagoFallido(true)
+      setError(mensajeDeError(e))
+    } finally {
+      setProcesando(false)
+    }
   }
 
   return (

@@ -1,8 +1,13 @@
-import { Link,NavLink } from 'react-router-dom'
+import { Link, NavLink, useLocation } from 'react-router-dom'
 import { Navbar as BootstrapNavbar, Nav, Container, Badge } from 'react-bootstrap'
+import { CLAVES, leerObjeto } from '../utils/validaciones'
 import '../navbar.css'
 
 function Navbar({ totalItems }) {
+  // useLocation hace que la barra se vuelva a dibujar al navegar (ej. después del login)
+  useLocation()
+  const conSesion = Boolean(leerObjeto(CLAVES.sesion)?.token)
+
   return (
     <BootstrapNavbar expand="lg" sticky="top" className="navbar-gas">
       <Container>
@@ -34,6 +39,11 @@ function Navbar({ totalItems }) {
             <Nav.Link as={NavLink} to="/carrito">
               Carrito <Badge bg="light" text="dark">{totalItems}</Badge>
             </Nav.Link>
+            {conSesion && (
+              <Nav.Link as={NavLink} to="/mis-compras">
+                Mis compras
+              </Nav.Link>
+            )}
             <Nav.Link as={NavLink} to="/login">
               Login
             </Nav.Link>

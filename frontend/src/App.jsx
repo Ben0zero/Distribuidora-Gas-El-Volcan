@@ -12,6 +12,7 @@ import Consejos from './pages/Consejos'
 import Tiendas from './pages/Tiendas'
 import Contacto from './pages/Contacto'
 import Ventas from './pages/Ventas'
+import MisCompras from './pages/MisCompras'
 import AdminLayout from './pages/admin/AdminLayout'
 import Dashboard from './pages/admin/Dashboard'
 import Inventario from './pages/admin/Inventario'
@@ -76,6 +77,7 @@ function App() {
               />
             }
           />
+          <Route path="/mis-compras" element={<MisCompras />} />
           <Route
             path="/ventas"
             element={

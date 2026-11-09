@@ -27,6 +27,20 @@ export class ApiError extends Error {
   }
 }
 
+// Lanza un ApiError con el mensaje que devuelve el backend (ms-ventas responde
+// { status, error, message, validationErrors }; ms-auth responde { mensaje }).
+async function lanzarError(res, porDefecto) {
+  let mensaje = porDefecto
+  try {
+    const cuerpo = await res.json()
+    const validaciones = cuerpo.validationErrors ? Object.values(cuerpo.validationErrors).join('. ') : ''
+    mensaje = validaciones || cuerpo.message || cuerpo.mensaje || porDefecto
+  } catch {
+    // respuesta sin JSON: se usa el mensaje por defecto
+  }
+  throw new ApiError(mensaje, res.status)
+}
+
 // Devuelve { id, nombre, username, nombreRol, tipoCliente, direccion, comuna, region, telefono, token }
 export async function login(username, password) {
   const res = await fetch(`${API_AUTH}/login`, {
@@ -81,7 +95,7 @@ export async function crearVenta(venta) {
     headers: authHeaders(),
     body: JSON.stringify(venta)
   })
-  if (!res.ok) throw new Error('Error al crear venta')
+  if (!res.ok) await lanzarError(res, 'No se pudo crear la venta')
   return res.json()
 }
 
@@ -90,13 +104,13 @@ export async function confirmarPago(ventaId) {
     method: 'PUT',
     headers: authHeaders()
   })
-  if (!res.ok) throw new Error('Error al confirmar pago')
+  if (!res.ok) await lanzarError(res, 'No se pudo confirmar el pago')
   return res.json()
 }
 
 export async function misCompras() {
   const res = await fetch(`${API_VENTAS}/mis-compras`, { headers: authHeaders() })
-  if (!res.ok) throw new Error('Error al obtener mis compras')
+  if (!res.ok) await lanzarError(res, 'No se pudieron obtener tus compras')
   return res.json()
 }
 
