@@ -1,5 +1,6 @@
 package cl.elvolcan.auth.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -31,6 +32,8 @@ public class UsuarioResponseDTO {
     private String tipoCliente;
     @Schema(example = "+56912345678")
     private String telefono;
-    @Schema(description = "Token JWT generado", example = "eyJhbGciOiJIUzI1NiJ9...")
+    // Solo lo trae el login: en listados y altas de usuarios se omite del JSON
+    @Schema(description = "Token JWT generado (solo en el login)", example = "eyJhbGciOiJIUzI1NiJ9...")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     private String token;
 }

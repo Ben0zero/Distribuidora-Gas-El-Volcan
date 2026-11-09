@@ -20,7 +20,7 @@ function ListaUsuarios() {
   useEffect(() => {
     let activo = true
     listarUsuarios()
-      .then((data) => activo && setUsuarios(data.map((u) => ({ ...u, rol: rolDesdeApi(u.rol?.nombreRol) }))))
+      .then((data) => activo && setUsuarios(data.map((u) => ({ ...u, rol: rolDesdeApi(u.nombreRol) }))))
       .catch((e) => {
         if (!activo) return
         setUsuarios([])

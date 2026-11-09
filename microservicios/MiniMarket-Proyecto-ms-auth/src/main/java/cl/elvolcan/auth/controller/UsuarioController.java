@@ -1,98 +1,68 @@
 package cl.elvolcan.auth.controller;
 
-import cl.elvolcan.auth.model.Usuario;
-import cl.elvolcan.auth.repository.UsuarioRepository;
+import cl.elvolcan.auth.dto.UsuarioAdminRequestDTO;
+import cl.elvolcan.auth.dto.UsuarioResponseDTO;
+import cl.elvolcan.auth.service.UsuarioService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/v1/usuarios")
-@Tag(name = "Gestión de Usuarios", description = "Endpoints para el CRUD de usuarios. Requieren token JWT en el header.")
+@Tag(name = "Gestión de Usuarios", description = "CRUD de usuarios para el ADMIN. Requieren token JWT con rol ADMIN.")
+@PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN')")
 public class UsuarioController {
 
-    private final UsuarioRepository usuarioRepository;
-    private final PasswordEncoder passwordEncoder;
+    private final UsuarioService usuarioService;
 
-    public UsuarioController(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder) {
-        this.usuarioRepository = usuarioRepository;
-        this.passwordEncoder = passwordEncoder;
+    public UsuarioController(UsuarioService usuarioService) {
+        this.usuarioService = usuarioService;
     }
 
-    @Operation(summary = "Obtener todos los usuarios", description = "Retorna una lista con todos los usuarios registrados. Requiere rol ADMIN.")
-    // Listar usuarios: solo rol ADMIN
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN')")
+    @Operation(summary = "Listar usuarios", description = "Todos los usuarios registrados (sin contraseñas). Requiere rol ADMIN.")
     @GetMapping
-    public ResponseEntity<List<Usuario>> listarUsuarios() {
-        List<Usuario> usuarios = usuarioRepository.findAll();
-        return ResponseEntity.ok(usuarios);
+    public ResponseEntity<List<UsuarioResponseDTO>> listarUsuarios() {
+        return ResponseEntity.ok(usuarioService.listar());
     }
 
-    @Operation(summary = "Crear un nuevo usuario", description = "Registra un usuario encriptando su contraseña. Requiere rol ADMIN.")
+    @Operation(summary = "Obtener un usuario", description = "Requiere rol ADMIN.")
+    @ApiResponse(responseCode = "404", description = "Usuario no encontrado")
+    @GetMapping("/{id}")
+    public ResponseEntity<UsuarioResponseDTO> obtenerUsuario(@PathVariable Long id) {
+        return ResponseEntity.ok(usuarioService.obtener(id));
+    }
+
+    @Operation(summary = "Crear un usuario", description = "El ADMIN elige el rol (ADMIN, VENDEDOR o CLIENTE). La contraseña se guarda con BCrypt.")
     @ApiResponse(responseCode = "201", description = "Usuario creado exitosamente")
-    @ApiResponse(responseCode = "400", description = "RUT o Username ya registrado")
-    // crear un usuario solo ADMIN
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN')")
+    @ApiResponse(responseCode = "400", description = "Datos inválidos, sin contraseña o rol inexistente")
+    @ApiResponse(responseCode = "409", description = "RUT o usuario ya registrado")
     @PostMapping
-    public ResponseEntity<?> crearUsuario(@RequestBody Usuario usuario) {
-        if (usuarioRepository.existsByRut(usuario.getRut())) {
-            return ResponseEntity.badRequest().body("Error: El RUT ya está registrado.");
-        }
-        if (usuarioRepository.existsByUsername(usuario.getUsername())) {
-            return ResponseEntity.badRequest().body("Error: El Username ya está en uso.");
-        }
-        //aca se encripta la contraseña antes de guardar
-        usuario.setPassword(passwordEncoder.encode(usuario.getPassword()));
-        
-        Usuario nuevoUsuario = usuarioRepository.save(usuario);
-        return ResponseEntity.status(HttpStatus.CREATED).body(nuevoUsuario);
+    public ResponseEntity<UsuarioResponseDTO> crearUsuario(@Valid @RequestBody UsuarioAdminRequestDTO request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(usuarioService.crear(request));
     }
 
-    @Operation(summary = "Actualizar usuario", description = "Modifica los datos de un usuario existente mediante su ID. Requiere rol ADMIN.")
+    @Operation(summary = "Actualizar usuario", description = "Modifica datos y rol. Si la contraseña viene vacía, se conserva la actual.")
     @ApiResponse(responseCode = "200", description = "Usuario actualizado con éxito")
     @ApiResponse(responseCode = "404", description = "Usuario no encontrado")
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN')")
-    // actualizar usuario solo ADMIN
+    @ApiResponse(responseCode = "409", description = "El RUT o usuario nuevo ya pertenece a otra persona")
     @PutMapping("/{id}")
-    public ResponseEntity<?> actualizarUsuario(@PathVariable Long id, @RequestBody Usuario usuarioActualizado) {
-        Optional<Usuario> usuarioExistente = usuarioRepository.findById(id);
-        
-        if (usuarioExistente.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Error: Usuario no encontrado.");
-        }
-
-        Usuario usuario = usuarioExistente.get();
-        usuario.setNombre(usuarioActualizado.getNombre());
-        
-        if (usuarioActualizado.getPassword() != null && !usuarioActualizado.getPassword().isEmpty()) {
-            usuario.setPassword(passwordEncoder.encode(usuarioActualizado.getPassword()));
-        }
-        
-        usuarioRepository.save(usuario);
-        return ResponseEntity.ok("Usuario actualizado con éxito.");
+    public ResponseEntity<UsuarioResponseDTO> actualizarUsuario(@PathVariable Long id, @Valid @RequestBody UsuarioAdminRequestDTO request) {
+        return ResponseEntity.ok(usuarioService.actualizar(id, request));
     }
 
-    @Operation(summary = "Eliminar usuario", description = "Borra físicamente a un usuario de la base de datos por su ID. Requiere rol ADMIN.")
-    @ApiResponse(responseCode = "200", description = "Usuario eliminado con éxito")
+    @Operation(summary = "Eliminar usuario", description = "Borra al usuario por su ID. Requiere rol ADMIN.")
+    @ApiResponse(responseCode = "204", description = "Usuario eliminado")
     @ApiResponse(responseCode = "404", description = "Usuario no encontrado")
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN')")
-    // eliminar solo ADMIN
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> eliminarUsuario(@PathVariable Long id) {
-        if (!usuarioRepository.existsById(id)) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Error: Usuario no encontrado.");
-        }
-        
-        usuarioRepository.deleteById(id);
-        return ResponseEntity.ok("Usuario eliminado con éxito.");
+    public ResponseEntity<Void> eliminarUsuario(@PathVariable Long id) {
+        usuarioService.eliminar(id);
+        return ResponseEntity.noContent().build();
     }
 }
-

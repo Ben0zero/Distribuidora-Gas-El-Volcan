@@ -53,6 +53,24 @@ public class GlobalExceptionHandler {
 
     // Registro duplicado (RUT o usuario ya existe): 409 Conflict
     // Spring elige este handler antes que el de RuntimeException por ser más específico
+    // Usuario inexistente: 404
+    @ExceptionHandler(UsuarioNoEncontradoException.class)
+    public ResponseEntity<Map<String, String>> handleUsuarioNoEncontrado(UsuarioNoEncontradoException ex) {
+        Map<String, String> error = new HashMap<>();
+        error.put("error", "No encontrado (404)");
+        error.put("mensaje", ex.getMessage());
+        return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
+    }
+
+    // Datos de negocio inválidos (ej. rol inexistente o usuario nuevo sin contraseña): 400
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, String>> handleDatosInvalidos(IllegalArgumentException ex) {
+        Map<String, String> error = new HashMap<>();
+        error.put("error", "Datos inválidos (400)");
+        error.put("mensaje", ex.getMessage());
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
     @ExceptionHandler(RegistroDuplicadoException.class)
     public ResponseEntity<Map<String, String>> handleRegistroDuplicado(RegistroDuplicadoException ex) {
         Map<String, String> error = new HashMap<>();

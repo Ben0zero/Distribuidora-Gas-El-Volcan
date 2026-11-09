@@ -18,9 +18,9 @@ const CATALOGO = [
 ]
 const STOCK = [{ sku: 'CL001', stockActual: 80, bajoStock: false }, { sku: 'CL002', stockActual: 3, bajoStock: true }]
 const USUARIOS = [
-  { id: 1, nombre: 'Juan Perez', rut: '19011022', username: 'admin@duoc.cl', rol: { id: 1, nombreRol: 'ADMIN' } },
-  { id: 2, nombre: 'Maria Soto', rut: '18765432', username: 'vendedor@elvolcan.cl', rol: { id: 2, nombreRol: 'VENDEDOR' }, comuna: 'Chillán' },
-  { id: 3, nombre: 'Pedro Rojas', rut: '17234567', username: 'cliente@elvolcan.cl', rol: { id: 3, nombreRol: 'CLIENTE' }, comuna: 'Chillán' },
+  { id: 1, nombre: 'Juan Perez', rut: '19011022', username: 'admin@duoc.cl', nombreRol: 'ADMIN' },
+  { id: 2, nombre: 'Maria Soto', rut: '18765432', username: 'vendedor@elvolcan.cl', nombreRol: 'VENDEDOR', comuna: 'Chillán' },
+  { id: 3, nombre: 'Pedro Rojas', rut: '17234567', username: 'cliente@elvolcan.cl', nombreRol: 'CLIENTE', comuna: 'Chillán' },
 ]
 
 function json(status, cuerpo) {
