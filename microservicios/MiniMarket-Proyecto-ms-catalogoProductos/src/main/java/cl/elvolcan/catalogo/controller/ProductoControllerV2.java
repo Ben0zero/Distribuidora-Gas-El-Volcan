@@ -65,6 +65,15 @@ public class ProductoControllerV2 {
         return ResponseEntity.ok(assembler.toModel(producto));
     }
 
+    @Operation(summary = "Editar producto (V2)", description = "El SKU no se puede modificar. Requiere rol ADMIN.")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN')")
+    @PutMapping("/{id}")
+    public ResponseEntity<EntityModel<ProductoResponseDTO>> actualizar(@PathVariable Long id, @Valid @RequestBody ProductoRequestDTO request) {
+        productoService.actualizarProducto(id, request);
+        Producto actualizado = productoRepository.findById(id).orElseThrow();
+        return ResponseEntity.ok(assembler.toModel(actualizado));
+    }
+
     @Operation(summary = "Desactivar producto (V2)")
     @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN', 'SUPERVISOR', 'ROLE_SUPERVISOR')")
     @DeleteMapping("/{sku}")

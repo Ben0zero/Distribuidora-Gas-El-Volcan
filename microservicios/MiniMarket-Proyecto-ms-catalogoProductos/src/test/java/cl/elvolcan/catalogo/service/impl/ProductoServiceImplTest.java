@@ -169,4 +169,62 @@ class ProductoServiceImplTest {
         verify(productoRepository).findBySku("PAN-001");
         verify(productoRepository).save(producto); // Comprobamos que se guardó la actualización
     }
+
+    private Producto productoCl002() {
+        Producto p = new Producto();
+        p.setId(2L);
+        p.setSku("CL002");
+        p.setNombre("Cilindro GLP 11 kg");
+        p.setPrecioResidencial(12000);
+        p.setPrecioComercial(11000);
+        p.setPrecio(12000);
+        p.setCategoria("Cilindros de Gas");
+        p.setImagen("/IMAGENES/cilindro de 11K.png");
+        p.setActivo(true);
+        return p;
+    }
+
+    @Test
+    @DisplayName("actualizarProducto modifica nombre, precios y categoría manteniendo SKU e imagen")
+    void actualizarProductoModificaCampos() {
+        Producto existente = productoCl002();
+        when(productoRepository.findById(2L)).thenReturn(Optional.of(existente));
+        when(productoRepository.save(any(Producto.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        ProductoRequestDTO request = new ProductoRequestDTO();
+        request.setSku("cl002"); // mismo SKU (sin importar mayúsculas)
+        request.setNombre("Cilindro GLP 11 kg (oferta)");
+        request.setPrecioResidencial(11500);
+        request.setPrecioComercial(10500);
+        request.setCategoria("Cilindros de Gas");
+
+        ProductoResponseDTO resultado = productoService.actualizarProducto(2L, request);
+
+        assertEquals("CL002", resultado.getSku());
+        assertEquals("Cilindro GLP 11 kg (oferta)", resultado.getNombre());
+        assertEquals(11500, resultado.getPrecioResidencial());
+        assertEquals(10500, resultado.getPrecioComercial());
+        assertEquals("/IMAGENES/cilindro de 11K.png", resultado.getImagen()); // sin imagen nueva: se conserva
+        verify(inventarioClient, never()).crearInventario(any());
+    }
+
+    @Test
+    @DisplayName("actualizarProducto rechaza un cambio de SKU (enlaza con inventario)")
+    void actualizarProductoRechazaCambioDeSku() {
+        when(productoRepository.findById(2L)).thenReturn(Optional.of(productoCl002()));
+        ProductoRequestDTO request = new ProductoRequestDTO();
+        request.setSku("CL999");
+        request.setNombre("Otro");
+
+        RuntimeException ex = assertThrows(RuntimeException.class, () -> productoService.actualizarProducto(2L, request));
+        assertTrue(ex.getMessage().contains("SKU no se puede modificar"));
+        verify(productoRepository, never()).save(any(Producto.class));
+    }
+
+    @Test
+    @DisplayName("actualizarProducto lanza excepción si el producto no existe")
+    void actualizarProductoInexistente() {
+        when(productoRepository.findById(99L)).thenReturn(Optional.empty());
+        assertThrows(RuntimeException.class, () -> productoService.actualizarProducto(99L, new ProductoRequestDTO()));
+    }
 }

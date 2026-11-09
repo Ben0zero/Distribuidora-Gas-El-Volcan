@@ -59,6 +59,16 @@ public class ProductoController {
         return ResponseEntity.ok(productoService.obtenerPorId(id));
     }
 
+    @Operation(summary = "Editar producto", description = "Actualiza nombre, descripción, precios, categoría e imagen. El SKU no se puede modificar. Requiere rol ADMIN.")
+    @ApiResponse(responseCode = "200", description = "Producto actualizado")
+    @ApiResponse(responseCode = "400", description = "Datos inválidos, SKU distinto o producto inexistente")
+    @ApiResponse(responseCode = "403", description = "El usuario no es ADMIN")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN')")
+    @PutMapping("/{id}")
+    public ResponseEntity<ProductoResponseDTO> actualizar(@PathVariable Long id, @Valid @RequestBody ProductoRequestDTO request) {
+        return ResponseEntity.ok(productoService.actualizarProducto(id, request));
+    }
+
     @Operation(summary = "Desactivar producto (Borrado Lógico)", description = "Pausa las ventas de un producto sin eliminarlo de la base de datos. Requiere rol ADMIN o SUPERVISOR.")
     @ApiResponse(responseCode = "204", description = "Producto desactivado con éxito")
     @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN', 'SUPERVISOR', 'ROLE_SUPERVISOR')")

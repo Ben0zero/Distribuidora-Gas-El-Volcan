@@ -83,6 +83,36 @@ public class ProductoServiceImpl implements ProductoService {
     }
 
     @Override
+    public ProductoResponseDTO actualizarProducto(Long id, ProductoRequestDTO request) {
+        Producto producto = productoRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Producto no encontrado con ID: " + id));
+
+        // El SKU identifica el producto en ms-inventario: cambiarlo dejaría el stock huérfano
+        if (request.getSku() != null && !request.getSku().equalsIgnoreCase(producto.getSku())) {
+            throw new RuntimeException("El SKU no se puede modificar (actual: " + producto.getSku() + ")");
+        }
+
+        producto.setNombre(request.getNombre());
+        producto.setDescripcion(request.getDescripcion());
+        producto.setCategoria(request.getCategoria());
+        if (request.getImagen() != null && !request.getImagen().isBlank()) {
+            producto.setImagen(request.getImagen());
+        }
+        Integer pRes = request.getPrecioResidencial() != null ? request.getPrecioResidencial() : request.getPrecio();
+        if (pRes != null) {
+            producto.setPrecioResidencial(pRes);
+            producto.setPrecio(pRes);
+        }
+        if (request.getPrecioComercial() != null) {
+            producto.setPrecioComercial(request.getPrecioComercial());
+        } else if (pRes != null) {
+            producto.setPrecioComercial(pRes);
+        }
+
+        return mapearADTO(productoRepository.save(producto));
+    }
+
+    @Override
     public ProductoResponseDTO obtenerPorId(Long id) {
         Producto producto = productoRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("Producto no encontrado con ID: " + id));
