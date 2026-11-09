@@ -46,14 +46,15 @@ public class SecurityConfig {
                 // Las reglas aplican igual a ambas versiones de la API (/api/v1 y /api/v2)
                 // Solo ADMIN y VENDEDOR pueden ver TODAS las ventas
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/ventas", "/api/v2/ventas").hasAnyRole("ADMIN", "VENDEDOR")
-                // Cualquier usuario autenticado puede ver SUS propias compras
-                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/ventas/mis-compras", "/api/v2/ventas/mis-compras").hasAnyRole("ADMIN", "VENDEDOR", "CLIENTE")
+                // El VENDEDOR es de SOLO LECTURA: ve la lista y el detalle de órdenes, pero no compra ni confirma pagos
+                // Compras propias (la tienda): CLIENTE y ADMIN
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/ventas/mis-compras", "/api/v2/ventas/mis-compras").hasAnyRole("ADMIN", "CLIENTE")
                 // Detalle de una orden (va DESPUÉS de mis-compras): el servicio limita al CLIENTE a sus propias ventas
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/ventas/*", "/api/v2/ventas/*").hasAnyRole("ADMIN", "VENDEDOR", "CLIENTE")
-                // Cualquier usuario autenticado puede crear una venta
-                .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/ventas", "/api/v2/ventas").hasAnyRole("ADMIN", "VENDEDOR", "CLIENTE")
-                // Confirmar pago: el servicio además valida que sea el dueño de la venta o ADMIN
-                .requestMatchers(org.springframework.http.HttpMethod.PUT, "/api/v1/ventas/*/confirmar", "/api/v2/ventas/*/confirmar").hasAnyRole("ADMIN", "VENDEDOR", "CLIENTE")
+                // Crear una venta (comprar en la tienda): CLIENTE y ADMIN
+                .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/ventas", "/api/v2/ventas").hasAnyRole("ADMIN", "CLIENTE")
+                // Confirmar pago: CLIENTE y ADMIN; el servicio además valida que sea el dueño de la venta o ADMIN
+                .requestMatchers(org.springframework.http.HttpMethod.PUT, "/api/v1/ventas/*/confirmar", "/api/v2/ventas/*/confirmar").hasAnyRole("ADMIN", "CLIENTE")
 
                 // Cualquier otra petición HTTP requerirá obligatoriamente que el usuario esté autenticado
                 .anyRequest().authenticated()

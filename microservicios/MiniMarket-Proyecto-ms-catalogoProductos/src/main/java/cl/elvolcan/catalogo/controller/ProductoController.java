@@ -24,11 +24,11 @@ public class ProductoController {
 
     private final ProductoService productoService;
 
-    @Operation(summary = "Crear un nuevo producto", description = "Registra un producto en el catálogo y notifica al microservicio de Inventario. Requiere rol ADMIN o SUPERVISOR.")
+    @Operation(summary = "Crear un nuevo producto", description = "Registra un producto en el catálogo y notifica al microservicio de Inventario. Requiere rol ADMIN.")
     @ApiResponse(responseCode = "200", description = "Producto creado exitosamente")
     @ApiResponse(responseCode = "400", description = "Datos inválidos o SKU duplicado")
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN', 'SUPERVISOR', 'ROLE_SUPERVISOR')")
-    // CREAR: Solo ADMIN y SUPERVISOR
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN')")
+    // CREAR: solo ADMIN
     @PostMapping
     public ResponseEntity<ProductoResponseDTO> crear(@Valid @RequestBody ProductoRequestDTO request) {
         return ResponseEntity.ok(productoService.crearProducto(request));
@@ -69,11 +69,11 @@ public class ProductoController {
         return ResponseEntity.ok(productoService.actualizarProducto(id, request));
     }
 
-    @Operation(summary = "Desactivar producto (Borrado Lógico)", description = "Pausa las ventas de un producto sin eliminarlo de la base de datos. Requiere rol ADMIN o SUPERVISOR.")
+    @Operation(summary = "Desactivar producto (Borrado Lógico)", description = "Pausa las ventas de un producto sin eliminarlo de la base de datos. Requiere rol ADMIN.")
     @ApiResponse(responseCode = "204", description = "Producto desactivado con éxito")
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN', 'SUPERVISOR', 'ROLE_SUPERVISOR')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN')")
     @DeleteMapping("/{sku}")
-    // DESACTIVAR (Eliminar lógico): Solo ADMIN y SUPERVISOR
+    // DESACTIVAR (eliminar lógico): solo ADMIN
     public ResponseEntity<Void> desactivar(@PathVariable String sku) {
         productoService.desactivarProducto(sku);
         return ResponseEntity.noContent().build();

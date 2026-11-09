@@ -49,7 +49,7 @@ public class InventarioController {
         return ResponseEntity.ok(service.obtenerTodos());
     }
 
-    // Crear producto: Solo ADMIN y VENDEDOR
+    // Crear producto: solo ADMIN (el VENDEDOR es de solo lectura)
 
     @Operation(
     summary = "Crear inventario",
@@ -62,14 +62,14 @@ public class InventarioController {
     })
 
 
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN', 'VENDEDOR', 'ROLE_VENDEDOR')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN')")
     @PostMapping("/crear")
     public ResponseEntity<StockResponseDTO> crearProducto(
             @Valid @RequestBody StockRequestDTO request) {
         return ResponseEntity.ok(service.crearProducto(request));
     }
 
-    // Aumentar stock manual: Solo ADMIN y VENDEDOR
+    // Aumentar stock manual: solo ADMIN
 
     @Operation(
     summary = "Aumentar stock",
@@ -81,14 +81,14 @@ public class InventarioController {
         @ApiResponse(responseCode = "404", description = "Producto no encontrado")
     })
 
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN', 'VENDEDOR', 'ROLE_VENDEDOR')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN')")
     @PutMapping("/aumentar")
     public ResponseEntity<StockResponseDTO> aumentarStock(
             @Valid @RequestBody StockRequestDTO request) {
         return ResponseEntity.ok(service.aumentarStock(request));
     }
 
-    // Disminuir stock manual: Solo ADMIN y VENDEDOR
+    // Disminuir stock manual: solo ADMIN (ms-ventas usa un token interno ADMIN al confirmar pagos)
 
     @Operation(
     summary = "Disminuir stock",
@@ -100,7 +100,7 @@ public class InventarioController {
         @ApiResponse(responseCode = "404", description = "Producto no encontrado")
     })
 
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN', 'VENDEDOR', 'ROLE_VENDEDOR')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN')")
     @PutMapping("/disminuir")
     public ResponseEntity<StockResponseDTO> disminuirStock(
             @Valid @RequestBody StockRequestDTO request) {
@@ -140,7 +140,7 @@ public class InventarioController {
         return ResponseEntity.ok(service.obtenerStockCritico());
     }
 
-    // Sumar stock desde producción: Permitir a ADMIN, VENDEDOR y al proceso automático
+    // Sumar stock desde producción: solo ADMIN (ms-produccion está fuera del alcance)
 
     @Operation(
     summary = "Sumar stock desde producción",
@@ -152,7 +152,7 @@ public class InventarioController {
         @ApiResponse(responseCode = "404", description = "Producto no encontrado")
     })
 
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN', 'VENDEDOR', 'ROLE_VENDEDOR', 'PRODUCCION')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN')")
     @PutMapping("/sumar-stock/{sku}/{cantidad}")
     public ResponseEntity<String> sumarStock(
             @PathVariable String sku,

@@ -41,7 +41,7 @@ public class InventarioControllerV2 {
     }
 
     @Operation(summary = "Crear inventario (V2)")
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN', 'VENDEDOR', 'ROLE_VENDEDOR')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN')")
     @PostMapping("/crear")
     public ResponseEntity<EntityModel<StockResponseDTO>> crearProducto(@Valid @RequestBody StockRequestDTO request) {
         StockResponseDTO response = service.crearProducto(request);
@@ -49,7 +49,7 @@ public class InventarioControllerV2 {
     }
 
     @Operation(summary = "Aumentar stock (V2)")
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN', 'VENDEDOR', 'ROLE_VENDEDOR')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN')")
     @PutMapping("/aumentar")
     public ResponseEntity<EntityModel<StockResponseDTO>> aumentarStock(@Valid @RequestBody StockRequestDTO request) {
         StockResponseDTO response = service.aumentarStock(request);
@@ -57,7 +57,7 @@ public class InventarioControllerV2 {
     }
 
     @Operation(summary = "Disminuir stock (V2)")
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN', 'VENDEDOR', 'ROLE_VENDEDOR')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN')")
     @PutMapping("/disminuir")
     public ResponseEntity<EntityModel<StockResponseDTO>> disminuirStock(@Valid @RequestBody StockRequestDTO request) {
         StockResponseDTO response = service.disminuirStock(request);
@@ -83,7 +83,7 @@ public class InventarioControllerV2 {
     }
 
     @Operation(summary = "Sumar stock desde producción (V2)")
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN', 'VENDEDOR', 'ROLE_VENDEDOR', 'PRODUCCION')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN')")
     @PutMapping("/sumar-stock/{sku}/{cantidad}")
     public ResponseEntity<String> sumarStock(@PathVariable String sku, @PathVariable int cantidad) {
         // Al ser una simple cadena de texto de confirmación, se mantiene la respuesta estándar

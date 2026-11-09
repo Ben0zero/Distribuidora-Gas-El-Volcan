@@ -33,7 +33,7 @@ public class ProductoControllerV2 {
     private final ProductoModelAssembler assembler;
 
     @Operation(summary = "Crear un nuevo producto (V2)")
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN', 'SUPERVISOR', 'ROLE_SUPERVISOR')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN')")
     @PostMapping
     public ResponseEntity<EntityModel<ProductoResponseDTO>> crear(@Valid @RequestBody ProductoRequestDTO request) {
         // Aprovechamos tu servicio existente
@@ -75,7 +75,7 @@ public class ProductoControllerV2 {
     }
 
     @Operation(summary = "Desactivar producto (V2)")
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN', 'SUPERVISOR', 'ROLE_SUPERVISOR')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN')")
     @DeleteMapping("/{sku}")
     public ResponseEntity<Void> desactivar(@PathVariable String sku) {
         productoService.desactivarProducto(sku);
