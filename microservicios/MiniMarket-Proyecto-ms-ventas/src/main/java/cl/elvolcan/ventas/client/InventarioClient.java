@@ -8,9 +8,9 @@ import org.springframework.web.bind.annotation.*;
 @FeignClient(name = "ms-inventario")
 public interface InventarioClient {
 
-    @GetMapping("/api/inventario/{sku}")
+    @GetMapping("/api/v1/inventario/{sku}")
     StockResponseDTO obtenerStock(@RequestHeader("Authorization") String token, @PathVariable("sku") String sku);
 
-    @PutMapping("/api/inventario/disminuir")
+    @PutMapping("/api/v1/inventario/disminuir")
     void disminuirStock(@RequestHeader("Authorization") String token, @RequestBody StockRequestDTO request);
 }

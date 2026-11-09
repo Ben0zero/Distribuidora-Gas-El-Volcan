@@ -1,6 +1,6 @@
 const API_AUTH = 'http://localhost:8081/api/auth'
 const API_CATALOGO = 'http://localhost:8082/api/productos'
-const API_INVENTARIO = 'http://localhost:8084/api/inventario'
+const API_INVENTARIO = 'http://localhost:8084/api/v1/inventario'
 const API_VENTAS = 'http://localhost:8086/api/ventas'
 
 export function getToken() {

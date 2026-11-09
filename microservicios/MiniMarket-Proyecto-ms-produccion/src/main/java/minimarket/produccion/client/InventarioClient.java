@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 )
 public interface InventarioClient {
 
-    @PutMapping("/api/inventario/sumar-stock/{sku}/{cantidad}")
+    @PutMapping("/api/v1/inventario/sumar-stock/{sku}/{cantidad}")
     String sumarStock(
             @PathVariable String sku, 
             @PathVariable int cantidad

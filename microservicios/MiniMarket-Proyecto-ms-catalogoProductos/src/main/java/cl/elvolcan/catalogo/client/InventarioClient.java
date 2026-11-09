@@ -8,6 +8,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 @FeignClient(name = "inventario-service", url = "http://localhost:8084/")
 public interface InventarioClient {
 
-        @PostMapping("/api/inventario/crear")
+        @PostMapping("/api/v1/inventario/crear")
         Object crearInventario(@RequestBody InventarioInitDTO dto); //  Cambiamos el DTO
 }

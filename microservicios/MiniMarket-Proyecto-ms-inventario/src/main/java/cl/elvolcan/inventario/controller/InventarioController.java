@@ -26,7 +26,7 @@ import java.util.List;
 
 
 @RestController
-@RequestMapping("/api/inventario")
+@RequestMapping("/api/v1/inventario")
 public class InventarioController {
 
     @Autowired
