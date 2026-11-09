@@ -4,7 +4,6 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest'
 import Registro from './Registro'
-import { CLAVES } from '../utils/validaciones'
 
 function json(status, cuerpo) {
   return Promise.resolve({ ok: status >= 200 && status < 300, status, json: () => Promise.resolve(cuerpo) })
@@ -57,7 +56,7 @@ describe('Página <Registro /> (ms-auth)', () => {
       tipoCliente: 'Residencial', telefono: '+56912345678',
     })
     expect(JSON.parse(opciones.body)).not.toHaveProperty('nombreRol') // el rol lo decide el backend
-    expect(localStorage.getItem(CLAVES.usuarios)).toBeNull()
+    expect(localStorage.getItem('usuarios')).toBeNull() // la clave de la V2 ya no se escribe
   })
 
   test('si el correo o RUN ya existe (409) muestra un mensaje claro', async () => {

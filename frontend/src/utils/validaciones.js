@@ -14,24 +14,12 @@ export const REGIONES = [
 // Categorías del catálogo (usadas en Productos y en el admin).
 export const CATEGORIAS = ['Cilindros de Gas', 'Reguladores', 'Mangueras y Conexiones', 'Accesorios']
 
-// Administrador por defecto (sin backend todavía).
-export const ADMIN_DEFAULT = {
-  fecha: '2026-05-04',
-  run: '19011022',
-  nombre: 'Juan Pérez',
-  correo: 'admin@duoc.cl',
-  contrasena: 'Admin123',
-  rol: 'Administrador',
-  estado: 'Activo',
-}
-
+// Claves de localStorage que usa la V3 (usuarios, órdenes y sesión real viven en los microservicios)
 export const CLAVES = {
   carrito: 'carrito',
-  usuarios: 'usuarios',
   sesion: 'sesion',
   productos: 'productos',
   edicionesProductos: 'edicionesProductos',
-  ordenes: 'ordenes',
   solicitudes: 'solicitudes',
 }
 

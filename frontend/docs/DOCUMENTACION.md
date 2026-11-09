@@ -110,7 +110,8 @@ Están definidas en `src/App.jsx` con **rutas anidadas**. Cada zona tiene su lay
 | `sesion` | Sesión con token JWT (no guarda la contraseña) |
 | `solicitudes` | Mensajes del formulario de contacto (no hay microservicio de contacto) |
 | `productos`, `edicionesProductos` | Solo afectan al catálogo de **referencia** que se usa sin conexión |
-| `usuarios`, `ordenes` | **Sin uso** desde la V3: los usuarios y las órdenes están en ms-auth y ms-ventas |
+
+Las claves `usuarios` y `ordenes` de la V2 (y el `ADMIN_DEFAULT` con la contraseña del admin escrita en el código) se eliminaron: los usuarios y las órdenes viven en ms-auth y ms-ventas.
 
 ---
 

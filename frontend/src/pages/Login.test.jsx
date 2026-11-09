@@ -70,7 +70,8 @@ describe('Página <Login /> (formulario controlado + ms-auth)', () => {
   test('muestra error con 401 o sin conexión y NO usa usuarios locales', async () => {
     const user = userEvent.setup()
     // Aunque exista un usuario en localStorage, el login local ya no es válido
-    localStorage.setItem(CLAVES.usuarios, JSON.stringify([{ email: 'ana@duoc.cl', password: 'abc123' }]))
+    // ('usuarios' era la clave de la V2: aunque existan usuarios locales, ya no sirven para entrar)
+    localStorage.setItem('usuarios', JSON.stringify([{ email: 'ana@duoc.cl', password: 'abc123' }]))
     const { inputEmail, inputPassword, ingresar } = renderLogin()
     await user.type(inputEmail, 'ana@duoc.cl')
     await user.type(inputPassword, 'abc123')
