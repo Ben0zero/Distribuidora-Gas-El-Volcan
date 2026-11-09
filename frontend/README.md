@@ -1,11 +1,14 @@
-# Distribuidora de Gas El Volcán — Versión React
+# Distribuidora de Gas El Volcán — Frontend (React)
 
-Aplicación web **SPA (Single Page Application)** de venta y distribución de gas GLP y accesorios, construida con
-**React + Vite + React Bootstrap + React Router**. Es la **Versión 2** del proyecto semestral de
-Desarrollo Full Stack II (DSY1104): reemplaza el sitio estático (HTML/CSS/JS) de la Versión 1 por una aplicación
-React moderna con componentes, `props`, `state` y pruebas unitarias.
+Aplicación web **SPA** para vender y distribuir gas GLP y accesorios, hecha con **React + Vite + React Bootstrap + React Router**. Es la **Versión 3** del proyecto semestral de Desarrollo Full Stack II (DSY1104).
 
-Los datos se guardan en `localStorage` (navegador) hasta que existan los microservicios en Spring Boot.
+Consume la API REST de los microservicios Spring Boot (`ms-auth`, `ms-catalogoProductos`, `ms-inventario` y `ms-ventas`) con `fetch` y autenticación **JWT**.
+
+> Versiones anteriores:
+> - **V1:** HTML, CSS y JS.
+> - **V2:** React con datos en `localStorage`.
+>
+> En la V3, la autenticación, el catálogo, el inventario, las compras y los usuarios vienen de la API. En `localStorage` solo quedan la **sesión** (token JWT y datos del usuario) y el **carrito**.
 
 ---
 
@@ -13,190 +16,150 @@ Los datos se guardan en `localStorage` (navegador) hasta que existan los microse
 
 | Tecnología | Versión | Para qué |
 |---|---|---|
-| Vite | 8.3 | Creación, servidor de desarrollo y build |
+| Vite | 8.3 | Servidor de desarrollo y build |
 | React / React DOM | 19.2 | Componentes y SPA |
-| react-router-dom | 7.18 | Rutas de la aplicación |
-| react-bootstrap | 2.10 | Componentes de interfaz |
-| Bootstrap | 5.3.8 | Estilos CSS |
+| react-router-dom | 7.18 | Rutas, rutas protegidas por rol y redirecciones |
+| react-bootstrap / Bootstrap | 2.10 / 5.3 | Componentes y estilos |
 | bootstrap-icons | 1.13 | Íconos |
+| `fetch` (nativo del navegador) | — | Llamadas REST a los microservicios (sin Axios) |
 | oxlint | 1.81 | Linter (`npm run lint`) |
-| Vitest | 3.2 | Pruebas unitarias (`npm test`) |
-| @testing-library/react + jest-dom + user-event | 16.3 / 6.6 / 14.6 | Renderizado, matchers DOM e interacción con el usuario |
-| jsdom | 26.1 | Entorno navegador simulado para las pruebas |
-| @vitest/coverage-v8 | 3.2 | Reporte de cobertura (`npm run test:coverage`) |
+| Vitest + Testing Library + jsdom | 3.2 / 16.3 / 26.1 | Pruebas unitarias y de componentes |
+| @vitest/coverage-v8 | 3.2 | Cobertura (`npm run test:coverage`) |
 
 ---
 
 ## Cómo correrlo
 
+Primero hay que levantar los microservicios: ver `microservicios/README.md` o el script `levantar-servicios.ps1`.
+
 ```bash
-npm install           # instala dependencias (solo la primera vez)
-npm run dev           # servidor de desarrollo → http://localhost:5173
-npm run lint          # oxlint: 0 errores
-npm run build         # build de producción → carpeta dist/
-npm test              # ejecuta las 10 pruebas unitarias (una sola vez)
-npm run test:watch    # pruebas en modo vigilancia (se re-ejecutan al guardar)
-npm run test:coverage # pruebas + reporte de cobertura en coverage/
+npm install           # dependencias (la primera vez)
+npm run dev           # http://localhost:5173
+npm run lint          # oxlint
+npm run build         # build de producción en dist/
+npm test              # todas las pruebas (Vitest, una vez)
+npm run test:watch    # pruebas en modo vigilancia
+npm run test:coverage # pruebas + cobertura en coverage/
 ```
 
-> En PowerShell usar `npm.cmd` (la política de ejecución puede bloquear `npm.ps1`).
-> Las pruebas corren en **jsdom** (DOM simulado de Node), sin necesidad de abrir un navegador.
+> En PowerShell usar `npm.cmd` si la política de ejecución bloquea `npm.ps1`.
 
-**Credenciales de prueba (administrador):** `admin@duoc.cl` / `Admin123`
+**URLs de la API** (`src/utils/api.js`):
+- `http://localhost:8081/api/v1/auth` y `/api/v1/usuarios`
+- `http://localhost:8082/api/v1/productos`
+- `http://localhost:8084/api/v1/inventario`
+- `http://localhost:8086/api/v1/ventas`
+
+El backend permite CORS desde `localhost` y `127.0.0.1` en los puertos 5173 y 5174.
+
+**Credenciales de prueba:**
+
+| Usuario | Contraseña | Rol | Llega a |
+|---|---|---|---|
+| `admin@duoc.cl` | `Admin123` | Administrador | `/admin` |
+| `vendedor@elvolcan.cl` | `Vendedor123` | Vendedor | `/vendedor` |
+| `cliente@elvolcan.cl` | `Cliente123` | Cliente | `/` (tienda) |
+
+---
+
+## Roles y vistas
+
+| Rol | Vistas | Protección |
+|---|---|---|
+| **Visitante** | Tienda pública (inicio, catálogo, detalle, carrito, info), login y registro | — |
+| **Cliente** | La tienda, más checkout (`/ventas`) y **Mis compras** (`/mis-compras`) | `RutaProtegida` |
+| **Vendedor** | **Solo** `/vendedor`: lista y detalle de productos y de órdenes. Si abre la tienda se le redirige a su panel | `RutaProtegida` + `LayoutPublico` |
+| **Administrador** | Todo: `/admin` (dashboard, inventario, órdenes, usuarios, clientes y reportes), la tienda y el panel del vendedor | `RutaProtegida` |
+
+`RutaProtegida` revisa la sesión y la **expiración del JWT** (`exp`). Sin sesión envía a `/login` y recuerda la página pedida. Con un rol no permitido, vuelve a la ruta inicial de su rol. La seguridad real está en el backend: el frontend solo evita mostrar vistas que no corresponden.
 
 ---
 
 ## Estructura del proyecto
 
 ```
-avance entrega/
-│
-├── README.md                       → este archivo (índice y guía rápida)
-├── docs/                           → documentación (cada doc en .md y .pdf)
-│   ├── DOCUMENTACION.md / .pdf     → explicación detallada de cada parte y su lógica
-│   ├── GUIA_CONCEPTOS_CODIGO.md / .pdf → conceptos de JS/React usados en el código
-│   ├── ERS_ACTUALIZADO.md / .pdf   → Especificación de Requerimientos de Software
-│   ├── DOCUMENTO_COBERTURA_TESTING.md / .pdf → informe de las pruebas y la cobertura
-│   ├── DEPLOY.md / .pdf            → guía de despliegue en AWS EC2 + Nginx
-│   ├── BITACORA_DEPLOY_AWS.md / .pdf → bitácora real del despliegue (evidencia, 10-10-2026)
-│   └── README.pdf                  → este README en PDF
-├── nginx.conf                      → configuración de Nginx usada en el deploy
-├── index.html                      → punto de montaje de la SPA (lang="es")
-├── package.json                    → dependencias y comandos
-├── vite.config.js                  → configuración de Vite (incluye el bloque test de Vitest)
-├── .oxlintrc.json                  → reglas del linter
-├── .gitignore                      → archivos que NO se suben (node_modules, dist, coverage)
-│
-├── public/                         → archivos servidos tal cual
-│   ├── IMAGENES/                   → imágenes de productos y del sitio
-│   ├── favicon.svg
-│   └── icons.svg
-│
+frontend/
+├── README.md · package.json · vite.config.js · .oxlintrc.json · nginx.conf · index.html
+├── docs/                         → ERS, documentación técnica, cobertura, despliegue (.md y .pdf)
+├── public/IMAGENES/              → imágenes de productos (las rutas vienen en la API: campo "imagen")
 └── src/
-    ├── main.jsx                    → punto de entrada: monta React y carga los CSS
-    ├── index.css                   → estilos globales mínimos
-    ├── estilos.css                 → hoja de estilos heredada de la Versión 1
-    ├── setupTests.js               → configuración global de Vitest (jest-dom)
-    ├── App.jsx                     → rutas de la SPA + estado global del carrito
-    │
-    ├── datos/
-    │   └── productos.js            → "base de datos" local: los 14 productos de gas
-    │
-    ├── utils/                      → lógica de negocio pura y reutilizable (testeable)
-    │   ├── validaciones.js         → validaciones, regiones/comunas y helpers de localStorage
-    │   ├── carrito.js              → operaciones del carrito (agregar, quitar, total)
-    │   ├── productos.js            → catálogo real (base + ediciones + productos creados)
-    │   ├── validaciones.test.js    → 2 pruebas
-    │   ├── carrito.test.js         → 3 pruebas
-    │   └── productos.test.js       → 1 prueba
-    │
-    ├── components/                 → piezas reutilizables
-    │   ├── Navbar.jsx              → barra de navegación (todas las páginas públicas)
-    │   ├── Footer.jsx              → pie de página
-    │   ├── BotonTienda.jsx         → botón flotante "encuentra tu tienda"
-    │   ├── LayoutPublico.jsx       → layout público: BotonTienda + Navbar + contenido + Footer
-    │   ├── Producto.jsx            → tarjeta de producto (recibe props)
-    │   ├── Producto.test.jsx       → 1 prueba (componente)
-    │   └── Navbar.test.jsx         → 1 prueba (componente)
-    │
-    ├── pages/                      → una página por cada ruta
-    │   ├── Inicio.jsx              → portada
-    │   ├── Productos.jsx           → catálogo con filtro por categoría (?categoria=)
-    │   ├── DetalleProducto.jsx     → ficha de un producto (/producto/:id)
-    │   ├── Carrito.jsx             → carrito con cantidades, subtotales y total
-    │   ├── Ventas.jsx              → checkout: dirección, comuna y método de pago
-    │   ├── Login.jsx               → acceso (formulario controlado + validación)
-    │   ├── Registro.jsx            → creación de cuenta de cliente
-    │   ├── Nosotros.jsx            → historia y compromiso (blogs expandibles)
-    │   ├── Consejos.jsx            → consejos de seguridad y uso del gas
-    │   ├── Tiendas.jsx             → sucursales y mapa
-    │   ├── Contacto.jsx            → formulario de contacto
-    │   ├── Nosotros.test.jsx       → 1 prueba (estado)
-    │   ├── Login.test.jsx          → 1 prueba (formulario interactivo)
-    │   └── admin/                  → panel de administración (layout propio)
-    │       ├── AdminLayout.jsx     → menú lateral, sesión y cierre de sesión
-    │       ├── Dashboard.jsx       → indicadores, órdenes y stock crítico
-    │       ├── Ordenes.jsx         → panel de órdenes (datos de ejemplo)
-    │       ├── Clientes.jsx        → panel de clientes (datos de ejemplo)
-    │       ├── Reportes.jsx        → panel de reportes (datos de ejemplo)
-    │       ├── Inventario.jsx      → CRUD de productos
-    │       ├── ListaUsuarios.jsx   → listado y filtro de usuarios
-    │       └── NuevoUsuario.jsx    → creación de usuarios
+    ├── main.jsx · App.jsx        → montaje y rutas (públicas, protegidas, /admin, /vendedor)
+    ├── datos/productos.js        → catálogo de referencia (se usa solo si la API no responde)
+    ├── utils/                    → lógica pura y llamadas a la API (todo con pruebas)
+    │   ├── api.js                → fetch a los 4 microservicios + ApiError (código HTTP) + mensajes del backend
+    │   ├── sesion.js             → sesión desde el login, roles, lectura de exp del JWT, sesionActiva()
+    │   ├── useCatalogo.js        → hook: catálogo de la API o de referencia con aviso "sin conexión"
+    │   ├── productos.js          → desdeApi(): ProductoResponseDTO → formato de los componentes
+    │   ├── carrito.js            → operaciones del carrito (ids numéricos de la API)
+    │   ├── inventario.js         → unir catálogo + stock por SKU, ajuste de stock por diferencia
+    │   ├── ventas.js             → estados, ORD-n, resumen de ventas (KPI, comunas)
+    │   ├── reportes.js           → clientes, ventas mensuales, por categoría, más vendidos, CSV
+    │   └── validaciones.js       → validaciones de formularios y regiones/comunas
+    ├── testUtils/jwt.js          → JWT de prueba para los tests
+    ├── components/               → Navbar (según rol), LayoutPublico, RutaProtegida, AvisoSinConexion, Producto, Footer…
+    └── pages/
+        ├── Inicio, Productos, DetalleProducto, Carrito, Ventas (checkout), MisCompras,
+        │   Login, Registro, Nosotros, Consejos, Tiendas, Contacto
+        ├── admin/                → AdminLayout, Dashboard, Inventario, Ordenes, ListaUsuarios,
+        │                           NuevoUsuario, Clientes, Reportes
+        └── vendedor/             → VendedorLayout, ProductosVendedor, DetalleProductoVendedor,
+                                    OrdenesVendedor, DetalleOrdenVendedor
 ```
 
 ---
 
-## Funcionalidades
+## Funcionalidades e integración con la API
 
-### Parte pública
-- **Inicio** con mensaje de bienvenida y acceso al catálogo.
-- **Catálogo** con los 14 productos reales (cilindros 5/11/15/45 kg, reguladores, mangueras, accesorios) y
-  precios residencial/comercial.
-- **Filtro por categoría** con query string (`/productos?categoria=Reguladores`).
-- **Detalle de producto** por ruta dinámica (`/producto/:id`).
-- **Carrito** con `+ / -`, quitar ítems, subtotales y total; persistente en `localStorage`.
-- **Checkout (`/ventas`)**: dirección, comuna y método de pago; genera una **orden** y vacía el carrito.
-- **Registro** de clientes con validaciones (RUN, correo institucional, teléfono, región/comuna, contraseña, términos).
-- **Login** validando contra `localStorage.usuarios` + el admin precargado.
-- Páginas informativas **Nosotros**, **Consejos**, **Tiendas** (mapa) y **Contacto**.
+### Tienda (Visitante y Cliente)
+- **Catálogo** (`GET /api/v1/productos`, público): 14 productos con precio residencial y comercial, imagen y filtro por categoría (`/productos?categoria=Reguladores`).
+- **Detalle** (`GET /api/v1/productos/id/{id}`).
+- **Carrito** persistente, con los ids numéricos del catálogo.
+- **Checkout** (`/ventas`): dirección, comuna y método de pago.
+  1. `POST /api/v1/ventas` crea la venta; ms-ventas valida el precio y el stock por Feign.
+  2. `PUT /api/v1/ventas/{id}/confirmar` registra el pago y descuenta el stock.
+  3. Si el pago falla, la venta queda pendiente y se puede **reintentar** sobre la misma.
+- **Mis compras** (`GET /api/v1/ventas/mis-compras`): historial con productos, despacho, estado y "Pagar ahora" en las pendientes.
+- **Registro** (`POST /api/v1/auth/register`): siempre crea un Cliente. Si el correo o el RUN ya existen, muestra el aviso (409).
+- **Login** (`POST /api/v1/auth/login`): guarda el token y el rol, y redirige según el rol. Solo autentica ms-auth: no hay usuarios locales.
+- **Sin conexión:** si un microservicio no responde, se muestra un aviso visible y se deshabilita la compra; ya no hay fallas silenciosas.
 
-### Panel de administración (`/admin`)
-- **Dashboard** con indicadores (ventas del día, órdenes en ruta, clientes nuevos) y stock crítico.
-- **Inventario**: crear, editar y eliminar productos, con validaciones y alertas de stock.
-- **Usuarios**: listar y filtrar por rol, y crear nuevos usuarios.
+### Panel del Vendedor (`/vendedor`, solo lectura)
+- Productos y su detalle con stock de `ms-inventario`.
+- Órdenes (`GET /api/v1/ventas`) y su detalle (`GET /api/v1/ventas/{id}`), con cliente, despacho y líneas.
 
-### Pruebas
-- **10 pruebas unitarias** con **Vitest** (`npm test`, jsdom + React Testing Library) sobre utilidades y componentes.
-- Incluyen **validaciones**, **formulario interactivo** (`Login`), **carrito/compras**, **CRUD del catálogo**, props, estado y mocks.
-- Reporte de cobertura en `coverage/index.html` (`npm run test:coverage`).
+### Panel de Administración (`/admin`)
+- **Dashboard:** ingresos, órdenes, pendientes y stock crítico reales, más las últimas órdenes.
+- **Inventario:** CRUD de productos (`POST`, `PUT` y `DELETE` en el catálogo) y ajuste de stock (`aumentar` / `disminuir`).
+- **Órdenes:** todas las ventas, con KPI y distribución por comuna.
+- **Usuarios:** lista de ms-auth y **alta con rol** (Admin, Vendedor o Cliente), con `POST /api/v1/usuarios`.
+- **Clientes** y **Reportes:** calculados con `/usuarios` y `/ventas`. Incluye exportación **CSV** de las ventas y de los productos más vendidos.
 
 ---
 
-## Pruebas y cobertura
+## Pruebas
 
-Las 10 pruebas se agrupan por tipo (ver detalle y análisis en `DOCUMENTO_COBERTURA_TESTING.md`):
+**71 pruebas en 23 archivos** (Vitest + Testing Library). Las llamadas a la API se simulan con `vi.stubGlobal('fetch', …)`, así que las pruebas no necesitan los microservicios levantados.
 
-| # | Test | Cubre |
-|---|---|---|
-| 1 | `validaciones.test.js` | RUN, teléfono, correo, dominio y formato de precio |
-| 2 | `validaciones.test.js` | `validarFormularioRegistro` + `validarFormularioContacto` (errores) y helpers de `localStorage` |
-| 3 | `carrito.test.js` | `agregarItem` / `incrementarItem` (sin mutar) |
-| 4 | `carrito.test.js` | `decrementarItem` / `eliminarItem` / `contarItems` |
-| 5 | `carrito.test.js` | `obtenerItemsCompletos` / `calcularTotal` (residencial y comercial) |
-| 6 | `productos.test.js` | `aplicarEdiciones` / `catalogoActual` / `productosConCreados` (CRUD) |
-| 7 | `Producto.test.jsx` | props en el DOM y callback `onAgregar` (mock con `vi.fn()`) |
-| 8 | `Navbar.test.jsx` | enlaces y prop `totalItems` |
-| 9 | `Nosotros.test.jsx` | estado `useState` (expandir/contraer blog) |
-| 10 | `Login.test.jsx` | formulario interactivo: escribes y valida el correo (user-event) |
+| Área | Archivos de prueba |
+|---|---|
+| Lógica pura | `validaciones`, `carrito`, `productos`, `inventario`, `ventas`, `reportes`, `sesion`, `useCatalogo` |
+| Componentes | `Producto`, `Navbar` (por rol), `RutaProtegida` |
+| Tienda | `Login`, `Registro`, `DetalleProducto`, `Carrito`, `Ventas` (checkout), `MisCompras`, `Nosotros` |
+| Vendedor | `PanelVendedor` |
+| Administrador | `Inventario`, `PanelAdmin` (órdenes, dashboard, usuarios), `NuevoUsuario`, `ClientesReportes` |
 
-**Cobertura obtenida:** 100 % sentencias · 100 % ramas · 100 % funciones · 100 % líneas
-(sobre los módulos que participan en las pruebas).
+El inventario de pruebas, los resultados y la cobertura están en `docs/DOCUMENTO_COBERTURA_TESTING.md`.
 
 ---
 
 ## Documentación relacionada
 
-- `docs/DOCUMENTACION.md` — explicación técnica de cada componente, página y decisión de diseño.
-- `docs/GUIA_CONCEPTOS_CODIGO.md` — guía de los conceptos de JS/React aplicados en el código.
-- `docs/ERS_ACTUALIZADO.md` — Especificación de Requerimientos de Software (requisitos funcionales y no funcionales).
-- `docs/DOCUMENTO_COBERTURA_TESTING.md` — inventario de pruebas, resultados y análisis de cobertura.
-- `docs/DEPLOY.md` y `docs/BITACORA_DEPLOY_AWS.md` — guía y bitácora del despliegue en AWS.
-
-> 📄 Cada documento de `docs/` está disponible también en **PDF** con el mismo nombre.
-
----
-
-## Estado y próximos pasos
-
-Implementado en esta entrega (frontend React): catálogo, carrito, checkout, cuentas, contacto y panel de
-administración, con persistencia en `localStorage` y pruebas unitarias.
-
-Planificado (etapas posteriores):
-
-- Backend con **microservicios Spring Boot** (API REST/JSON) y base de datos **MySQL**, reemplazando `localStorage`.
-- **Autenticación con tokens** y control de acceso por roles (**RBAC**) verificado en el servidor.
-- Seguimiento de pedidos en **tiempo real con mapas** (Leaflet / Google Maps).
-- Despliegue en **AWS** con **Docker**.
+- `docs/ERS_ACTUALIZADO.md`: especificación de requerimientos.
+- `docs/DOCUMENTACION.md`: explicación técnica de componentes, páginas y decisiones.
+- `docs/DOCUMENTO_COBERTURA_TESTING.md`: pruebas y cobertura.
+- `docs/GUIA_CONCEPTOS_CODIGO.md`: conceptos de JS y React usados en el código.
+- `docs/DEPLOY.md` y `docs/BITACORA_DEPLOY_AWS.md`: despliegue en AWS EC2 + Nginx (de la V2).
+- `../docs/parcial3/`: anexos de la Evaluación Parcial 3 (APIs, integración y manual de usuario).
 
 ---
 

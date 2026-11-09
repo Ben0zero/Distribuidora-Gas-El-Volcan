@@ -1,25 +1,27 @@
-# Documentación — Versión 2 (El Volcán en React)
+# Documentación — Versión 3 (El Volcán en React, conectado a microservicios)
 
-Explica qué se construyó en `Evaluacion 2/avance entrega`, cómo funciona cada parte y la lógica detrás de cada
-decisión. Complementa al `README.md` (en la raíz del proyecto), al `ERS_ACTUALIZADO.md` (requisitos) y al
-`DOCUMENTO_COBERTURA_TESTING.md` (pruebas).
+Este documento explica qué se construyó en `frontend/`, cómo funciona cada parte y por qué se decidió así. Complementa al `README.md` del frontend, al `ERS_ACTUALIZADO.md` (requisitos) y al `DOCUMENTO_COBERTURA_TESTING.md` (pruebas). La guía de la API está en `microservicios/README.md`.
+
+> **Cambios de la V2 a la V3:**
+> - Los datos dejan de vivir en `localStorage`: autenticación, catálogo, inventario, ventas y usuarios vienen de los microservicios Spring Boot por REST (`fetch` + JWT).
+> - Se agregan rutas protegidas por rol, el panel del Vendedor (solo lectura) y el checkout real.
+> - El panel de administración trabaja con datos reales.
 
 ---
 
 ## 1. Qué es y para qué
 
-Aplicación **SPA** de la **Distribuidora de Gas El Volcán** construida con React. Reemplaza el sitio estático
-(HTML/CSS/JS) de la Versión 1 por una aplicación moderna, incorporando todo lo visto en la asignatura:
+Es una aplicación **SPA** de la **Distribuidora de Gas El Volcán** hecha con React. Es el cliente web de la arquitectura de microservicios e incorpora lo visto en la asignatura:
 
 - Componentes y **props**.
-- **Estado** (`useState`) y persistencia (`localStorage`).
-- **React Router** (SPA con varias rutas y rutas anidadas).
+- **Estado** (`useState`), efectos (`useEffect`) y un **hook propio** (`useCatalogo`).
+- **React Router**: rutas anidadas, rutas protegidas y redirecciones (`Navigate`).
 - **Formularios controlados** con validación.
+- **Consumo de APIs REST** con `fetch`, JWT en el header `Authorization` y manejo de errores por código HTTP.
 - **Diseño responsivo** con Bootstrap / React Bootstrap.
-- **Pruebas unitarias** con Vitest + React Testing Library.
+- **Pruebas** con Vitest + React Testing Library, simulando la API.
 
-Datos de negocio reales: 14 productos de gas, precios residencial/comercial y el login del administrador
-(`admin@duoc.cl`).
+Datos de negocio: los 14 productos de gas (CL001…AC003) con precio residencial y comercial, y tres roles (Administrador, Vendedor y Cliente).
 
 ---
 
@@ -27,333 +29,222 @@ Datos de negocio reales: 14 productos de gas, precios residencial/comercial y el
 
 | Tecnología | Versión | Rol |
 |---|---|---|
-| Vite | 8.3 | Herramienta de desarrollo/build (`npm run dev`). |
+| Vite | 8.3 | Desarrollo y build (`npm run dev`, `npm run build`). |
 | React / React DOM | 19.2 | Biblioteca de componentes (SPA). |
-| react-router-dom | 7.18 | Rutas (`BrowserRouter`, `Routes`, `Route`, `Outlet`, `Link`, `useParams`, `useLocation`, `useNavigate`). |
-| react-bootstrap | 2.10 | Componentes UI (`Navbar`, `Card`, `Button`, `Form`, `Alert`, `Badge`, `ListGroup`, `Table`, `Modal`, `Row`, `Col`). |
-| bootstrap | 5.3.8 | CSS base (grillas y estilos). Importado en `main.jsx`. |
-| bootstrap-icons | 1.13 | Íconos (`bi-*`) usados en el sitio y el admin. |
+| react-router-dom | 7.18 | Rutas (`Routes`, `Route`, `Outlet`, `Navigate`, `Link`, `NavLink`, `useParams`, `useLocation`, `useNavigate`). |
+| react-bootstrap / bootstrap | 2.10 / 5.3.8 | Componentes UI y grillas. |
+| bootstrap-icons | 1.13 | Íconos (`bi-*`). |
+| `fetch` (nativo) | — | Llamadas REST. No se usa Axios: `fetch` basta y no agrega dependencias. |
 | oxlint | 1.81 | Linter (`npm run lint`). |
-| Vitest | 3.2 | Pruebas unitarias (`npm test`), integrado con Vite. |
-| @testing-library/react + jest-dom + user-event | 16.3 / 6.6 / 14.6 | Renderizado, matchers de DOM e interacción real del usuario. |
-| jsdom | 26.1 | Navegador simulado (DOM + `localStorage`) para las pruebas. |
-| @vitest/coverage-v8 | 3.2 | Reporte de cobertura (`npm run test:coverage`). |
+| Vitest + Testing Library + jsdom | 3.2 / 16.3 / 26.1 | Pruebas unitarias y de componentes, con `fetch` simulado. |
+| @vitest/coverage-v8 | 3.2 | Cobertura (`npm run test:coverage`). |
 
-**Por qué este stack**: es el mismo de la asignatura (ver `Semana react/mi-primer-react`). Para las pruebas,
-**Vitest es el framework indicado por el docente** para esta evaluación: reutiliza la configuración de Vite, corre
-sobre **jsdom** (sin abrir un navegador) y produce cobertura con el provider `v8` de Node.
+**Por qué este stack:** es el mismo de la asignatura. Vitest reutiliza la configuración de Vite, corre sobre **jsdom** (sin abrir un navegador) y mide cobertura con el provider `v8`.
 
 ---
 
 ## 3. Estructura
 
 ```
-avance entrega/
-├─ index.html                       → punto de montaje de la SPA (lang="es")
-├─ vite.config.js                   → config de Vite (incluye el bloque `test` de Vitest)
+frontend/
+├─ index.html · vite.config.js (incluye el bloque `test`) · .oxlintrc.json · nginx.conf
 ├─ src/
 │  ├─ main.jsx                      → arranca React y carga Bootstrap, íconos y CSS
-│  ├─ setupTests.js                 → config global de Vitest (matchers de jest-dom)
-│  ├─ estilos.css                   → estilos heredados de la Versión 1 (incluye .fondo)
-│  ├─ index.css                     → estilos globales mínimos
-│  ├─ App.jsx                       → rutas + estado global del carrito
-│  ├─ datos/
-│  │  └─ productos.js               → los 14 productos base
+│  ├─ App.jsx                       → rutas (públicas, protegidas, /admin, /vendedor) + estado del carrito
+│  ├─ setupTests.js · testUtils/jwt.js → configuración de pruebas y JWT de prueba
+│  ├─ datos/productos.js            → catálogo de REFERENCIA (solo si la API no responde)
 │  ├─ utils/
-│  │  ├─ validaciones.js            → validaciones, REGIONES, CATEGORIAS, CLAVES, helpers
+│  │  ├─ api.js                     → fetch a los microservicios, ApiError y lanzarError
+│  │  ├─ sesion.js                  → roles, sesión desde el login, exp del JWT, sesionActiva()
+│  │  ├─ useCatalogo.js             → hook del catálogo (API o referencia + "sin conexión")
+│  │  ├─ productos.js               → desdeApi() y catálogo de referencia
 │  │  ├─ carrito.js                 → lógica pura del carrito
-│  │  └─ productos.js               → catálogo real (ediciones + creados)
-│  ├─ components/
-│  │  ├─ LayoutPublico.jsx          → layout de la parte pública
-│  │  ├─ Navbar.jsx                 → barra de navegación
-│  │  ├─ Footer.jsx                 → pie de página
-│  │  ├─ BotonTienda.jsx            → botón flotante a Tiendas
-│  │  └─ Producto.jsx               → tarjeta de producto
-│  ├─ pages/
-│  │  ├─ Inicio.jsx
-│  │  ├─ Productos.jsx
-│  │  ├─ DetalleProducto.jsx
-│  │  ├─ Carrito.jsx
-│  │  ├─ Ventas.jsx                 → checkout
-│  │  ├─ Login.jsx
-│  │  ├─ Registro.jsx
-│  │  ├─ Nosotros.jsx
-│  │  ├─ Consejos.jsx
-│  │  ├─ Tiendas.jsx
-│  │  ├─ Contacto.jsx
-│  │  └─ admin/
-│  │     ├─ AdminLayout.jsx
-│  │     ├─ Dashboard.jsx
-│  │     ├─ Ordenes.jsx             → panel de órdenes (datos de ejemplo)
-│  │     ├─ Clientes.jsx            → panel de clientes (datos de ejemplo)
-│  │     ├─ Reportes.jsx            → panel de reportes (datos de ejemplo)
-│  │     ├─ Inventario.jsx
-│  │     ├─ ListaUsuarios.jsx
-│  │     └─ NuevoUsuario.jsx
-│  └─ (las pruebas **.test.js(x)** viven junto a cada módulo: utils/, components/, pages/)
-└─ public/
-   └─ IMAGENES/                     → imágenes de los productos y del sitio
+│  │  ├─ inventario.js              → catálogo + stock, ajuste de stock, validación de producto
+│  │  ├─ ventas.js                  → estados, número de orden, resumen de ventas
+│  │  ├─ reportes.js                → clientes, ventas mensuales, por categoría, más vendidos, CSV
+│  │  └─ validaciones.js            → validaciones de formularios, REGIONES, CATEGORIAS, CLAVES
+│  ├─ components/                   → LayoutPublico, Navbar, RutaProtegida, AvisoSinConexion,
+│  │                                  Producto, Footer, BotonTienda
+│  ├─ pages/                        → Inicio, Productos, DetalleProducto, Carrito, Ventas, MisCompras,
+│  │  │                               Login, Registro, Nosotros, Consejos, Tiendas, Contacto
+│  │  ├─ admin/                     → AdminLayout, Dashboard, Inventario, Ordenes, ListaUsuarios,
+│  │  │                               NuevoUsuario, Clientes, Reportes
+│  │  └─ vendedor/                  → VendedorLayout, ProductosVendedor, DetalleProductoVendedor,
+│  │                                  OrdenesVendedor, DetalleOrdenVendedor
+│  └─ (las pruebas *.test.js(x) viven junto a cada módulo)
+└─ public/IMAGENES/                 → imágenes; la ruta de cada producto viene de la API (campo `imagen`)
 ```
 
 ---
 
 ## 4. Rutas de la aplicación
 
-Definidas en `src/App.jsx` con **rutas anidadas**: las públicas comparten `LayoutPublico` y las de administración
-comparten `AdminLayout` (cada layout renderiza su contenido con `<Outlet />`).
+Están definidas en `src/App.jsx` con **rutas anidadas**. Cada zona tiene su layout (`LayoutPublico`, `AdminLayout` o `VendedorLayout`), y las rutas privadas se envuelven en `<RutaProtegida roles={...}>`.
 
-| Ruta | Componente | Layout | Descripción |
+| Ruta | Componente | Acceso | Descripción |
 |---|---|---|---|
-| `/` | `Inicio` | Público | Portada |
-| `/productos` | `Productos` | Público | Catálogo (con `?categoria=`) |
-| `/producto/:id` | `DetalleProducto` | Público | Ficha de producto |
-| `/carrito` | `Carrito` | Público | Carrito |
-| `/ventas` | `Ventas` | Público | Checkout |
-| `/login` | `Login` | Público | Acceso |
-| `/registro` | `Registro` | Público | Crear cuenta |
-| `/nosotros` | `Nosotros` | Público | Historia |
-| `/consejos` | `Consejos` | Público | Consejos de seguridad |
-| `/tiendas` | `Tiendas` | Público | Sucursales |
-| `/contacto` | `Contacto` | Público | Formulario de contacto |
-| `/admin` | `Dashboard` | Admin | Panel (índice) |
-| `/admin/inventario` | `Inventario` | Admin | CRUD de productos |
-| `/admin/usuarios` | `ListaUsuarios` | Admin | Usuarios y roles |
-| `/admin/usuarios/nuevo` | `NuevoUsuario` | Admin | Crear usuario |
+| `/` · `/productos` · `/producto/:id` | `Inicio` · `Productos` · `DetalleProducto` | Público* | Portada, catálogo (`?categoria=`) y ficha |
+| `/carrito` | `Carrito` | Público* | Carrito y botón "Ir a pagar" |
+| `/ventas` | `Ventas` | **Cliente / Admin** | Checkout contra ms-ventas |
+| `/mis-compras` | `MisCompras` | **Cliente / Admin** | Historial y "Pagar ahora" |
+| `/login` · `/registro` | `Login` · `Registro` | Público* | Acceso y alta de clientes |
+| `/nosotros` · `/consejos` · `/tiendas` · `/contacto` | Páginas informativas | Público* | — |
+| `/admin` (+ `inventario`, `ordenes`, `usuarios`, `usuarios/nuevo`, `clientes`, `reportes`) | `AdminLayout` + páginas | **Admin** | Panel de administración |
+| `/vendedor/productos[/:id]` · `/vendedor/ordenes[/:id]` | `VendedorLayout` + páginas | **Vendedor / Admin** | Panel de solo lectura |
+
+\* Un **Vendedor** con sesión que entra a cualquier ruta pública es redirigido a `/vendedor`: según el requisito, solo debe ver productos y órdenes. Esto lo hace `LayoutPublico`.
 
 ---
 
-## 5. Estado global y persistencia
+## 5. Estado global, sesión y persistencia
 
-El **carrito** es el único estado de aplicación; vive en `App` (patrón **"lifting state up"**) porque lo comparten
-`Productos`, `DetalleProducto`, `Carrito` y `Ventas`.
+- **Carrito:** vive en `App` (*lifting state up*) y se persiste con `useEffect` en `localStorage.carrito`. Guarda `[{ id, cantidad }]`, donde **`id` es el id numérico del producto en ms-catalogoProductos**.
+- **Sesión:** `Login` guarda en `localStorage.sesion` lo que devuelve `POST /api/v1/auth/login`, ya traducido por `sesionDesdeLogin()`: `{ id, nombre, correo, rol, tipoCliente, direccion, comuna, token }`. `api.js` lee de ahí el token para el header `Authorization: Bearer …`.
+- **`sesionActiva()`** (`utils/sesion.js`): devuelve la sesión solo si el token no expiró, leyendo el `exp` del payload del JWT. Si expiró, la borra. La usan `RutaProtegida`, `Navbar`, `LayoutPublico` y los paneles.
 
-```jsx
-const [carrito, setCarrito] = useState(() => {
-  try { return JSON.parse(localStorage.getItem(CLAVES.carrito)) || [] }
-  catch { return [] }
-})
+**Claves de `localStorage`** (constante `CLAVES`):
 
-useEffect(() => {
-  localStorage.setItem(CLAVES.carrito, JSON.stringify(carrito))
-}, [carrito])
-```
-
-- El valor inicial se **lee de `localStorage`** con la función inicializadora del `useState` (por eso `F5` no lo
-  pierde).
-- Cada cambio se **persiste** con `useEffect`.
-- Las operaciones (`agregar`, `incrementar`, `decrementar`, `eliminar`, `vaciar`) delegan en las funciones puras de
-  `utils/carrito.js`, y `totalItems` se calcula con `contarItems`.
-- `App` le pasa el carrito y los callbacks por **props** a `Carrito`/`Ventas`, y `totalItems` a `Navbar`.
-
-**Claves de `localStorage`** (constante `CLAVES` en `utils/validaciones.js`):
-
-| Clave | Contenido |
+| Clave | Uso en la V3 |
 |---|---|
-| `carrito` | Arreglo `[{ id, cantidad }]` |
-| `usuarios` | Usuarios registrados / creados por el admin |
-| `sesion` | Usuario con sesión activa (sin contraseña) |
-| `productos` | Productos creados desde el panel admin |
-| `edicionesProductos` | Cambios del admin sobre los productos base |
-| `ordenes` | Órdenes generadas en el checkout |
-| `solicitudes` | Mensajes enviados por el formulario de contacto |
+| `carrito` | Carrito de compras (ids de la API) |
+| `sesion` | Sesión con token JWT (no guarda la contraseña) |
+| `solicitudes` | Mensajes del formulario de contacto (no hay microservicio de contacto) |
+| `productos`, `edicionesProductos` | Solo afectan al catálogo de **referencia** que se usa sin conexión |
+| `usuarios`, `ordenes` | **Sin uso** desde la V3: los usuarios y las órdenes están en ms-auth y ms-ventas |
 
 ---
 
 ## 6. Utilidades (lógica pura y testable)
 
-Se extrajeron a `src/utils/` para reutilizarlas en varias páginas **y** poder probarlas de forma aislada.
+Están en `src/utils/` para reutilizarlas y probarlas de forma aislada.
 
-### 6.1 `utils/validaciones.js`
-Contiene datos compartidos (`REGIONES`, `CATEGORIAS`, `ADMIN_DEFAULT`, `CLAVES`) y funciones puras:
+### 6.1 `utils/api.js`: cliente de la API
+- Una función por endpoint: `login`, `register`, `obtenerProductos`, `obtenerProductoPorId`, `crearProducto`, `actualizarProducto`, `desactivarProducto`, `obtenerInventario`, `obtenerStockPorSku`, `ajustarStock`, `crearVenta`, `confirmarPago`, `misCompras`, `listarVentas`, `obtenerVenta`, `listarUsuarios` y `crearUsuario`.
+- **`ApiError`** conserva el código HTTP. Con él cada página distingue "credenciales malas" (401), "sin permiso" (403), "duplicado" (409) y "el servicio no responde" (un `TypeError` de `fetch`, sin código).
+- **`lanzarError`** toma el mensaje que envía el backend (`message`, `mensaje` o `validationErrors`) para mostrarlo tal cual.
 
-- `validarRun`, `validarTelefono`, `validarCorreo`, `correoDominioPermitido`, `formatearPrecio`.
-- `validarFormularioRegistro(datos)` y `validarFormularioContacto(datos)`: devuelven **el primer mensaje de error**
-  o `''` si todo está correcto (centralizan las reglas que antes estaban dispersas en `java.js`).
-- `leerLista(clave)` / `leerObjeto(clave)`: leen `localStorage` de forma **tolerante a errores** (JSON corrupto
-  devuelve `[]` o `null` en vez de romper la app).
+### 6.2 `utils/sesion.js`
+`ROLES`, `rolDesdeApi('ROLE_ADMIN') → 'Administrador'`, `rutaInicial(rol)` (`/admin`, `/vendedor` o `/`), `sesionDesdeLogin`, `leerPayloadJwt`, `tokenExpirado`, `sesionActiva` y `cerrarSesion`.
 
-### 6.2 `utils/carrito.js`
-Funciones **puras** (reciben el carrito y devuelven uno **nuevo**, sin mutar), fáciles de testear:
+### 6.3 `utils/useCatalogo.js` y `utils/productos.js`
+- `useCatalogo()` devuelve `{ productos, cargando, sinConexion }`. Si la API no responde, usa el catálogo de referencia y marca `sinConexion`, para que la página muestre `AvisoSinConexion` y deshabilite la compra.
+- `desdeApi(p)` convierte el `ProductoResponseDTO` (`sku`, `precioResidencial`, `precioComercial`, `imagen`) al formato de los componentes (`codigo`, `residencial`, `comercial`, `imagen` por defecto).
 
-- `agregarItem`, `incrementarItem`, `decrementarItem` (elimina al llegar a 0), `eliminarItem`, `contarItems`.
-- `obtenerItemsCompletos(carrito, productos)`: une cada línea con su producto y descarta ids inexistentes.
-- `calcularTotal(carrito, productos, tipo)`: suma `precio × cantidad` según `residencial` o `comercial`.
+### 6.4 `utils/carrito.js`
+Funciones **puras**: `agregarItem`, `incrementarItem`, `decrementarItem` (elimina el ítem al llegar a 0), `eliminarItem`, `contarItems`, `obtenerItemsCompletos` (descarta ids que no estén en el catálogo) y `calcularTotal` (por tipo residencial o comercial).
 
-### 6.3 `utils/productos.js`
-Construye el **catálogo real** combinando datos:
+### 6.5 `utils/inventario.js`, `utils/ventas.js` y `utils/reportes.js`
+- `combinarInventario` une el catálogo y el stock por SKU. `ajusteDeStock(actual, deseado)` traduce el stock deseado en `aumentar` o `disminuir` con la **diferencia**. `productoDesdeFormulario` y `validarProducto` sirven al formulario del Admin.
+- `estadoVenta`, `numeroOrden` (`ORD-n`), `resumenVentas` (KPI y comunas) y `masRecientes`.
+- `resumenClientes`, `ventasMensuales`, `reporteVentas` (ingresos, ticket, categorías, tipo de cliente y más vendidos) y `aCsv` / `descargarCsv`.
 
-- `aplicarEdiciones(base, ediciones)`: sobreescribe solo los campos editados por el admin.
-- `catalogoActual()`: catálogo base + ediciones (lo que ve el cliente).
-- `productosConCreados()`: catálogo + productos creados desde el admin, marcados con `base: true/false`.
-
-> **Por qué importa**: son el "seam" (punto único de cambio). Cuando existan los microservicios, estas funciones se
-> reemplazan por `fetch()` y las páginas no cambian.
+### 6.6 `utils/validaciones.js`
+- Validadores: `validarRun`, `validarTelefono`, `validarCorreo`, `correoDominioPermitido` y `formatearPrecio`.
+- `validarFormularioRegistro`: contraseña de **6 a 10** caracteres, el mínimo que exige ms-auth.
+- `validarNuevoUsuario`: acepta correos de la empresa, como @elvolcan.cl.
+- `validarFormularioContacto`, `leerLista` y `leerObjeto`.
 
 ---
 
 ## 7. Componentes reutilizables
 
 ### 7.1 `components/LayoutPublico.jsx`
-Layout de la parte pública. Renderiza `BotonTienda`, `Navbar`, el `<Outlet />` (la página actual) y `Footer`.
-Gracias a las **rutas anidadas**, no repetimos el menú ni el pie en cada página.
+Renderiza `BotonTienda`, `Navbar`, el `<Outlet />` y `Footer`. Si la sesión es de un **Vendedor**, redirige a `/vendedor`.
 
 ### 7.2 `components/Navbar.jsx`
-Barra de navegación de react-bootstrap (`Navbar as BootstrapNavbar` para no chocar con el nombre propio).
-Recibe **`totalItems` por props** y lo muestra en un `Badge` sobre el enlace "Carrito".
-`expand="lg"` la hace colapsable (responsiva). Enlaces: Inicio, Productos, Nosotros, Consejos, Tiendas, Contacto,
-Carrito, Login y Registro.
+Barra responsiva (`expand="lg"`) que recibe `totalItems` por props (badge del carrito). Los enlaces dependen de la sesión:
+- **Visitante:** Login y Registro.
+- **Con sesión:** Mis compras, "Hola, nombre" y Cerrar sesión.
+- **Admin:** además, Panel Admin.
 
-### 7.3 `components/Producto.jsx`
-Tarjeta de producto (componente **de presentación**). Recibe props (`id`, `nombre`, `descripcion`, `residencial`,
-`imagen`) y un callback `onAgregar`. **No** sabe de datos: solo muestra y avisa.
-- "Agregar" → `props.onAgregar(props.id)` (comunicación **hijo → padre**).
-- "Ver detalle" → `Link to={/producto/${props.id}}`.
+Llama a `useLocation()` para volver a dibujarse al navegar, por ejemplo justo después del login.
 
-### 7.4 `components/Footer.jsx` y `components/BotonTienda.jsx`
-- `Footer`: logo, datos de contacto y créditos.
-- `BotonTienda`: botón flotante con imagen que enlaza a `/tiendas`, con `aria-label` accesible.
+### 7.3 `components/RutaProtegida.jsx`
+Envuelve las rutas privadas:
+- Sin sesión o con el token expirado → `<Navigate to="/login" state={{ desde }}>`. Después del login, se vuelve a la página pedida.
+- Con un rol no incluido en `roles` → la `rutaInicial` de su rol.
+
+### 7.4 `components/AvisoSinConexion.jsx`, `Producto.jsx`, `Footer.jsx` y `BotonTienda.jsx`
+- `AvisoSinConexion`: alerta visible cuando el catálogo no se pudo cargar de la API.
+- `Producto`: tarjeta de presentación (props más el callback `onAgregar`; comunicación hijo → padre).
+- `Footer` y `BotonTienda`: sin cambios respecto de la V2.
 
 ---
 
-## 8. Páginas públicas
+## 8. Páginas públicas y de cliente
 
 ### 8.1 `Inicio.jsx`
-Componente de presentación: título, descripción y botón `as={Link}` a `/productos`.
+Portada con botón al catálogo.
 
-### 8.2 `Productos.jsx` — catálogo + filtro
-```jsx
-const categoria = new URLSearchParams(useLocation().search).get('categoria')
-const productos = catalogoActual()
-const lista = categoria ? productos.filter((p) => p.categoria === categoria) : productos
-```
-Usa `useLocation` + `URLSearchParams` (funcionalidad "parámetros de búsqueda" de la guía). Los botones de categoría
-navegan a `/productos?categoria=...`; las tarjetas se generan con `.map()` y `key={p.id}`, en grilla responsiva.
+### 8.2 `Productos.jsx`: catálogo + filtro
+Usa `useCatalogo()`, filtra por `?categoria=` con `useLocation` + `URLSearchParams` y muestra un spinner mientras carga y el aviso si no hay conexión.
 
-### 8.3 `DetalleProducto.jsx` — ficha
-```jsx
-const { id } = useParams()
-const producto = catalogoActual().find((p) => p.id === id)
-```
-`useParams` extrae `:id`; si el producto no existe muestra un `Alert` "Producto no encontrado" (caso real: URL
-tecleada a mano). Muestra imagen, descripción, categoría, código, precios y stock, con botón "Agregar".
+### 8.3 `DetalleProducto.jsx`: ficha
+- Con un **id numérico**, consulta `GET /api/v1/productos/id/{id}` (público).
+- Con un id de referencia (`p1`), usa el catálogo local.
+- Si el producto no existe (404), muestra "Producto no encontrado".
+- El stock solo aparece si se conoce: el catálogo público no lo informa.
 
-### 8.4 `Carrito.jsx` — resumen y total
-```jsx
-const items = obtenerItemsCompletos(carrito, catalogoActual())
-const total = calcularTotal(carrito, catalogoActual())
-```
-Muestra cada línea con `+`/`-`/Quitar (los callbacks vienen de `App`), subtotales y total, y el botón "Finalizar
-compra" que lleva al checkout (`/ventas`). Si está vacío, muestra un `Alert` y un botón a Productos.
+### 8.4 `Carrito.jsx`
+Resuelve las líneas contra el catálogo de la API. Tiene `+`, `-` y Quitar, subtotales y total, y el botón **"Ir a pagar"**, que lleva al único checkout (`/ventas`). Sin conexión, el botón queda deshabilitado.
 
-### 8.5 `Ventas.jsx` — checkout
-- Requiere **sesión iniciada**; si no hay, invita a iniciar sesión/registrarse (comparando con `localStorage.sesion`).
-- Toma dirección y comuna de la sesión (se pueden editar) y pide **método de pago** (Efectivo / Tarjeta).
-- Simula una **pasarela de pago** (sin backend): Efectivo siempre aprueba (se paga en la entrega); Tarjeta puede ser
-  rechazada (~20%), mostrando la vista **"No se pudo realizar el pago"** — en ese caso **no se guarda la orden** y se
-  puede **reintentar** sin perder los datos.
-- Al aprobar, **genera una orden** (`ORD-######`) con fecha, cliente, ítems y total, la guarda en `localStorage.ordenes`
-  y **vacía el carrito** (`vaciar`).
-- Muestra una confirmación con el número de orden y el total.
+### 8.5 `Ventas.jsx`: checkout (Cliente / Admin)
+1. Pide dirección, comuna y **método de pago** (Efectivo o Tarjeta).
+2. `POST /api/v1/ventas` con `{ tipoCliente, direccion, comuna, metodoPago, detalles: [{ productoId, cantidad }] }`. ms-ventas valida el precio y el stock por Feign. Si falta stock, el backend responde 409 y se muestra su mensaje.
+3. Si la venta se creó, el carrito se vacía y se llama a `PUT /api/v1/ventas/{id}/confirmar`, que marca la venta pagada y descuenta el stock.
+4. Si la confirmación falla, aparece la vista **"No se pudo realizar el pago"** (Figura 8 del Anexo 1). La venta queda pendiente y **"Reintentar pago" confirma la misma venta**, sin duplicarla.
+5. Al final se muestra la confirmación con `ORD-n`, el total y el despacho, más un enlace a Mis compras.
 
-### 8.6 `Login.jsx` — acceso y sesión
-Formulario controlado. Valida `@` en el correo y largo de contraseña; busca en `localStorage.usuarios` + el
-`ADMIN_DEFAULT`. Si coincide, guarda la **sesión** (sin contraseña) en `localStorage.sesion` y navega (el
-administrador va a `/admin`). Si ya hay sesión, muestra los datos y un botón "Cerrar sesión".
+### 8.6 `MisCompras.jsx`
+`GET /api/v1/ventas/mis-compras`. Muestra una tabla con número, fecha, productos (nombre tomado del catálogo), despacho, pago, total y estado. Las pendientes tienen el botón **"Pagar ahora"**.
 
-### 8.7 `Registro.jsx` — creación de cuenta
-Formulario controlado por campo. Usa `validarFormularioRegistro` (RUN 7–9 dígitos, correo `@duoc.cl` /
-`@profesor.duoc.cl` / `@gmail.com`, teléfono, dirección, región/comuna, contraseña 4–10, términos) y verifica que
-el correo no esté repetido. Guarda el usuario con `rol: 'Cliente'` y navega a `/login`. Usa **selectores
-dependientes** Región → Comuna (`REGIONES.find(...)`).
+### 8.7 `Login.jsx`
+- Formulario controlado que llama a `POST /api/v1/auth/login`.
+- Si responde 401, muestra "Credenciales incorrectas"; si el servicio no responde, "No se pudo conectar con el servidor".
+- **No hay usuarios locales de respaldo:** solo autentica ms-auth.
+- Al entrar, navega a la página pedida o a la ruta inicial del rol.
 
-### 8.8 `Nosotros.jsx` — historia con blogs expandibles
-Dos secciones ("blogs") con resumen y un botón "Ver Más"/"Ver Menos" que **expande/contrae** el contenido usando
-`useState` (estado local por blog). Esta página se usa para probar el **estado de un componente**.
+### 8.8 `Registro.jsx`
+- Valida con `validarFormularioRegistro` y llama a `POST /api/v1/auth/register`.
+- Envía el correo en minúsculas como `username` y **no envía el rol**: el backend siempre crea un Cliente.
+- Si el correo o el RUN ya existen (409), muestra un aviso claro.
 
-### 8.9 `Consejos.jsx` — seguridad del gas
-Secciones informativas: instalación correcta, consejos rápidos (íconos), video de YouTube embebido y pasos a
-seguir ante una fuga. Incluye un CTA al catálogo.
-
-### 8.10 `Tiendas.jsx` — sucursales
-Tarjetas de las sucursales (Casa Matriz Chillán, Chillán Viejo, Bulnes, Quillón, San Ignacio) con dirección,
-teléfono, horario y un **mapa** referencial.
-
-### 8.11 `Contacto.jsx` — formulario
-Valida con `validarFormularioContacto` (nombre, correo, teléfono, asunto y mensaje) y **guarda la solicitud** en
-`localStorage.solicitudes`, mostrando confirmación.
+### 8.9 `Nosotros.jsx`, `Consejos.jsx`, `Tiendas.jsx` y `Contacto.jsx`
+Páginas informativas, sin cambios. `Nosotros` usa `useState` para expandir los blogs. `Contacto` valida y guarda la solicitud en `localStorage.solicitudes`.
 
 ---
 
-## 9. Panel de administración
+## 9. Paneles por rol
 
-### 9.1 `admin/AdminLayout.jsx`
-Layout propio del panel: menú lateral (`NavLink`) con Dashboard, Inventario y Empleados, un acceso a "+Profile"
-(Nuevo usuario), el nombre del usuario de la sesión y el botón **Cerrar sesión** (elimina `localStorage.sesion` y
-vuelve a `/login`). En móvil el menú se colapsa. Los ítems **Órdenes**, **Reportes** y **Clientes** ya cuentan con
-vistas propias (integradas por el compañero; ver 9.6).
+### 9.1 Panel de administración (`/admin`, solo Administrador)
+- **`AdminLayout`:** menú lateral y cierre de sesión.
+- **`Dashboard`:** saludo con el nombre real; KPI (ingresos de ventas pagadas, órdenes, pendientes, productos en stock crítico); últimas 5 órdenes; nivel de stock de los cilindros. Carga ventas, catálogo y stock en paralelo con `Promise.allSettled`, así que si un servicio cae, el resto sigue funcionando.
+- **`Inventario`:** CRUD real.
+  - **Crear:** `POST` del producto, más `aumentar` con el stock inicial.
+  - **Editar:** `PUT` del producto, más `aumentar` o `disminuir` solo por la diferencia de stock. El SKU no se edita.
+  - **Eliminar:** borrado lógico con confirmación. El stock crítico se marca en rojo.
+- **`Ordenes`:** todas las ventas (`GET /api/v1/ventas`) con KPI y distribución por comuna; el número de orden enlaza al detalle.
+- **`ListaUsuarios`** y **`NuevoUsuario`:** lista de ms-auth con filtro por rol, y **alta con rol** (Admin, Vendedor o Cliente) con `POST /api/v1/usuarios`.
+- **`Clientes`** y **`Reportes`:** calculados con `/usuarios` y `/ventas` (ver 6.5). Exportan **CSV**.
 
-### 9.2 `admin/Dashboard.jsx`
-Indicadores (ventas del día, órdenes en ruta, clientes nuevos), tabla de últimas órdenes con estados (badges) y
-**alertas de stock crítico** calculadas con `catalogoActual()`.
-
-### 9.3 `admin/Inventario.jsx` — CRUD de productos
-- Lista `productosConCreados()` (base + creados) en una tabla, resaltando **stock crítico**.
-- **Crear**: valida código único, nombre, precios, stock entero y categoría; guarda en `localStorage.productos`.
-- **Editar**: guarda cambios en `localStorage.edicionesProductos` para los base, sin sobrescribir el catálogo
-  original (por eso `aplicarEdiciones` conserva los campos no editados).
-- **Eliminar**: solo los productos creados (los base solo se editan).
-
-### 9.4 `admin/ListaUsuarios.jsx`
-Lista `ADMIN_DEFAULT` + usuarios de `localStorage.usuarios`, con **filtro por rol** (Todos, Administradores,
-Clientes, Vendedores) y botón para crear un usuario nuevo.
-
-### 9.5 `admin/NuevoUsuario.jsx`
-Formulario para crear usuarios con rol (`Administrador` / `Cliente` / `Vendedor`), reutilizando `validarRun`,
-`validarTelefono`, `correoDominioPermitido` y los selectores Región → Comuna. Guarda en `localStorage.usuarios`.
-
-### 9.6 Vistas integradas por el compañero (maquetas con datos de ejemplo)
-- `admin/Ordenes.jsx` (`/admin/ordenes`): KPI de órdenes del mes, tabla de órdenes con estados (badges) y
-  distribución por comuna.
-- `admin/Clientes.jsx` (`/admin/clientes`): KPI de clientes, listado con tipo y últimas compras, mejores clientes
-  y distribución por comuna.
-- `admin/Reportes.jsx` (`/admin/reportes`): KPI de ingresos, ventas mensuales (barras), productos más vendidos,
-  ventas por categoría y tipo de cliente, y reportes generados.
-
-Estas vistas usan contenido estático de ejemplo (no dependen de `localStorage`) y reutilizan clases de
-Bootstrap + íconos `bi-*`, coherentes con el resto del panel. Al conectar el futuro backend se reemplazarán los
-arreglos constantes por datos de la API.
+### 9.2 Panel del Vendedor (`/vendedor`, solo lectura)
+- **`VendedorLayout`:** menú con **solo** "Productos" y "Órdenes", más la insignia "Vendedor · solo lectura".
+- **`ProductosVendedor`** y **`DetalleProductoVendedor`:** catálogo y ficha con el **stock** de ms-inventario.
+- **`OrdenesVendedor`** y **`DetalleOrdenVendedor`:** todas las órdenes y su detalle (`GET /api/v1/ventas/{id}`), con cliente, despacho, método de pago y líneas.
+- No hay botones de crear, editar ni borrar. Aunque alguien llamara a la API directamente, el backend responde **403** a cualquier escritura del Vendedor.
 
 ---
 
-## 10. Pruebas unitarias (Vitest)
+## 10. Pruebas (Vitest)
 
 **Configuración** (`vite.config.js`):
+- Bloque `test`: `environment: 'jsdom'`, `setupFiles: './src/setupTests.js'`, `globals: true` y `css: false`.
+- `esbuild: { jsx: 'automatic' }`.
+- Cobertura con el provider `v8`.
 
-- Bloque `test` con `environment: 'jsdom'`, `setupFiles: './src/setupTests.js'`, `globals: true` y `css: false`.
-- `esbuild: { jsx: 'automatic' }` para que los tests `.jsx` usen el runtime automático de React 19 sin importar React.
-- Cobertura con el **provider `v8`** (`@vitest/coverage-v8`) que reporta en consola, `coverage/index.html` y `coverage/lcov.info`.
+**Cómo se prueba la integración:** `vi.stubGlobal('fetch', vi.fn(...))` simula las respuestas de cada microservicio, según la URL y el método. Así se prueban el éxito y los errores (401, 403, 404, 409 y sin conexión) sin levantar el backend. `testUtils/jwt.js` genera JWT con `exp` real para probar la expiración de la sesión.
 
-**Arranque** (`src/setupTests.js`): importa `@testing-library/jest-dom` para los matchers de DOM
-(`toBeInTheDocument`, `toHaveTextContent`, `toHaveValue`, `toHaveAttribute`).
-
-**Las 10 pruebas** (agrupadas por cohesión, ver `DOCUMENTO_COBERTURA_TESTING.md`):
-
-| # | Test | Qué verifica |
-|---|---|---|
-| 1 | `validaciones.test.js` | RUN, teléfono, correo, dominio permitido y `formatearPrecio` |
-| 2 | `validaciones.test.js` | `validarFormularioRegistro` + `validarFormularioContacto` (primer error) y `leerLista`/`leerObjeto` (JSON corrupto) |
-| 3 | `carrito.test.js` | `agregarItem`/`incrementarItem` acumulan sin mutar el original (carrito) |
-| 4 | `carrito.test.js` | `decrementarItem` (elimina en 0), `eliminarItem` y `contarItems` |
-| 5 | `carrito.test.js` | `obtenerItemsCompletos` (descarta ids) y `calcularTotal` (residencial/comercial) — compras |
-| 6 | `productos.test.js` | `aplicarEdiciones`, `catalogoActual` y `productosConCreados` — CRUD |
-| 7 | `Producto.test.jsx` | props en el DOM y callback `onAgregar` (mock `vi.fn()`) |
-| 8 | `Navbar.test.jsx` | enlaces (`href`) y prop `totalItems` en el badge |
-| 9 | `Nosotros.test.jsx` | estado `useState`: expandir/contraer el blog |
-| 10 | `Login.test.jsx` | formulario interactivo: los campos se asocian por `label`, el usuario escribe (`user-event`) y el correo inválido muestra error |
-
-**Cobertura:** 100 % sentencias · 100 % ramas · 100 % funciones · 100 % líneas (módulos bajo prueba).
-Las ramas no cubiertas son defensivas (validaciones alternativas, respaldos `|| 0`, ediciones parciales) y las
-del login con credenciales válidas (se validan manualmente en el panel admin).
+**71 pruebas en 23 archivos.** El inventario completo y la cobertura están en `DOCUMENTO_COBERTURA_TESTING.md`.
 
 ---
 
@@ -361,57 +252,49 @@ del login con credenciales válidas (se validan manualmente en el panel admin).
 
 | Decisión | Por qué |
 |---|---|
-| Carrito en `App`, no en cada página | Estado compartido se centraliza en el padre ("lifting state up"). |
-| Lógica en `utils/` (pura) | Se reutiliza en varias páginas y se prueba de forma aislada. |
-| Persistencia con `localStorage` | No hay backend todavía; igual que la Versión 1, no se pierde al `F5`. |
-| Datos en `datos/productos.js` + `utils/productos.js` | Mismos 14 productos validados antes; un único punto de cambio para la futura API. |
-| Rutas anidadas + `LayoutPublico`/`AdminLayout` | Evita repetir el menú/pie y separa claramente las dos zonas. |
-| Ediciones del admin separadas de los datos base | Los productos base no se sobrescriben (`aplicarEdiciones` conserva lo no editado). |
-| Precios con `toLocaleString('es-CL')` / `formatearPrecio` | Formato de moneda chilena, consistente con la entrega anterior. |
-| Botón `-` que elimina el ítem en 0 | La cantidad nunca puede quedar negativa. |
-| 10 pruebas agrupando funciones cohesivas | Cumple el requisito de **10 pruebas** maximizando cobertura. |
+| `fetch` + `ApiError` en un único `api.js` | Un solo punto para las URLs `/api/v1` y los headers; las páginas reaccionan por código HTTP. |
+| Mensajes del backend (`lanzarError`) | El usuario ve el motivo real, por ejemplo "Stock insuficiente para: …". |
+| Sin usuarios locales en el login | La autenticación la decide siempre ms-auth (JWT). Antes, un usuario en `localStorage` podía entrar sin backend. |
+| `RutaProtegida` + expiración del JWT | Cada rol ve solo sus vistas y una sesión vencida no aparenta seguir activa. La seguridad real está en el backend. |
+| Vendedor redirigido fuera de la tienda | Requisito: "Vendedor solo ve lista y detalle de productos y órdenes, y nada más le aparece". |
+| Aviso "sin conexión" en vez de `catch(() => {})` | Antes la app caía en silencio a datos locales y parecía funcionar sin backend. |
+| Un único checkout (`/ventas`) | Antes había dos flujos distintos (Carrito y Ventas). |
+| Reintento de pago sobre la misma venta | Evita ventas duplicadas si falla solo la confirmación. |
+| Ajuste de stock por diferencia | ms-inventario expone `aumentar` y `disminuir`, no "fijar stock". |
+| Lógica en `utils/` (pura) | Se reutiliza y se prueba de forma aislada. |
 
 ---
 
 ## 12. Conceptos del curso que se ven aquí
 
-- Componentes y **props** (padre → hijo).
-- **Eventos y callbacks** (hijo → padre con `onAgregar`).
-- **Estado** con `useState` y persistencia con `useEffect` + `localStorage`.
-- **React Router**: `BrowserRouter`, `Routes`, `Route`, `Outlet` (rutas anidadas), `Link`, `useParams`,
-  `useLocation`, `useNavigate`.
-- **Formularios controlados** y validación (`preventDefault`).
-- **Renderizado condicional** (`{error && <Alert/>}`) y **listas** con `.map()` + `key`.
-- **Atomic Design** (componentes pequeños reutilizables → páginas).
-- **Diseño responsivo** con grillas de Bootstrap.
-- **Pruebas unitarias** (Vitest + React Testing Library) de funciones puras y de componentes (jest-dom + `vi.fn()`).
+- Componentes, **props** (padre → hijo) y **callbacks** (hijo → padre).
+- **Estado** con `useState`, efectos con `useEffect` (con cancelación al desmontar) y un **hook personalizado** (`useCatalogo`).
+- **React Router**: rutas anidadas, `Outlet`, `Navigate`, `useParams`, `useLocation`, `useNavigate` y estado de navegación.
+- **Formularios controlados** y validación.
+- **Consumo de APIs REST** con `fetch`, `async/await`, `Promise.all` / `allSettled` y JWT.
+- **Renderizado condicional** (spinners, avisos, errores) y **listas** con `.map()` + `key`.
+- **Pruebas** de funciones puras y componentes, con mocks (`vi.fn`, `vi.stubGlobal`).
 
 ---
 
 ## 13. Cómo correrlo
 
 ```bash
-npm.cmd install     # la primera vez
-npm.cmd run dev     # desarrollo → http://localhost:5173
-npm run lint        # oxlint: 0 errores
-npm run build       # producción → carpeta dist/
-npm test            # 10 pruebas (una sola vez)
-npm run test:watch  # pruebas en modo vigilancia
-npm run test:coverage # pruebas + cobertura en coverage/
+npm.cmd install        # la primera vez
+npm.cmd run dev        # desarrollo → http://localhost:5173 (con los microservicios levantados)
+npm run lint           # oxlint
+npm run build          # producción → dist/
+npm test               # 71 pruebas (una sola vez)
+npm run test:coverage  # pruebas + cobertura en coverage/
 ```
 
-> En PowerShell usar `npm.cmd` (la política de ejecución puede bloquear `npm.ps1`).
-> Las pruebas corren en **jsdom** (DOM simulado de Node), sin necesidad de abrir un navegador.
-
-**Credenciales de prueba (admin):** `admin@duoc.cl` / `Admin123`.
+**Credenciales de prueba:** `admin@duoc.cl` / `Admin123` · `vendedor@elvolcan.cl` / `Vendedor123` · `cliente@elvolcan.cl` / `Cliente123`.
 
 ---
 
 ## 14. Próximos pasos
 
-- Backend con **microservicios Spring Boot** (API REST/JSON) y **MySQL**: reemplazar `datos/productos.js` y
-  `localStorage` por llamadas `fetch()`.
-- **Autenticación con tokens** y **RBAC** real (roles Operadora y Repartidor), protegiendo las rutas del panel.
-- **Seguimiento de pedidos con mapas** (Leaflet / Google Maps).
-- **React Hook Form** (`react-hook-form`) para los formularios (guía 2.2.2).
-- **Despliegue en AWS EC2 con Docker + Nginx** (guía 2.1.2).
+- Pasar las URLs de la API a variables de entorno de Vite (`VITE_API_*`) para desplegar fuera de `localhost`.
+- **API Gateway** (Spring Cloud Gateway) para exponer un solo origen y simplificar CORS.
+- **Seguimiento de pedidos** con estados de despacho y mapas (Leaflet / Google Maps).
+- Despliegue del frontend y del backend en **AWS con Docker**.
