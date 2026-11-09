@@ -25,6 +25,15 @@ public class VentaResponseDTO extends RepresentationModel<VentaResponseDTO> {
     @Schema(description = "Fecha y hora en que se registró la venta")
     private LocalDateTime fechaVenta;
 
+    @Schema(description = "Dirección de despacho", example = "Av. Argentina 455")
+    private String direccion;
+
+    @Schema(description = "Comuna de despacho", example = "Chillán")
+    private String comuna;
+
+    @Schema(description = "Método de pago", example = "Efectivo")
+    private String metodoPago;
+
     @Schema(description = "Lista de productos incluidos en la venta")
     private List<DetalleVentaResponseDTO> detalles;
 }

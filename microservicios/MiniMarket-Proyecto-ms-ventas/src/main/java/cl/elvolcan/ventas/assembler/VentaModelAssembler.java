@@ -30,6 +30,9 @@ public class VentaModelAssembler extends RepresentationModelAssemblerSupport<Ven
         dto.setTotal(entity.getTotal());
         dto.setEstado(entity.getEstado());
         dto.setFechaVenta(entity.getFechaVenta());
+        dto.setDireccion(entity.getDireccion());
+        dto.setComuna(entity.getComuna());
+        dto.setMetodoPago(entity.getMetodoPago());
 
         // 3. Mapear la lista de Detalles a DetalleVentaResponseDTO
         if (entity.getDetalles() != null) {

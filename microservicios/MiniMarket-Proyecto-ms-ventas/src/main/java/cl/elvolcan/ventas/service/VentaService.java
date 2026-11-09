@@ -110,6 +110,9 @@ public class VentaService {
         } catch (Exception ignored) {
         }
         venta.setEstado(Venta.EstadoVenta.PENDIENTE_PAGO);
+        venta.setDireccion(requestDTO.getDireccion());
+        venta.setComuna(requestDTO.getComuna());
+        venta.setMetodoPago(requestDTO.getMetodoPago());
         double totalVenta = 0.0;
         List<DetalleVenta> detalles = new ArrayList<>();
 

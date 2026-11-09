@@ -90,6 +90,9 @@ class VentaServiceTest {
 
         VentaRequestDTO request = new VentaRequestDTO();
         request.setDetalles(List.of(detalleDTO));
+        request.setDireccion("Av. Argentina 455");
+        request.setComuna("Chillán");
+        request.setMetodoPago("Efectivo");
 
         ProductoDTO productoMock = new ProductoDTO();
         productoMock.setId(10L);
@@ -120,7 +123,10 @@ class VentaServiceTest {
         // Then
         assertNotNull(resultado);
         assertEquals(3000.0, resultado.getTotal());
-        verify(ventaRepository).save(any(Venta.class));
+        // la venta se guarda con los datos de despacho y pago del checkout
+        verify(ventaRepository).save(argThat(v -> "Av. Argentina 455".equals(v.getDireccion())
+                && "Chillán".equals(v.getComuna())
+                && "Efectivo".equals(v.getMetodoPago())));
     }
 
     @Test

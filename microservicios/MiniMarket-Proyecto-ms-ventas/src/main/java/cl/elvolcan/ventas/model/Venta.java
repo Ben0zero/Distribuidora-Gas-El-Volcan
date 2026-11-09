@@ -29,6 +29,16 @@ public class Venta {
     @Column(name = "fecha_venta")
     private LocalDateTime fechaVenta;
 
+    // Datos de despacho y pago ingresados en el checkout del frontend
+    @Column(name = "direccion", length = 200)
+    private String direccion;
+
+    @Column(name = "comuna", length = 80)
+    private String comuna;
+
+    @Column(name = "metodo_pago", length = 20)
+    private String metodoPago;
+
     // Relación 1 a Muchos: Una venta tiene muchos detalles (productos)
     @OneToMany(mappedBy = "venta", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<DetalleVenta> detalles = new ArrayList<>();
