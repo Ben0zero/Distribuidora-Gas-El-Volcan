@@ -17,7 +17,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/productos")
+@RequestMapping("/api/v1/productos")
 @RequiredArgsConstructor
 @Tag(name = "Catálogo de Productos", description = "Endpoints para gestionar los productos de la tienda. Requieren token JWT.")
 public class ProductoController {

@@ -9,9 +9,9 @@ import org.springframework.web.bind.annotation.RequestHeader;
 @FeignClient(name = "ms-catalogoProductos")
 public interface CatalogoClient {
 
-    @GetMapping("/api/productos/id/{id}")
+    @GetMapping("/api/v1/productos/id/{id}")
     ProductoDTO obtenerProductoPorId(@RequestHeader("Authorization") String token, @PathVariable("id") Long id);
 
-    @GetMapping("/api/productos/{sku}")
+    @GetMapping("/api/v1/productos/{sku}")
     ProductoDTO obtenerProductoPorSku(@RequestHeader("Authorization") String token, @PathVariable("sku") String sku);
 }

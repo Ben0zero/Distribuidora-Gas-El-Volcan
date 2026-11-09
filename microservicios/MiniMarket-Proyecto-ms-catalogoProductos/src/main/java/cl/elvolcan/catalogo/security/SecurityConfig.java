@@ -35,7 +35,8 @@ public class SecurityConfig {
                     "/swagger-ui/**",
                     "/swagger-ui.html"
                 ).permitAll()
-                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/productos/**").permitAll()
+                // El catálogo es público para la tienda (solo lectura) en ambas versiones de la API
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/productos/**", "/api/v2/productos/**").permitAll()
                 // Todo el resto de la API requiere token
                 .anyRequest().authenticated()
             );
