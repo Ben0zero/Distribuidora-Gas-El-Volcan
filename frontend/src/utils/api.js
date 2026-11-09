@@ -2,6 +2,7 @@ const API_AUTH = 'http://localhost:8081/api/v1/auth'
 const API_CATALOGO = 'http://localhost:8082/api/v1/productos'
 const API_INVENTARIO = 'http://localhost:8084/api/v1/inventario'
 const API_VENTAS = 'http://localhost:8086/api/v1/ventas'
+const API_USUARIOS = 'http://localhost:8081/api/v1/usuarios'
 
 export function getToken() {
   try {
@@ -160,5 +161,14 @@ export async function listarVentas() {
 export async function obtenerVenta(id) {
   const res = await fetch(`${API_VENTAS}/${id}`, { headers: authHeaders() })
   if (!res.ok) await lanzarError(res, 'No se pudo obtener la orden')
+  return res.json()
+}
+
+// ---------- Usuarios (solo ADMIN) ----------
+
+// Lista de usuarios de ms-auth: { id, nombre, rut, username, rol: { nombreRol }, comuna, tipoCliente, ... }
+export async function listarUsuarios() {
+  const res = await fetch(API_USUARIOS, { headers: authHeaders() })
+  if (!res.ok) await lanzarError(res, 'No se pudieron obtener los usuarios')
   return res.json()
 }

@@ -1,21 +1,37 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Table } from 'react-bootstrap'
-import { ADMIN_DEFAULT, CLAVES, leerLista } from '../../utils/validaciones'
+import { Table, Alert, Spinner } from 'react-bootstrap'
+import { listarUsuarios } from '../../utils/api'
+import { rolDesdeApi, ROLES } from '../../utils/sesion'
 
-const FILTROS = ['Todos los usuarios', 'Administradores', 'Clientes', 'Vendedores']
+const FILTROS = {
+  'Todos los usuarios': null,
+  Administradores: ROLES.ADMIN,
+  Clientes: ROLES.CLIENTE,
+  Vendedores: ROLES.VENDEDOR,
+}
 
+// Usuarios registrados en ms-auth (GET /api/v1/usuarios, solo ADMIN)
 function ListaUsuarios() {
   const [filtro, setFiltro] = useState('Todos los usuarios')
+  const [usuarios, setUsuarios] = useState(null) // null = cargando
+  const [error, setError] = useState('')
 
-  const usuarios = [ADMIN_DEFAULT, ...leerLista(CLAVES.usuarios)]
+  useEffect(() => {
+    let activo = true
+    listarUsuarios()
+      .then((data) => activo && setUsuarios(data.map((u) => ({ ...u, rol: rolDesdeApi(u.rol?.nombreRol) }))))
+      .catch((e) => {
+        if (!activo) return
+        setUsuarios([])
+        setError(e.message || 'No se pudieron cargar los usuarios.')
+      })
+    return () => {
+      activo = false
+    }
+  }, [])
 
-  const filtrados = usuarios.filter((u) => {
-    if (filtro === 'Administradores') return u.rol === 'Administrador'
-    if (filtro === 'Clientes') return u.rol === 'Cliente'
-    if (filtro === 'Vendedores') return u.rol === 'Vendedor'
-    return true
-  })
+  const filtrados = (usuarios || []).filter((u) => !FILTROS[filtro] || u.rol === FILTROS[filtro])
 
   return (
     <>
@@ -43,7 +59,7 @@ function ListaUsuarios() {
           onChange={(e) => setFiltro(e.target.value)}
           aria-label="Filtrar por rol"
         >
-          {FILTROS.map((f) => (
+          {Object.keys(FILTROS).map((f) => (
             <option key={f} value={f}>
               {f}
             </option>
@@ -51,15 +67,22 @@ function ListaUsuarios() {
         </select>
       </div>
 
+      {error && <Alert variant="danger">{error}</Alert>}
+      {usuarios === null && (
+        <Spinner animation="border" role="status">
+          <span className="visually-hidden">Cargando usuarios…</span>
+        </Spinner>
+      )}
+
       <div className="table-responsive border border-2">
         <Table hover striped className="align-middle mb-0">
           <thead className="table-light border-bottom border-2 border-dark">
             <tr>
-              <th className="py-3">Fecha Registro</th>
               <th className="py-3">RUN</th>
               <th className="py-3">Nombre Completo</th>
+              <th className="py-3">Correo (usuario)</th>
               <th className="py-3">Rol</th>
-              <th className="py-3">Estado</th>
+              <th className="py-3">Comuna</th>
             </tr>
           </thead>
           <tbody>
@@ -70,13 +93,13 @@ function ListaUsuarios() {
                 </td>
               </tr>
             ) : (
-              filtrados.map((u, i) => (
-                <tr key={`${u.correo || u.email}-${i}`}>
-                  <td className="py-3">{u.fecha || '-'}</td>
-                  <td className="py-3">{u.run || '-'}</td>
+              filtrados.map((u) => (
+                <tr key={u.id}>
+                  <td className="py-3">{u.rut || '-'}</td>
                   <td className="py-3">{u.nombre || '-'}</td>
-                  <td className="py-3">{u.rol || 'Cliente'}</td>
-                  <td className="py-3">{u.estado || 'Activo'}</td>
+                  <td className="py-3">{u.username}</td>
+                  <td className="py-3">{u.rol}</td>
+                  <td className="py-3">{u.comuna || '-'}</td>
                 </tr>
               ))
             )}
