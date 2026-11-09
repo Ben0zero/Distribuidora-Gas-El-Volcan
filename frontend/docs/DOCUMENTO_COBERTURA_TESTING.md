@@ -45,6 +45,7 @@ En EP3 el frontend dejó de usar `localStorage` y consume los microservicios. Po
 | **Spring MockMvc** (`@WebMvcTest`) | Pruebas de la capa web con la configuración de seguridad **real** y sin base de datos |
 | **spring-security-test** (`@WithMockUser`) | Simula un usuario autenticado con un rol |
 | **Jakarta Validation** | Prueba directa de las anotaciones de los DTOs |
+| **JaCoCo** 0.8.13 | Cobertura del backend (`target/site/jacoco/index.html`, se genera con `mvnw test`) |
 
 **Entorno:** Java 21 · Spring Boot 4.0.6 · Maven Wrapper.
 
@@ -70,8 +71,9 @@ npm test                 # 71 pruebas
 npm run test:coverage    # + reporte en coverage/index.html y coverage/lcov.info
 
 # Backend (en cada microservicio)
-.\mvnw test "-Dtest=!*ApplicationTests"   # 71 pruebas sin base de datos
+.\mvnw test "-Dtest=!*ApplicationTests"   # 72 pruebas sin base de datos + reporte JaCoCo
 .\mvnw test                               # todo, con Oracle Cloud activo
+# reporte de cobertura: target/site/jacoco/index.html
 ```
 
 ---
@@ -106,7 +108,7 @@ npm run test:coverage    # + reporte en coverage/index.html y coverage/lcov.info
 | `pages/admin/NuevoUsuario.test.jsx` | 4 | Alta de Vendedor con correo @elvolcan.cl; 409; validación previa | CRUD + API |
 | `pages/admin/ClientesReportes.test.jsx` | 2 | Clientes reales y mejores clientes; reportes y exportación CSV | Admin + API |
 
-### 4.2 Backend: 71 pruebas en 14 clases (sin base de datos)
+### 4.2 Backend: 72 pruebas en 14 clases (sin base de datos)
 
 | Microservicio | Clase | N.º | Qué verifica |
 |---|---|---|---|
@@ -123,7 +125,7 @@ npm run test:coverage    # + reporte en coverage/index.html y coverage/lcov.info
 | ms-inventario | `InventarioSeguridadTest` | 4 | VENDEDOR lee y recibe 403 al modificar; ADMIN modifica; sin token → 401 |
 | ms-ventas | `VentaServiceTest` | 10 | Crear venta (con despacho); sin stock; confirmar pago; **venta ajena → 403** (cliente y vendedor); ADMIN confirma; detalle por rol; 404 |
 | ms-ventas | `VentaRequestDTOTest` | 3 | Dirección, comuna y método de pago obligatorios; solo Efectivo o Tarjeta |
-| ms-ventas | `VentaSeguridadTest` | 3 | VENDEDOR lee órdenes y recibe 403 al comprar, confirmar o usar mis-compras; CLIENTE compra y recibe 403 al listar todas |
+| ms-ventas | `VentaSeguridadTest` | 4 | VENDEDOR lee órdenes y recibe 403 al comprar, confirmar o usar mis-compras; CLIENTE compra y recibe 403 al listar todas; **sin token → 401** |
 
 Además, cada microservicio tiene su `*ApplicationTests` (`@SpringBootTest`, carga del contexto completo), que se ejecuta con la BD activa.
 
@@ -144,20 +146,22 @@ Además, cada microservicio tiene su `*ApplicationTests` (`@SpringBootTest`, car
 | ms-auth | 23 | 0 |
 | ms-catalogoProductos | 16 | 0 |
 | ms-inventario | 16 | 0 |
-| ms-ventas | 16 | 0 |
-| **Total** | **71** | **0** |
+| ms-ventas | 17 | 0 |
+| **Total** | **72** | **0** |
 
 | Indicador | Valor |
 |---|---|
-| Pruebas ejecutadas (front + back) | **142** |
-| Pruebas exitosas | **142** |
+| Pruebas ejecutadas (front + back) | **143** |
+| Pruebas exitosas | **143** |
 | Pruebas fallidas | **0** |
 
 > Los avisos `404: /IMAGENES/...` que pueden aparecer en el frontend **no son errores**: jsdom no sirve las imágenes de `public/`.
 
 ---
 
-## 6. Reporte de cobertura (frontend)
+## 6. Reporte de cobertura
+
+### 6.1 Frontend (Vitest + V8)
 
 Desde EP3 la cobertura se mide sobre **todo el código fuente de `src/`**, no solo sobre los módulos que tienen pruebas como en EP2. Se excluyen solo los tests, `setupTests.js`, `testUtils/` y `main.jsx`. Así el porcentaje muestra también el código que **no** está probado.
 
@@ -176,9 +180,33 @@ Desde EP3 la cobertura se mide sobre **todo el código fuente de `src/`**, no so
 
 **Archivos sin pruebas (0 %):** `App.jsx` (definición de rutas), `AdminLayout.jsx`, `ProductosVendedor.jsx` y las páginas informativas sin lógica (`Inicio`, `Productos`, `Consejos`, `Tiendas`, `Contacto`).
 
-### Backend
+### 6.2 Backend (JaCoCo)
 
-Los microservicios no tienen configurado un medidor de cobertura (JaCoCo): para el backend se reporta el **inventario de pruebas por clase y regla** (sección 4.2). Ver la recomendación en la sección 9.
+Se midió con **JaCoCo 0.8.13** con las 72 pruebas **sin base de datos** (`mvnw test "-Dtest=!*ApplicationTests"`). Se excluye solo la clase `*Application` (el `main` que arranca Spring).
+
+| Microservicio | % Líneas | % Ramas | % Instrucciones |
+|---|---|---|---|
+| ms-auth | 53,2 (194/365) | 38,7 | 51,4 |
+| ms-catalogoProductos | 55,6 (150/270) | 34,8 | 56,7 |
+| ms-inventario | 57,0 (151/265) | 46,4 | 54,4 |
+| ms-ventas | 46,2 (135/292) | 34,5 | 49,2 |
+| **Total backend** | **52,9 (630/1192)** | **37,1 (89/240)** | — |
+
+**Por capa** (sumando los 4 servicios):
+
+| Capa | % Líneas | Comentario |
+|---|---|---|
+| `service` (lógica de negocio) | **86,4** | Reglas de venta, dueño de la venta, registro CLIENTE, CRUD de usuarios y productos, stock |
+| `dto` | 100 | Validaciones de los DTOs |
+| `config` | 50,2 | `CorsConfig` y semillas probadas; `SwaggerConfig`, la semilla de auth y `ResetAuthDataConfig` no |
+| `security` | 43,0 | Reglas de rol probadas con `@WebMvcTest`; filtros JWT con token real e interceptores Feign no |
+| `exception` | 35,8 | Se prueban 400 / 401 / 403 / 404 / 409; otros handlers (Feign, JSON mal formado) no |
+| `controller` | 15,5 | Los **V1** se recorren en los `@WebMvcTest`; los **V2 (HATEOAS)** no tienen pruebas propias |
+| `assembler(s)` | 0 | Enlaces HATEOAS: solo se ejecutan en la V2 |
+
+**Clases sin cobertura (0 %):** los 4 `*ControllerV2` y sus assemblers, los 4 `SwaggerConfig`, `DataInitializer` y `ResetAuthDataConfig` de ms-auth, los interceptores Feign (`FeignConfig` / `FeignInterceptor`) y `ErrorResponse`.
+
+> El porcentaje es menor que en el frontend porque las pruebas del backend se concentraron en la **lógica de negocio y la seguridad**, que es donde se arreglaron los problemas de EP3. La infraestructura (Swagger, Feign, arranque) y la V2 se ejecutan en los `@SpringBootTest` y en las pruebas manuales con la base activa.
 
 ---
 
@@ -211,15 +239,16 @@ El 79 % global **incluye** archivos sin lógica que no se probaron a propósito,
 
 ## 8. Conclusiones
 
-- Las **142 pruebas** (71 de frontend y 71 de backend) pasan sin fallos y no requieren la base de datos.
+- Las **143 pruebas** (71 de frontend y 72 de backend) pasan sin fallos y no requieren la base de datos.
 - La lógica de negocio del frontend está prácticamente cubierta por completo (**99 %** en `utils/`), y los flujos de compra, autenticación y administración tienen pruebas de éxito y de error.
 - Las reglas críticas del enunciado están probadas en el backend con su configuración real: el **Vendedor de solo lectura**, el **Cliente que solo accede a sus compras**, el **registro que nunca otorga privilegios**, la **validación del despacho** y los **duplicados con 409**.
+- En el backend, JaCoCo reporta **52,9 % de líneas** en total y **86,4 % en la capa de servicios**. La brecha está en la V2 (HATEOAS) y en la infraestructura, que se valida con los `@SpringBootTest` y las pruebas manuales.
 
 ---
 
 ## 9. Recomendaciones / trabajo futuro
 
-1. **JaCoCo** en los microservicios (`jacoco-maven-plugin`) para reportar también la cobertura de líneas del backend.
+1. Pruebas `@WebMvcTest` de los **controladores V2 (HATEOAS)**, que verifiquen `_links` y `_embedded`. Es la mayor brecha de cobertura del backend.
 2. Pruebas de **render** de `App.jsx` (navegación completa por rol) y de las páginas informativas.
 3. Pruebas **end-to-end** (por ejemplo, Playwright) contra los microservicios levantados, que automaticen el flujo de compra del manual de usuario.
 4. Ejecutar los `@SpringBootTest` en un pipeline con una base de datos de pruebas (por ejemplo, Testcontainers con Oracle XE o un perfil con H2).
@@ -240,5 +269,6 @@ Functions    : 83.62% ( 143/171 )
 Lines        : 79.13% ( 3308/4180 )
 
 $ .\mvnw test "-Dtest=!*ApplicationTests"   # en cada microservicio
-ms-auth 23 · ms-catalogoProductos 16 · ms-inventario 16 · ms-ventas 16  →  71 pruebas, 0 fallos
+ms-auth 23 · ms-catalogoProductos 16 · ms-inventario 16 · ms-ventas 17  →  72 pruebas, 0 fallos
+JaCoCo (total backend): líneas 52,9 % (630/1192) · ramas 37,1 % (89/240) · capa service 86,4 %
 ```

@@ -168,6 +168,8 @@ cd MiniMarket-Proyecto-ms-ventas
 .\mvnw test                               # todo, incluido @SpringBootTest (requiere Oracle Cloud activo)
 ```
 
+Cada `mvnw test` genera además el reporte de cobertura **JaCoCo** en `target/site/jacoco/index.html`.
+
 | Servicio | Qué cubren |
 |---|---|
 | ms-auth | Login y registro (rol CLIENTE forzado, 409); CRUD de usuarios con DTO; CORS; códigos HTTP del controlador; 403 para no-ADMIN |
