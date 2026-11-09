@@ -19,21 +19,14 @@ export default defineConfig({
     globals: true,
     css: false,
 
-    // Cobertura (v8, igual que la reportada en el documento de testing).
-    // Se reportan SOLO los módulos que participan en las pruebas; así el %
-    // refleja realmente la porción de código protegida por los tests
-    // (mismo criterio que el karma con includeAllSources: false).
+    // Cobertura (v8). Desde la V3 se mide TODO el código fuente de src/
+    // (también los archivos que ninguna prueba toca), para que el % sea honesto.
+    // Se excluyen solo las pruebas y el arranque de la app.
     coverage: {
       provider: 'v8',
       reporter: ['text', 'text-summary', 'html', 'lcov'],
-      include: [
-        'src/utils/**',
-        'src/components/Navbar.jsx',
-        'src/components/Producto.jsx',
-        'src/pages/Login.jsx',
-        'src/pages/Nosotros.jsx',
-        'src/datos/productos.js',
-      ],
+      include: ['src/**/*.{js,jsx}'],
+      exclude: ['src/**/*.test.{js,jsx}', 'src/setupTests.js', 'src/testUtils/**', 'src/main.jsx'],
     },
   },
 })
