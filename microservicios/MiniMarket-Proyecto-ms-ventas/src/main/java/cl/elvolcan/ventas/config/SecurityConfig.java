@@ -3,6 +3,7 @@ package cl.elvolcan.ventas.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -31,6 +32,7 @@ public class SecurityConfig {
         http
             // Desactiva CSRF (Protección contra falsificación) ya que trabajamos con APIs REST y Tokens
             .csrf(AbstractHttpConfigurer::disable)
+            .cors(Customizer.withDefaults()) // usa el bean CorsConfigurationSource (CorsConfig)
 
             // Configura las políticas de acceso a las URLs
             .authorizeHttpRequests(auth -> auth
