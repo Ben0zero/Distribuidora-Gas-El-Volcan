@@ -1,37 +1,55 @@
 # Distribuidora de Gas El Volcán
 
-Sistema de microservicios para la gestión de ventas, catálogo, inventario y autenticación de la Distribuidora de Gas El Volcán. Proyecto adaptado desde un template MiniMarket a un sistema orientado a la distribución de cilindros de gas.
+Sistema web de venta y distribución de cilindros de gas y accesorios en la Región de Ñuble. Es el proyecto semestral de **DSY1104 — Desarrollo Full Stack II (Duoc UC)**.
+
+Está formado por **4 microservicios Spring Boot + Eureka Server**, que se comunican por REST y OpenFeign, usan JWT y guardan los datos en Oracle Cloud. El frontend es **React** y consume esos microservicios.
+
+> El backend partió de un template "MiniMarket" y fue adaptado a El Volcán. `ms-produccion` (puerto 8083) es un resto de ese template: **queda fuera del alcance** de la Evaluación Parcial 3 y no lo levantan los scripts.
 
 ## Arquitectura
 
-La solución está compuesta por **5 microservicios + Eureka Server** con comunicación REST y Feign Client, autenticación JWT y base de datos Oracle Cloud.
+| Microservicio | Puerto | Nombre en Eureka | Responsabilidad |
+|---|---|---|---|
+| **eureka-server** | 8761 | — | Service Discovery (Netflix Eureka) |
+| **ms-auth** | 8081 | `MS-AUTH` | Login (JWT), registro de clientes y CRUD de usuarios (ADMIN) |
+| **ms-catalogoProductos** | 8082 | `MS-CATALOGOPRODUCTOS` | Catálogo con precio residencial y comercial, más imagen; lectura pública |
+| **ms-inventario** | 8084 | `MS-INVENTARIO` | Stock por SKU y alerta de stock crítico |
+| **ms-ventas** | 8086 | `MS-VENTAS` | Ventas con despacho y método de pago, confirmación de pago, historial por usuario |
 
-| Microservicio | Puerto | Descripción |
-|---|---|---|
-| **eureka-server** | 8761 | Service Discovery (Netflix Eureka) |
-| **ms-auth** | 8081 | Autenticación, registro de usuarios y generación de tokens JWT |
-| **ms-catalogoProductos** | 8082 | Catálogo de productos de gas con doble precio (Residencial / Comercial) |
-| **ms-inventario** | 8084 | Control de stock con alertas de stock crítico |
-| **ms-ventas** | 8086 | Gestión de ventas, carrito, confirmación de pago e historial de compras por usuario |
+**Integración entre servicios (Feign + Eureka):**
+- `ms-ventas` consulta `ms-catalogoProductos` (precio) y `ms-inventario` (stock) al crear una venta, y descuenta el stock al confirmar el pago.
+- `ms-catalogoProductos` crea el registro de inventario de cada producto nuevo.
+
+**Versionado de la API:** todas las rutas están versionadas.
+- `/api/v1/...` es REST con DTOs.
+- `/api/v2/...` devuelve las mismas operaciones con hipermedia (HATEOAS).
+
+En cada Swagger se elige el grupo **"API v1 (REST)"** o **"API v2 (HATEOAS)"**.
 
 ## Tecnologías
 
-- **Backend:** Java 17, Spring Boot 3.5.x, Spring Cloud 2025
-- **Seguridad:** Spring Security + JWT
-- **Comunicación:** OpenFeign, Eureka Client/Server
-- **Base de datos:** Oracle Cloud (Wallet)
-- **Frontend:** React + Vite + Bootstrap
-- **Documentación:** Swagger/OpenAPI
+| Capa | Tecnología |
+|---|---|
+| Backend | Java 21 · Spring Boot 4.0.6 · Spring Cloud 2025.1.1 (Eureka, OpenFeign) · Spring Data JPA |
+| Seguridad | Spring Security · JWT (jjwt 0.11.5) · BCrypt · CORS configurable |
+| Base de datos | Oracle Autonomous Database (Oracle Cloud) con Wallet |
+| Documentación API | springdoc-openapi 3.0.2 (Swagger UI, grupos v1/v2) |
+| Frontend | React 19.2 · Vite 8.3 · React Bootstrap 2.10 · React Router 7.18 · `fetch` nativo (sin Axios) |
+| Pruebas | JUnit 5 + Mockito + `@WebMvcTest` (backend) · Vitest 3.2 + Testing Library (frontend) |
 
 ## Roles
 
-| Rol | Permisos |
-|---|---|
-| **ADMIN** | Acceso total a todos los microservicios |
-| **VENDEDOR** | Gestión de ventas e inventario |
-| **CLIENTE** | Ver catálogo, crear sus propias compras, ver "Mis compras" |
+La autorización se aplica **en el backend** (JWT + `@PreAuthorize` / reglas de `SecurityConfig`). El frontend además oculta las vistas que no corresponden a cada rol.
 
-## Credenciales de Prueba
+| Rol | Qué puede hacer |
+|---|---|
+| **ADMIN** | Acceso total: CRUD de productos e inventario, CRUD de usuarios (elige el rol), todas las órdenes, dashboard, clientes y reportes. |
+| **VENDEDOR** | **Solo lectura:** lista y detalle de productos, y lista y detalle de órdenes (panel `/vendedor`). No compra ni modifica nada; la tienda no le aparece. |
+| **CLIENTE** | Solo la tienda: catálogo, carrito, compra (`/ventas`) y "Mis compras". Solo puede ver y pagar **sus** órdenes. |
+
+El registro público (`POST /api/v1/auth/register`) **siempre** crea usuarios CLIENTE. Los Vendedores y Administradores los crea un ADMIN desde el panel.
+
+## Credenciales de prueba (semilla de ms-auth)
 
 | Usuario | Contraseña | Rol |
 |---|---|---|
@@ -39,66 +57,107 @@ La solución está compuesta por **5 microservicios + Eureka Server** con comuni
 | `vendedor@elvolcan.cl` | `Vendedor123` | VENDEDOR |
 | `cliente@elvolcan.cl` | `Cliente123` | CLIENTE |
 
-## URLs Importantes
+## Cómo levantar el proyecto
+
+### 1) Secretos (una sola vez)
+
+Las credenciales **no están en el repositorio**. Cada microservicio las lee de un archivo externo:
+
+1. Copia `microservicios/secrets.example.properties` a `%USERPROFILE%\.elvolcan\secrets.properties`.
+2. Completa `DB_PASSWORD`, `ORACLE_WALLET_DIR` (la carpeta donde descomprimiste el Wallet) y `JWT_SECRET`. Este último debe tener al menos 32 caracteres y ser **el mismo en todos los servicios**.
+
+### 2) Microservicios
+
+Desde `microservicios/` (Windows PowerShell):
+
+```powershell
+# Revisa los requisitos (Java, secretos, Wallet, puertos) sin levantar nada
+powershell -ExecutionPolicy Bypass -File .\levantar-servicios.ps1 -Verificar
+
+# Levanta Eureka + los 4 microservicios y espera su registro en Eureka
+powershell -ExecutionPolicy Bypass -File .\levantar-servicios.ps1
+
+# Primer arranque con una BD que tenga datos antiguos: recarga los 14 productos de El Volcán
+powershell -ExecutionPolicy Bypass -File .\levantar-servicios.ps1 -ReiniciarSemilla
+
+# Detener todo
+powershell -ExecutionPolicy Bypass -File .\detener-servicios.ps1
+```
+
+Para levantarlos a mano, el orden es: `eureka-server` → `ms-auth` → `ms-inventario` → `ms-catalogoProductos` → `ms-ventas`. En cada carpeta se ejecuta `.\mvnw spring-boot:run`.
+
+### 3) Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev        # http://localhost:5173
+```
+
+## URLs
 
 | Servicio | URL |
 |---|---|
-| **Eureka Dashboard** | [http://localhost:8761](http://localhost:8761) |
-| **Frontend React** | [http://127.0.0.1:5174](http://127.0.0.1:5174) |
-| **Swagger ms-auth** | [http://localhost:8081/swagger-ui/index.html](http://localhost:8081/swagger-ui/index.html) |
-| **Swagger ms-catalogoProductos** | [http://localhost:8082/swagger-ui/index.html](http://localhost:8082/swagger-ui/index.html) |
-| **Swagger ms-inventario** | [http://localhost:8084/swagger-ui/index.html](http://localhost:8084/swagger-ui/index.html) |
-| **Swagger ms-ventas** | [http://localhost:8086/swagger-ui/index.html](http://localhost:8086/swagger-ui/index.html) |
+| Eureka Dashboard | http://localhost:8761 |
+| Frontend | http://localhost:5173 |
+| Swagger ms-auth | http://localhost:8081/swagger-ui/index.html |
+| Swagger ms-catalogoProductos | http://localhost:8082/swagger-ui/index.html |
+| Swagger ms-inventario | http://localhost:8084/swagger-ui/index.html |
+| Swagger ms-ventas | http://localhost:8086/swagger-ui/index.html |
 
-## Levantar el Proyecto
+En Swagger, primero se hace `POST /api/v1/auth/login`, luego se presiona **Authorize** y se pega el token (sin la palabra `Bearer`).
 
-### 1) Microservicios
-Desde la carpeta `microservicios/` puedes usar los scripts incluidos:
+## Flujo de prueba completo
 
-```bash
-# Levantar todos los servicios
-.\levantar-servicios.ps1
+1. **Eureka:** los 4 servicios aparecen `UP`.
+2. **Registro / login:** crear una cuenta en `/registro` (queda como CLIENTE) e iniciar sesión.
+3. **Catálogo:** `/productos` muestra los 14 productos desde `ms-catalogoProductos`.
+4. **Compra:** carrito → "Ir a pagar" → dirección, comuna y método de pago → `POST /api/v1/ventas` y `PUT /api/v1/ventas/{id}/confirmar`. El stock baja en `ms-inventario`.
+5. **Mis compras:** `/mis-compras` lista la orden como "Pagada".
+6. **Vendedor:** con `vendedor@elvolcan.cl`, el panel `/vendedor` muestra la orden y su detalle (solo lectura).
+7. **Admin:** con `admin@duoc.cl`, Inventario (CRUD), Órdenes, Usuarios (crear un Vendedor), Clientes y Reportes con datos reales.
 
-# Detener todos los servicios
-.\detener-servicios.ps1
-```
-
-O levantar manualmente en orden: `eureka-server` → `ms-auth` → `ms-catalogoProductos` → `ms-inventario` → `ms-ventas`
-
-### 2) Frontend
-Desde la carpeta `frontend/`:
+## Pruebas
 
 ```bash
-npm install
-npm run dev
+# Backend: pruebas que no necesitan base de datos (servicio, DTOs, seguridad por rol con @WebMvcTest)
+cd microservicios/MiniMarket-Proyecto-ms-ventas
+.\mvnw test "-Dtest=!*ApplicationTests"
+
+# Backend completo (incluye @SpringBootTest: requiere la BD de Oracle Cloud activa)
+.\mvnw test
+
+# Frontend
+cd frontend
+npm test                 # Vitest
+npm run test:coverage    # reporte de cobertura en frontend/coverage/
+npm run lint             # oxlint
 ```
 
-El frontend quedará disponible en `http://127.0.0.1:5174`
+## Documentación
 
-## Flujo de Prueba Completo
+| Documento | Ubicación |
+|---|---|
+| Plan de trabajo de la Evaluación Parcial 3 | `docs/PLAN_EVALUACION3.md` |
+| Anexos de la evaluación (APIs, integración, manual) | `docs/parcial3/` |
+| ERS, documentación técnica, cobertura y despliegue del frontend | `frontend/docs/` |
+| Guía del backend (endpoints, seguridad, pruebas en Swagger) | `microservicios/README.md` |
 
-1. **Eureka** - Verificar que todos los servicios estén en estado `UP`
-2. **Login** - Ingresar con `cliente@elvolcan.cl` / `Cliente123` desde el frontend o `POST /api/auth/login`
-3. **Catálogo** - Ver productos de gas con precios residenciales/comerciales desde `ms-catalogoProductos`
-4. **Comprar** - Agregar al carrito, finalizar compra → Se crea la venta en `ms-ventas`, valida stock en `ms-inventario` y consulta precios en `ms-catalogoProductos`
-5. **Confirmar Pago** - Al confirmar se descuenta el stock automáticamente usando token interno
-6. **Mis Compras** - Ver historial filtrado por usuario con `GET /api/ventas/mis-compras`
-
-## Novedades Versión 3
-
-- **Adaptación completa a El Volcán:** Paquetes renombrados a `cl.elvolcan.*`, roles unificados (ADMIN/VENDEDOR/CLIENTE), productos de gas con doble precio
-- **ms-ventas mejorado:** Campo `usuario` en ventas, endpoint `GET /api/ventas/mis-compras`, seguridad por roles corregida
-- **Comunicación entre microservicios:** Token interno para operaciones entre servicios, Feign configurado correctamente
-- **Frontend integrado:** Login con `ms-auth`, catálogo desde `ms-catalogoProductos`, carrito conectado con `ms-ventas`, historial de compras desde API
-- **Catálogo público:** `GET /api/productos` accesible sin autenticación para visualizar productos en la tienda
-- **Inventario conectado:** Panel admin obtiene stock desde `ms-inventario`
-
-## Estructura del Repositorio
+## Estructura del repositorio
 
 ```text
 Distribuidora-Gas-El-Volcan/
-├── microservicios/        # Todos los microservicios Spring Boot
-├── frontend/              # Aplicación React + Vite
-├── Version 1/             # Versiones anteriores
-└── Version 2/
+├── microservicios/                  # Backend (Spring Boot)
+│   ├── MiniMarket-Proyecto-ms-eureka/
+│   ├── MiniMarket-Proyecto-ms-auth/
+│   ├── MiniMarket-Proyecto-ms-catalogoProductos/
+│   ├── MiniMarket-Proyecto-ms-inventario/
+│   ├── MiniMarket-Proyecto-ms-ventas/
+│   ├── MiniMarket-Proyecto-ms-produccion/   # fuera del alcance (template)
+│   ├── secrets.example.properties
+│   ├── levantar-servicios.ps1 / detener-servicios.ps1
+├── frontend/                        # React + Vite (versión actual, conectada a la API)
+├── docs/                            # Plan y anexos de la Evaluación Parcial 3
+├── Version 1/                       # Entrega 1: HTML + CSS + JS
+└── Version 2/                       # Entrega 2: React con localStorage
 ```
