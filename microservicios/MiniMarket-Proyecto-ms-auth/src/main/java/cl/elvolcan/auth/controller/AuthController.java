@@ -3,61 +3,43 @@ package cl.elvolcan.auth.controller;
 import cl.elvolcan.auth.dto.LoginRequestDTO;
 import cl.elvolcan.auth.dto.RegistroRequestDTO;
 import cl.elvolcan.auth.dto.UsuarioResponseDTO;
-import cl.elvolcan.auth.model.Usuario;
-import cl.elvolcan.auth.repository.UsuarioRepository;
-import cl.elvolcan.auth.security.jwt.JwtUtil;
 import cl.elvolcan.auth.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.HashMap;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/auth")
 @Tag(name = "Autenticación", description = "Endpoints para inicio de sesión, registro y generación de tokens JWT")
 public class AuthController {
 
-    private final AuthenticationManager authenticationManager;
-    private final JwtUtil jwtUtil;
-    private final UsuarioRepository usuarioRepository;
     private final AuthService authService;
 
-    public AuthController(AuthenticationManager authenticationManager, JwtUtil jwtUtil, UsuarioRepository usuarioRepository, AuthService authService) {
-        this.authenticationManager = authenticationManager;
-        this.jwtUtil = jwtUtil;
-        this.usuarioRepository = usuarioRepository;
+    public AuthController(AuthService authService) {
         this.authService = authService;
     }
 
-    @Operation(summary = "Iniciar sesión", description = "Recibe credenciales válidas y devuelve un token JWT con los roles del usuario.")
+    @Operation(summary = "Iniciar sesión",
+            description = "Valida las credenciales y devuelve el token JWT junto con los datos del usuario "
+                    + "(nombre, nombreRol, tipoCliente, dirección...), para que el frontend sepa su rol.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Login correcto: token + datos del usuario"),
+        @ApiResponse(responseCode = "401", description = "Usuario o contraseña incorrectos")
+    })
     @SecurityRequirements() // Indica a Swagger que esta ruta es publica (sin candado)
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequestDTO loginRequest) {
-        // validar credenciales
-        authenticationManager.authenticate(
-            new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword())
-        );
-        // se busca al usuario para obtener su rol
-        Usuario usuario = usuarioRepository.findByUsername(loginRequest.getUsername())
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
-        // generar el Token
-        String token = jwtUtil.generateToken(usuario.getUsername(), usuario.getRol().getNombreRol());
-        // devolver respuesta con el token
-        Map<String, String> response = new HashMap<>();
-        response.put("token", token);
-        
-        return ResponseEntity.ok(response);
+    public ResponseEntity<UsuarioResponseDTO> login(@RequestBody LoginRequestDTO loginRequest) {
+        // AuthService valida usuario y contraseña (BCrypt) y genera el token con el rol
+        return ResponseEntity.ok(authService.login(loginRequest));
     }
 
-    @Operation(summary = "Registrar nuevo usuario", description = "Registra un usuario para Distribuidora de Gas El Volcán.")
+    @Operation(summary = "Registrar nuevo usuario", description = "Registra un usuario CLIENTE para Distribuidora de Gas El Volcán.")
     @SecurityRequirements()
     @PostMapping("/register")
     public ResponseEntity<UsuarioResponseDTO> registrar(@Valid @RequestBody RegistroRequestDTO request) {
@@ -65,4 +47,3 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 }
-

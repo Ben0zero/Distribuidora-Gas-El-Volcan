@@ -70,7 +70,9 @@ class AuthServiceTest {
         assertNotNull(resultado);
         assertEquals("admin", resultado.getUsername());
         assertEquals("token_falso_123", resultado.getToken());
-        
+        // el frontend necesita el rol en la respuesta del login para mostrar la vista correcta
+        assertEquals("ADMIN", resultado.getNombreRol());
+
         verify(usuarioRepository).findByUsername("admin");
         verify(passwordEncoder).matches("admin123", "hash_de_contraseña");
         verify(jwtUtil).generateToken("admin", "ADMIN");

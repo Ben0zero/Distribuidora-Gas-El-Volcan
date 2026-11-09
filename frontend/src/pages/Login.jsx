@@ -1,13 +1,15 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { Container, Row, Col, Card, Form, Button, Alert } from 'react-bootstrap'
-import { ADMIN_DEFAULT, CLAVES, leerLista, leerObjeto } from '../utils/validaciones'
-import { login } from '../utils/api'
+import { CLAVES, leerObjeto } from '../utils/validaciones'
+import { login, ApiError } from '../utils/api'
+import { sesionDesdeLogin, rutaInicial, ROLES } from '../utils/sesion'
 
 function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [cargando, setCargando] = useState(false)
   const [sesion, setSesion] = useState(() => leerObjeto(CLAVES.sesion))
   const navigate = useNavigate()
 
@@ -23,52 +25,26 @@ function Login() {
       return
     }
 
+    // La autenticación la decide SIEMPRE ms-auth: no hay usuarios locales de respaldo.
+    setCargando(true)
     try {
       const res = await login(email, password)
+      const sesionGuardada = sesionDesdeLogin(res)
       setError('')
-      const sesionGuardada = {
-        nombre: res.nombre || email,
-        correo: email,
-        email,
-        rol: res.rol === 'ADMIN' ? 'Administrador' : res.rol === 'VENDEDOR' ? 'Vendedor' : 'Cliente',
-        tipoCliente: 'Residencial',
-        direccion: '',
-        comuna: '',
-        token: res.token
-      }
       localStorage.setItem(CLAVES.sesion, JSON.stringify(sesionGuardada))
       setSesion(sesionGuardada)
-      navigate(sesionGuardada.rol === 'Administrador' ? '/admin' : '/')
-      return
+      navigate(rutaInicial(sesionGuardada.rol))
     } catch (e) {
-      // fallback a local
+      if (e instanceof ApiError) {
+        // 401 -> credenciales incorrectas; otro código -> error del servidor
+        setError(e.message)
+      } else {
+        // fetch rechazado: el microservicio no está levantado o no hay red
+        setError('No se pudo conectar con el servidor. Intenta nuevamente en unos minutos.')
+      }
+    } finally {
+      setCargando(false)
     }
-
-    const usuarios = [ADMIN_DEFAULT, ...leerLista(CLAVES.usuarios)]
-    const usuario = usuarios.find((u) => {
-      const correoUsuario = u.correo || u.email
-      const contrasenaUsuario = u.contrasena || u.password
-      return correoUsuario === email && contrasenaUsuario === password
-    })
-
-    if (!usuario) {
-      setError('Credenciales incorrectas')
-      return
-    }
-
-    setError('')
-    const sesionGuardada = {
-      nombre: usuario.nombre,
-      correo: usuario.correo || usuario.email,
-      email,
-      rol: usuario.rol || 'Cliente',
-      tipoCliente: usuario.tipoCliente || 'Residencial',
-      direccion: usuario.direccion || '',
-      comuna: usuario.comuna || '',
-    }
-    localStorage.setItem(CLAVES.sesion, JSON.stringify(sesionGuardada))
-    setSesion(sesionGuardada)
-    navigate(usuario.rol === 'Administrador' ? '/admin' : '/')
   }
 
   function cerrarSesion() {
@@ -86,7 +62,7 @@ function Login() {
           <Button as={Link} to="/productos" variant="primary" className="me-2">
             Ver productos
           </Button>
-          {sesion.rol === 'Administrador' && (
+          {sesion.rol === ROLES.ADMIN && (
             <Button as={Link} to="/admin" variant="dark" className="me-2">
               Panel Admin
             </Button>
@@ -125,8 +101,8 @@ function Login() {
                     />
                   </Form.Group>
                   {error && <Alert variant="danger">{error}</Alert>}
-                  <Button className="btn-login" type="submit" variant="primary">
-                    Ingresar
+                  <Button className="btn-login" type="submit" variant="primary" disabled={cargando}>
+                    {cargando ? 'Ingresando…' : 'Ingresar'}
                   </Button>
                 </Form>
                 <p className="mt-3 mb-0">

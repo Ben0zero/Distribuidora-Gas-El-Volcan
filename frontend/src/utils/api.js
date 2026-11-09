@@ -17,13 +17,26 @@ export function authHeaders() {
   return token ? { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' }
 }
 
+// Error de la API con su código HTTP. Permite distinguir "credenciales malas" (401)
+// de "el servicio no responde" (fetch lanza TypeError y no hay status).
+export class ApiError extends Error {
+  constructor(message, status) {
+    super(message)
+    this.name = 'ApiError'
+    this.status = status
+  }
+}
+
+// Devuelve { id, nombre, username, nombreRol, tipoCliente, direccion, comuna, region, telefono, token }
 export async function login(username, password) {
   const res = await fetch(`${API_AUTH}/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, password })
   })
-  if (!res.ok) throw new Error('Credenciales incorrectas')
+  if (!res.ok) {
+    throw new ApiError(res.status === 401 ? 'Credenciales incorrectas' : 'Error al iniciar sesión', res.status)
+  }
   return res.json()
 }
 
