@@ -1,5 +1,6 @@
 package cl.elvolcan.ventas.config;
 
+import cl.elvolcan.ventas.security.CustomAuthenticationEntryPoint;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -20,10 +21,12 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final CustomAuthenticationEntryPoint authenticationEntryPoint;
 
     // El constructor inyecta automáticamente el filtro que creamos en el Paso 1
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, CustomAuthenticationEntryPoint authenticationEntryPoint) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.authenticationEntryPoint = authenticationEntryPoint;
     }
 
     // @Bean expone esta configuración para que Spring la aplique globalmente
@@ -33,6 +36,8 @@ public class SecurityConfig {
             // Desactiva CSRF (Protección contra falsificación) ya que trabajamos con APIs REST y Tokens
             .csrf(AbstractHttpConfigurer::disable)
             .cors(Customizer.withDefaults()) // usa el bean CorsConfigurationSource (CorsConfig)
+            // Sin token o con token inválido: 401 en JSON (igual que los demás microservicios)
+            .exceptionHandling(exception -> exception.authenticationEntryPoint(authenticationEntryPoint))
 
             // Configura las políticas de acceso a las URLs
             .authorizeHttpRequests(auth -> auth

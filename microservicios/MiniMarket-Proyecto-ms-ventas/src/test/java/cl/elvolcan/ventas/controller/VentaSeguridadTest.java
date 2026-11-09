@@ -5,6 +5,7 @@ import cl.elvolcan.ventas.client.InventarioClient;
 import cl.elvolcan.ventas.config.CorsConfig;
 import cl.elvolcan.ventas.config.JwtAuthenticationFilter;
 import cl.elvolcan.ventas.config.SecurityConfig;
+import cl.elvolcan.ventas.security.CustomAuthenticationEntryPoint;
 import cl.elvolcan.ventas.dto.VentaResponseDTO;
 import cl.elvolcan.ventas.service.VentaService;
 import org.junit.jupiter.api.DisplayName;
@@ -31,7 +32,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * el VENDEDOR solo lee la lista y el detalle de órdenes; comprar es de CLIENTE/ADMIN.
  */
 @WebMvcTest(VentaController.class)
-@Import({SecurityConfig.class, JwtAuthenticationFilter.class, CorsConfig.class})
+@Import({SecurityConfig.class, JwtAuthenticationFilter.class, CorsConfig.class, CustomAuthenticationEntryPoint.class})
 @TestPropertySource(properties = {
         "jwt.secret=clave_solo_para_tests_unitarios_0123456789",
         "app.cors.allowed-origins=http://localhost:5173"
@@ -77,6 +78,14 @@ class VentaSeguridadTest {
         mockMvc.perform(get("/api/v1/ventas/mis-compras")).andExpect(status().isForbidden());
         verify(ventaService, never()).crearPedido(any());
         verify(ventaService, never()).confirmarPago(anyLong());
+    }
+
+    @Test
+    @DisplayName("sin token responde 401 (no autenticado), igual que los demás microservicios")
+    void sinTokenResponde401() throws Exception {
+        mockMvc.perform(get("/api/v1/ventas/mis-compras")).andExpect(status().isUnauthorized());
+        mockMvc.perform(post("/api/v1/ventas").contentType(MediaType.APPLICATION_JSON).content(VENTA))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
