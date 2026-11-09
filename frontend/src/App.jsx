@@ -22,6 +22,8 @@ import Ordenes from './pages/admin/Ordenes'
 import Reportes from './pages/admin/Reportes'
 import Clientes from './pages/admin/Clientes'
 import { CLAVES } from './utils/validaciones'
+import RutaProtegida from './components/RutaProtegida'
+import { ROLES } from './utils/sesion'
 import {
   agregarItem,
   incrementarItem,
@@ -29,6 +31,9 @@ import {
   eliminarItem,
   contarItems,
 } from './utils/carrito'
+
+// Roles que pueden comprar en la tienda (el Vendedor no compra: solo ve productos y órdenes)
+const ROLES_TIENDA = [ROLES.CLIENTE, ROLES.ADMIN]
 
 function App() {
   // El carrito vive aquí (estado compartido) y se persiste en localStorage.
@@ -77,22 +82,39 @@ function App() {
               />
             }
           />
-          <Route path="/mis-compras" element={<MisCompras />} />
+          {/* Checkout e historial: requieren sesión de Cliente (o Administrador) */}
+          <Route
+            path="/mis-compras"
+            element={
+              <RutaProtegida roles={ROLES_TIENDA}>
+                <MisCompras />
+              </RutaProtegida>
+            }
+          />
           <Route
             path="/ventas"
             element={
-              <Ventas
-                carrito={carrito}
-                incrementar={incrementar}
-                decrementar={decrementar}
-                vaciar={vaciar}
-              />
+              <RutaProtegida roles={ROLES_TIENDA}>
+                <Ventas
+                  carrito={carrito}
+                  incrementar={incrementar}
+                  decrementar={decrementar}
+                  vaciar={vaciar}
+                />
+              </RutaProtegida>
             }
           />
         </Route>
 
-        {/* Panel de administración (con su propio layout) */}
-        <Route path="/admin" element={<AdminLayout />}>
+        {/* Panel de administración (con su propio layout): solo Administrador */}
+        <Route
+          path="/admin"
+          element={
+            <RutaProtegida roles={[ROLES.ADMIN]}>
+              <AdminLayout />
+            </RutaProtegida>
+          }
+        >
           <Route index element={<Dashboard />} />
           <Route path="inventario" element={<Inventario />} />
           <Route path="usuarios" element={<ListaUsuarios />} />

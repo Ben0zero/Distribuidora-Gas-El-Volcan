@@ -1,17 +1,18 @@
 import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { Container, Row, Col, Card, Form, Button, Alert } from 'react-bootstrap'
-import { CLAVES, leerObjeto } from '../utils/validaciones'
+import { CLAVES } from '../utils/validaciones'
 import { login, ApiError } from '../utils/api'
-import { sesionDesdeLogin, rutaInicial, ROLES } from '../utils/sesion'
+import { sesionDesdeLogin, rutaInicial, sesionActiva, ROLES } from '../utils/sesion'
 
 function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [cargando, setCargando] = useState(false)
-  const [sesion, setSesion] = useState(() => leerObjeto(CLAVES.sesion))
+  const [sesion, setSesion] = useState(() => sesionActiva())
   const navigate = useNavigate()
+  const location = useLocation()
 
   const handleSubmit = async (event) => {
     event.preventDefault()
@@ -33,7 +34,8 @@ function Login() {
       setError('')
       localStorage.setItem(CLAVES.sesion, JSON.stringify(sesionGuardada))
       setSesion(sesionGuardada)
-      navigate(rutaInicial(sesionGuardada.rol))
+      // Si venía de una ruta protegida (ej. /ventas) vuelve a ella; si no, a la inicial de su rol
+      navigate(location.state?.desde || rutaInicial(sesionGuardada.rol), { replace: true })
     } catch (e) {
       if (e instanceof ApiError) {
         // 401 -> credenciales incorrectas; otro código -> error del servidor

@@ -1,5 +1,30 @@
-import { describe, test, expect } from 'vitest'
-import { rolDesdeApi, rutaInicial, sesionDesdeLogin, ROLES } from './sesion'
+import { describe, test, expect, beforeEach } from 'vitest'
+import { rolDesdeApi, rutaInicial, sesionDesdeLogin, ROLES, leerPayloadJwt, tokenExpirado, sesionActiva } from './sesion'
+import { jwtDePrueba, guardarSesion } from '../testUtils/jwt'
+
+describe('utils/sesion: token y sesión activa', () => {
+  beforeEach(() => {
+    localStorage.clear()
+  })
+
+  test('lee el payload del JWT y detecta tokens expirados o inválidos', () => {
+    const vigente = jwtDePrueba({ sub: 'ana@duoc.cl', rol: 'ROLE_ADMIN', segundos: 600 })
+    expect(leerPayloadJwt(vigente)).toMatchObject({ sub: 'ana@duoc.cl', rol: 'ROLE_ADMIN' })
+    expect(tokenExpirado(vigente)).toBe(false)
+    expect(tokenExpirado(jwtDePrueba({ segundos: -1 }))).toBe(true)
+    expect(tokenExpirado('no-es-un-jwt')).toBe(true)
+    expect(tokenExpirado(undefined)).toBe(true)
+  })
+
+  test('sesionActiva devuelve la sesión vigente y borra la expirada', () => {
+    guardarSesion({ rol: 'Cliente', nombre: 'Ana' })
+    expect(sesionActiva()).toMatchObject({ nombre: 'Ana', rol: 'Cliente' })
+
+    guardarSesion({ segundos: -10 })
+    expect(sesionActiva()).toBeNull()
+    expect(localStorage.getItem('sesion')).toBeNull()
+  })
+})
 
 describe('utils/sesion', () => {
   test('traduce el rol de ms-auth (con o sin prefijo ROLE_) y usa Cliente por defecto', () => {

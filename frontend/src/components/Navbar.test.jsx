@@ -1,10 +1,15 @@
 // Prueba de componente: la barra de navegación recibe el total por props.
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import { describe, test, expect } from 'vitest'
+import { describe, test, expect, beforeEach } from 'vitest'
 import Navbar from './Navbar'
+import { guardarSesion } from '../testUtils/jwt'
 
 describe('Componente <Navbar />', () => {
+  beforeEach(() => {
+    localStorage.clear()
+  })
+
   test('muestra los enlaces de navegación y el total de items del carrito (prop)', () => {
     render(
       <MemoryRouter>
@@ -24,14 +29,38 @@ describe('Componente <Navbar />', () => {
     expect(screen.queryByRole('link', { name: /Mis compras/ })).not.toBeInTheDocument()
   })
 
-  test('con sesión (token) muestra el enlace a "Mis compras"', () => {
-    localStorage.setItem('sesion', JSON.stringify({ nombre: 'Ana', token: 'tok' }))
-    render(
-      <MemoryRouter>
-        <Navbar totalItems={0} />
-      </MemoryRouter>,
-    )
+  test('Cliente con sesión: "Mis compras" y "Cerrar sesión", sin Login ni Panel Admin', () => {
+    guardarSesion({ rol: 'Cliente', nombre: 'Ana' })
+    renderNavbar()
+
     expect(screen.getByRole('link', { name: /Mis compras/ })).toHaveAttribute('href', '/mis-compras')
-    localStorage.clear()
+    expect(screen.getByText('Hola, Ana')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Panel Admin/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /^Login$/ })).not.toBeInTheDocument()
+
+    // Cerrar sesión borra la sesión guardada
+    fireEvent.click(screen.getByRole('button', { name: 'Cerrar sesión' }))
+    expect(localStorage.getItem('sesion')).toBeNull()
+  })
+
+  test('Administrador ve el enlace al Panel Admin', () => {
+    guardarSesion({ rol: 'Administrador', nombre: 'Juan' })
+    renderNavbar()
+    expect(screen.getByRole('link', { name: /Panel Admin/ })).toHaveAttribute('href', '/admin')
+  })
+
+  test('con el token expirado se muestra como visitante (Login/Registro)', () => {
+    guardarSesion({ segundos: -5 })
+    renderNavbar()
+    expect(screen.getByRole('link', { name: /^Login$/ })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Mis compras/ })).not.toBeInTheDocument()
   })
 })
+
+function renderNavbar() {
+  render(
+    <MemoryRouter>
+      <Navbar totalItems={0} />
+    </MemoryRouter>,
+  )
+}

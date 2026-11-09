@@ -18,6 +18,48 @@ export function rutaInicial(rol) {
   return rol === ROLES.ADMIN ? '/admin' : '/'
 }
 
+// Lee el payload de un JWT (sin verificar la firma: eso lo hace el backend en cada petición).
+// Devuelve null si el token no tiene formato JWT.
+export function leerPayloadJwt(token) {
+  try {
+    const parte = String(token).split('.')[1]
+    const base64 = parte.replace(/-/g, '+').replace(/_/g, '/')
+    const json = decodeURIComponent(
+      atob(base64).split('').map((c) => '%' + c.charCodeAt(0).toString(16).padStart(2, '0')).join(''),
+    )
+    return JSON.parse(json)
+  } catch {
+    return null
+  }
+}
+
+// true si el token falta, no es un JWT válido o ya pasó su fecha de expiración (exp en segundos)
+export function tokenExpirado(token, ahoraMs = Date.now()) {
+  const payload = leerPayloadJwt(token)
+  if (!payload) return true
+  return typeof payload.exp === 'number' && payload.exp * 1000 <= ahoraMs
+}
+
+// Sesión vigente (con token no expirado) o null. Si el token expiró, borra la sesión guardada.
+export function sesionActiva() {
+  let sesion = null
+  try {
+    sesion = JSON.parse(localStorage.getItem('sesion'))
+  } catch {
+    sesion = null
+  }
+  if (!sesion?.token) return null
+  if (tokenExpirado(sesion.token)) {
+    localStorage.removeItem('sesion')
+    return null
+  }
+  return sesion
+}
+
+export function cerrarSesion() {
+  localStorage.removeItem('sesion')
+}
+
 export function sesionDesdeLogin(res) {
   return {
     id: res.id,
