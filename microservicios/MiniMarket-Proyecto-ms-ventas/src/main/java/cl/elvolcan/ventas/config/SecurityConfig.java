@@ -41,14 +41,15 @@ public class SecurityConfig {
                         "/swagger-ui.html"
                 ).permitAll()
 
+                // Las reglas aplican igual a ambas versiones de la API (/api/v1 y /api/v2)
                 // Solo ADMIN y VENDEDOR pueden ver TODAS las ventas
-                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/ventas").hasAnyRole("ADMIN", "VENDEDOR")
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/ventas", "/api/v2/ventas").hasAnyRole("ADMIN", "VENDEDOR")
                 // Cualquier usuario autenticado puede ver SUS propias compras
-                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/ventas/mis-compras").hasAnyRole("ADMIN", "VENDEDOR", "CLIENTE")
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/ventas/mis-compras", "/api/v2/ventas/mis-compras").hasAnyRole("ADMIN", "VENDEDOR", "CLIENTE")
                 // Cualquier usuario autenticado puede crear una venta
-                .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/ventas").hasAnyRole("ADMIN", "VENDEDOR", "CLIENTE")
-                // Cualquier usuario autenticado puede confirmar el pago de su venta
-                .requestMatchers(org.springframework.http.HttpMethod.PUT, "/api/ventas/*/confirmar").hasAnyRole("ADMIN", "VENDEDOR", "CLIENTE")
+                .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/ventas", "/api/v2/ventas").hasAnyRole("ADMIN", "VENDEDOR", "CLIENTE")
+                // Confirmar pago: el servicio además valida que sea el dueño de la venta o ADMIN
+                .requestMatchers(org.springframework.http.HttpMethod.PUT, "/api/v1/ventas/*/confirmar", "/api/v2/ventas/*/confirmar").hasAnyRole("ADMIN", "VENDEDOR", "CLIENTE")
 
                 // Cualquier otra petición HTTP requerirá obligatoriamente que el usuario esté autenticado
                 .anyRequest().authenticated()

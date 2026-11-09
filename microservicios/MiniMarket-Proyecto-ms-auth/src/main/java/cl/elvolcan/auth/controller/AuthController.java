@@ -21,7 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/api/v1/auth")
 @Tag(name = "Autenticación", description = "Endpoints para inicio de sesión, registro y generación de tokens JWT")
 public class AuthController {
 

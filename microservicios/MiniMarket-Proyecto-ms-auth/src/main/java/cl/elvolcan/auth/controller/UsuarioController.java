@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/usuarios")
+@RequestMapping("/api/v1/usuarios")
 @Tag(name = "Gestión de Usuarios", description = "Endpoints para el CRUD de usuarios. Requieren token JWT en el header.")
 public class UsuarioController {
 

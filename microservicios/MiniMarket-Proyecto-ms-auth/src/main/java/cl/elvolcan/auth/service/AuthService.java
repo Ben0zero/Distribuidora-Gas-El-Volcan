@@ -17,7 +17,7 @@ import cl.elvolcan.auth.security.jwt.JwtUtil;
 @Service
 public class AuthService {
 
-    // Rol que recibe todo usuario creado desde el registro publico (/api/auth/register)
+    // Rol que recibe todo usuario creado desde el registro publico (/api/v1/auth/register)
     public static final String ROL_REGISTRO_PUBLICO = "CLIENTE";
     
 
