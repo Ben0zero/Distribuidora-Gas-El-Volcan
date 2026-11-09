@@ -81,7 +81,7 @@ describe('Página <Login /> (formulario controlado + ms-auth)', () => {
     expect(await screen.findByText('Credenciales incorrectas')).toBeInTheDocument()
 
     // 4) El servicio no responde (fetch rechaza) -> aviso de conexión
-    fetchMock.mockReturnValueOnce(Promise.reject(new TypeError('Failed to fetch')))
+    fetchMock.mockRejectedValueOnce(new TypeError('Failed to fetch'))
     await user.click(ingresar())
     expect(await screen.findByText(/No se pudo conectar con el servidor/)).toBeInTheDocument()
 
