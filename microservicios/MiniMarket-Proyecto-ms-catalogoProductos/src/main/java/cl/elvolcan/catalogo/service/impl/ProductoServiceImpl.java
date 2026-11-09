@@ -34,6 +34,7 @@ public class ProductoServiceImpl implements ProductoService {
         producto.setNombre(request.getNombre());
         producto.setDescripcion(request.getDescripcion());
         producto.setCategoria(request.getCategoria());
+        producto.setImagen(request.getImagen());
         producto.setActivo(true);
 
         Integer pRes = request.getPrecioResidencial() != null ? request.getPrecioResidencial() : request.getPrecio();
@@ -101,6 +102,7 @@ public class ProductoServiceImpl implements ProductoService {
         dto.setPrecioComercial(pCom);
         dto.setPrecio(p != null && p.getPrecio() != null ? p.getPrecio() : pRes);
         dto.setCategoria(p.getCategoria());
+        dto.setImagen(p.getImagen());
         dto.setActivo(p.getActivo());
         return dto;
     }

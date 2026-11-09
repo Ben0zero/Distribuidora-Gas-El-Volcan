@@ -46,6 +46,10 @@ public class Producto {
 
     private String categoria;
 
+    // Ruta pública de la imagen que muestra el frontend (ej. /IMAGENES/cilindro de 5 K.png)
+    @Column(length = 255)
+    private String imagen;
+
     private Boolean activo;  // esto pausa ventas sin borrar el producto
 
     // se ejecuta automatic al guardar por primera vez

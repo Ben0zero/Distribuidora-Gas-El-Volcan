@@ -41,12 +41,14 @@ class ProductoServiceImplTest {
         request.setNombre("Pan Batido");
         request.setPrecio(1800);
         request.setCategoria("Panadería");
+        request.setImagen("/IMAGENES/pan.png");
 
         Producto productoGuardado = new Producto();
         productoGuardado.setSku("PAN-001");
         productoGuardado.setNombre("Pan Batido");
         productoGuardado.setPrecio(1800);
         productoGuardado.setCategoria("Panadería");
+        productoGuardado.setImagen("/IMAGENES/pan.png");
         productoGuardado.setActivo(true);
 
         when(productoRepository.existsBySku("PAN-001")).thenReturn(false);
@@ -59,10 +61,11 @@ class ProductoServiceImplTest {
         assertNotNull(resultado);
         assertEquals("PAN-001", resultado.getSku());
         assertEquals("Pan Batido", resultado.getNombre());
+        assertEquals("/IMAGENES/pan.png", resultado.getImagen());
         assertTrue(resultado.getActivo());
 
         verify(productoRepository).existsBySku("PAN-001");
-        verify(productoRepository).save(any(Producto.class));
+        verify(productoRepository).save(argThat(p -> "/IMAGENES/pan.png".equals(p.getImagen())));
         verify(inventarioClient).crearInventario(any(InventarioInitDTO.class));
     }
 
