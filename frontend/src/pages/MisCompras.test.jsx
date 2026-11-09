@@ -1,5 +1,5 @@
 // "Mis compras": historial desde GET /api/v1/ventas/mis-compras (fetch simulado).
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest'
@@ -29,12 +29,15 @@ describe('Página <MisCompras />', () => {
     vi.unstubAllGlobals()
   })
 
-  test('sin sesión invita a iniciar sesión y no llama a la API', () => {
+  test('sin sesión invita a iniciar sesión y no llama a la API de compras', async () => {
     const fetchMock = vi.fn(() => json(200, []))
     vi.stubGlobal('fetch', fetchMock)
     renderMisCompras()
 
     expect(screen.getByText('Inicia sesión para ver tus compras')).toBeInTheDocument()
+    // el catálogo (nombres de productos) igual se carga: se espera a que termine (evita avisos de act)
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled())
+    await act(async () => {})
     expect(fetchMock.mock.calls.some(([url]) => url.includes('mis-compras'))).toBe(false)
   })
 

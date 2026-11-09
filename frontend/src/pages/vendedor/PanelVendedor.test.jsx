@@ -52,7 +52,7 @@ describe('Panel del Vendedor (solo lectura)', () => {
     vi.unstubAllGlobals()
   })
 
-  test('el menú solo ofrece Productos y Órdenes', () => {
+  test('el menú solo ofrece Productos y Órdenes', async () => {
     vi.stubGlobal('fetch', simularApi({ '/api/v1/ventas': [200, []] }))
     renderPanel('/vendedor/ordenes')
 
@@ -60,6 +60,8 @@ describe('Panel del Vendedor (solo lectura)', () => {
     const enlaces = within(menu).getAllByRole('link').map((a) => a.textContent.trim())
     expect(enlaces).toEqual(['Productos', 'Órdenes'])
     expect(screen.getByText('María Soto')).toBeInTheDocument()
+    // espera a que termine la carga de órdenes (evita actualizaciones fuera de act)
+    expect(await screen.findByText('Aún no hay órdenes registradas.')).toBeInTheDocument()
   })
 
   test('lista las órdenes con su cliente y enlace al detalle', async () => {
