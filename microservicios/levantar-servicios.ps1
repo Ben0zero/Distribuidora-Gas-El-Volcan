@@ -41,6 +41,23 @@ function Leer-Secretos([string]$ruta) {
     return $valores
 }
 
+function Ajustar-Wallet([string]$dirWallet) {
+    # El sqlnet.ora que trae el Wallet apunta a "?/network/admin" (Oracle Home).
+    # El driver JDBC no tiene Oracle Home, por lo que no encuentra el cwallet.sso
+    # y la conexion falla con ORA-17957 / "SSO not found".
+    # Aqui se reescribe WALLET_LOCATION con la ruta absoluta del Wallet.
+    $sqlnet = Join-Path $dirWallet 'sqlnet.ora'
+    if (-not (Test-Path $sqlnet)) { return }
+    $ruta = $dirWallet.Replace('\', '/')
+    $linea = 'WALLET_LOCATION = (SOURCE = (METHOD = file) (METHOD_DATA = (DIRECTORY="' + $ruta + '")))'
+    $actual = Get-Content $sqlnet -Raw
+    if ($actual -notmatch [regex]::Escape('DIRECTORY="' + $ruta + '"')) {
+        Copy-Item $sqlnet ($sqlnet + '.bak') -Force
+        Set-Content -Path $sqlnet -Value @($linea, 'SSL_SERVER_DN_MATCH=yes') -Encoding ASCII
+        Write-Host "[OK] sqlnet.ora ajustado al Wallet: $ruta" -ForegroundColor Green
+    }
+}
+
 function Puerto-Abierto([int]$puerto) {
     $cliente = New-Object System.Net.Sockets.TcpClient
     try {
@@ -78,6 +95,9 @@ if (-not (Test-Path $secretos)) {
     if ($s['JWT_SECRET'] -and $s['JWT_SECRET'].Length -lt 32) {
         $errores += 'JWT_SECRET debe tener al menos 32 caracteres.'
     }
+}
+if ($s -and $s['ORACLE_WALLET_DIR'] -and (Test-Path $s['ORACLE_WALLET_DIR'])) {
+    Ajustar-Wallet $s['ORACLE_WALLET_DIR']
 }
 foreach ($svc in $servicios) {
     $mvnw = Join-Path (Join-Path $base $svc.dir) 'mvnw.cmd'

@@ -30,6 +30,12 @@ Cada `application.properties` importa `optional:file:${user.home}/.elvolcan/secr
    - `JWT_SECRET`: al menos 32 caracteres, igual en todos los servicios.
    - `CORS_ORIGINS`: opcional; por defecto `localhost` y `127.0.0.1` en los puertos 5173 y 5174.
 3. El Wallet y el archivo de secretos están en `.gitignore`: **nunca se suben al repositorio**.
+4. El Wallet trae un `sqlnet.ora` con `WALLET_LOCATION` apuntando a `?/network/admin` (Oracle Home). El driver JDBC no tiene Oracle Home, así que la conexión falla con `ORA-17957` / `SSO not found`. `levantar-servicios.ps1` corrige ese archivo automáticamente con la ruta real del Wallet. Si lo haces a mano, debe quedar así:
+
+   ```text
+   WALLET_LOCATION = (SOURCE = (METHOD = file) (METHOD_DATA = (DIRECTORY="C:/Users/<usuario>/.elvolcan/OracleWallet")))
+   SSL_SERVER_DN_MATCH=yes
+   ```
 
 ## Levantar y detener
 

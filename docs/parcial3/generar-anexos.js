@@ -446,6 +446,7 @@ function anexo4() {
         ['Aviso de conexión', 'Microservicio detenido o Eureka sin el servicio', 'Revisar Eureka y levantar el servicio faltante'],
         ['Error de stock insuficiente', 'Cantidad solicitada mayor al stock', 'Ajustar la cantidad o reponer stock'],
         ['Error al iniciar el backend', 'Falta secrets.properties o la Wallet', 'Crear el archivo de secretos y verificar ORACLE_WALLET_DIR'],
+        ['“ORA-17957 / SSO not found”', 'El sqlnet.ora del Wallet apunta a ?/network/admin', 'Ejecutar levantar-servicios.ps1 (corrige la ruta del Wallet automáticamente)'],
         ['403 al operar', 'El rol no tiene permiso', 'Usar una cuenta con el rol adecuado'],
       ],
       [30, 32, 38]
