@@ -172,7 +172,7 @@ function anexo2() {
       ['Recurso', 'URL'],
       [
         ['Eureka Dashboard', 'http://localhost:8761'],
-        ['Frontend React', 'http://127.0.0.1:5174'],
+        ['Frontend React', 'http://localhost:5173'],
         ['ms-auth — Swagger UI', 'http://localhost:8081/swagger-ui/index.html'],
         ['ms-catalogoProductos — Swagger UI', 'http://localhost:8082/swagger-ui/index.html'],
         ['ms-inventario — Swagger UI', 'http://localhost:8084/swagger-ui/index.html'],
@@ -292,7 +292,7 @@ function anexo2() {
       [38, 62]
     ),
     new Paragraph({ text: '', spacing: { after: 120 } }),
-    p('CORS está habilitado en los microservicios para los orígenes del frontend (5173 y 5174, localhost y 127.0.0.1). ' +
+    p('CORS está habilitado en los microservicios para los orígenes del frontend (localhost y 127.0.0.1 en los puertos 5173 y 5174). ' +
       'Si el backend no responde, la interfaz muestra un aviso de conexión en lugar de datos locales.'),
 
     h1('8. Base de datos y configuración'),
@@ -347,7 +347,7 @@ function anexo4() {
     bullet('Eureka Server en http://localhost:8761 con los cinco servicios en estado UP.'),
     bullet('Archivo %USERPROFILE%\\.elvolcan\\secrets.properties con DB_PASSWORD, ORACLE_WALLET_DIR y JWT_SECRET.'),
     bullet('Wallet de Oracle descomprimido en la carpeta indicada por ORACLE_WALLET_DIR.'),
-    bullet('Frontend disponible en http://127.0.0.1:5174.'),
+    bullet('Frontend disponible en http://localhost:5173 (Vite; si el puerto está ocupado puede usar 5174).'),
     p('Para levantar todo desde la carpeta microservicios:'),
     code('.\\levantar-servicios.ps1            # levanta Eureka y los microservicios'),
     code('.\\levantar-servicios.ps1 -Verificar  # solo revisa requisitos'),
@@ -358,7 +358,7 @@ function anexo4() {
 
     h1('4. Acceso al sistema'),
     h2('4.1 Iniciar sesión'),
-    bullet('Ingresar a http://127.0.0.1:5174 y seleccionar “Iniciar sesión”.'),
+    bullet('Ingresar a http://localhost:5173 y seleccionar “Iniciar sesión”.'),
     bullet('Escribir el correo (username) y la contraseña.'),
     bullet('Presionar “Ingresar”. El sistema valida las credenciales contra ms-auth y guarda la sesión.'),
     bullet('Según el rol, se muestra el menú de cliente, el panel de vendedor o el panel de administración.'),
