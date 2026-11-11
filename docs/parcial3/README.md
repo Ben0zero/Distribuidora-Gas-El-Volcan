@@ -14,9 +14,11 @@ Documentos de entrega de la EP3 para **Distribuidora de Gas El Volcán**.
 Los Anexo 2 y 4 se generan con `docx`. Desde la raíz del repositorio:
 
 ```bash
-npm install docx
-node docs/parcial3/generar-anexos.js
+npm install        # instala docx (una sola vez)
+npm run anexos     # genera los Anexos 2 y 4
 ```
+
+El comando equivale a `node docs/parcial3/generar-anexos.js` y sobrescribe los `.docx` existentes.
 
 El Anexo 3 se mantiene en Excel y se edita directamente en `Anexo 3 - Documentación APIs (El Volcán).xlsx`.
 

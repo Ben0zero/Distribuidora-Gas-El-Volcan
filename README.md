@@ -139,7 +139,8 @@ npm run lint             # oxlint
 | Documento | Ubicación |
 |---|---|
 | Plan de trabajo de la Evaluación Parcial 3 | `docs/PLAN_EVALUACION3.md` |
-| Anexos de la evaluación (APIs, integración, manual) | `docs/parcial3/` |
+| Anexos EP3: Anexo 2 (Word), Anexo 3 (Excel), Anexo 4 (Word) y capturas | `docs/parcial3/` |
+| Cómo regenerar los Anexos 2 y 4 (`npm run anexos`) | `docs/parcial3/README.md` |
 | ERS, documentación técnica, cobertura y despliegue del frontend | `frontend/docs/` |
 | Guía del backend (endpoints, seguridad, pruebas en Swagger) | `microservicios/README.md` |
 
@@ -157,7 +158,10 @@ Distribuidora-Gas-El-Volcan/
 │   ├── secrets.example.properties
 │   ├── levantar-servicios.ps1 / detener-servicios.ps1
 ├── frontend/                        # React + Vite (versión actual, conectada a la API)
-├── docs/                            # Plan y anexos de la Evaluación Parcial 3
+├── docs/
+│   ├── PLAN_EVALUACION3.md          # Plan de trabajo de la EP3
+│   └── parcial3/                    # Anexos 2, 3 y 4, capturas y generador
+├── package.json                     # Script `npm run anexos` (genera los Anexos 2 y 4)
 ├── Version 1/                       # Entrega 1: HTML + CSS + JS
 └── Version 2/                       # Entrega 2: React con localStorage
 ```
