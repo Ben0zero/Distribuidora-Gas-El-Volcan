@@ -1,0 +1,10 @@
+# Dependencias de herramientas locales (no se versionan)
+node_modules/
+dist/
+build/
+target/
+
+# Sistema
+.DS_Store
+Thumbs.db
+*.log
