@@ -7,6 +7,7 @@ Documentos de entrega de la EP3 para **Distribuidora de Gas El Volcán**.
 | `Anexo 2 - Documentación APIs e Integración (El Volcán).docx` | Arquitectura, seguridad por roles, endpoints v1/v2, integración con el frontend, base de datos y pruebas |
 | `Anexo 3 - Documentación APIs (El Volcán).xlsx` | Planilla de APIs por microservicio (versión, método, endpoint, auth, roles, body, respuestas y observaciones) |
 | `Anexo 4 - Manual de usuario (El Volcán).docx` | Manual de uso por rol: Cliente, Vendedor y Administrador |
+| `capturas/` | Capturas de pantalla del sistema en funcionamiento, embebidas en los Anexo 2 y 4 |
 
 ## Regenerar los documentos Word
 
@@ -21,6 +22,7 @@ El Anexo 3 se mantiene en Excel y se edita directamente en `Anexo 3 - Documentac
 
 ## Antes de entregar
 
-- Agregar las capturas de pantalla indicadas al final del Anexo 4.
+- Los Anexo 2 y 4 ya incluyen las capturas de `capturas/` (10 y 16 imágenes respectivamente).
 - Verificar que las rutas documentadas coincidan con los controladores (`/api/v1` y `/api/v2`).
 - Confirmar que los servicios estén en estado `UP` en Eureka al momento de las capturas.
+- Si se regeneran las capturas, mantener los mismos nombres de archivo: el generador los referencia por nombre.

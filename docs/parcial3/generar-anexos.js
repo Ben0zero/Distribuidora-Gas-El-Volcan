@@ -2,10 +2,11 @@ const fs = require('fs');
 const path = require('path');
 const {
   Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType,
-  Table, TableRow, TableCell, WidthType, ShadingType, BorderStyle
+  Table, TableRow, TableCell, WidthType, ShadingType, BorderStyle, ImageRun
 } = require('docx');
 
 const outDir = path.join(__dirname);
+const capturasDir = path.join(__dirname, 'capturas');
 const VER = '3.0';
 const FECHA = '11-11-2026';
 
@@ -32,6 +33,30 @@ function code(text) {
     spacing: { after: 80 },
     indent: { left: 360 },
   });
+}
+
+// Captura de pantalla + leyenda. Las imagenes estan en docs/parcial3/capturas.
+function captura(archivo, leyenda) {
+  const ruta = path.join(capturasDir, archivo);
+  const data = fs.readFileSync(ruta);
+  return [
+    new Paragraph({
+      children: [
+        new ImageRun({
+          data,
+          type: 'jpg',
+          transformation: { width: 600, height: 375 },
+        }),
+      ],
+      alignment: AlignmentType.CENTER,
+      spacing: { before: 160, after: 60 },
+    }),
+    new Paragraph({
+      children: [new TextRun({ text: leyenda, italics: true, size: 18, color: '555555' })],
+      alignment: AlignmentType.CENTER,
+      spacing: { after: 220 },
+    }),
+  ];
 }
 
 function cell(text, opts = {}) {
@@ -318,7 +343,21 @@ function anexo2() {
     new Paragraph({ text: '', spacing: { after: 120 } }),
     p('Las pruebas de contexto completo (*ApplicationTests) requieren el archivo de secretos y la Wallet configurados, ' +
       'por lo que se ejecutan en el entorno local de cada integrante.'),
-    p('Las capturas de pantalla de la integración se incorporan en la sección de verificación de la entrega.', { italics: true }),
+
+    h1('10. Capturas de la integración'),
+    p('Las capturas fueron tomadas con el sistema completo en ejecución (Eureka, los cuatro microservicios y el frontend) ' +
+      'y la semilla de 14 productos cargada.'),
+
+    ...captura('02-catalogo.jpg', 'Catálogo: GET /api/v1/productos (consulta pública, sin token)'),
+    ...captura('03-detalle-producto.jpg', 'Detalle de producto con precios residencial y comercial'),
+    ...captura('04-carrito.jpg', 'Carrito: el estado se mantiene en el frontend (localStorage)'),
+    ...captura('07-checkout.jpg', 'Checkout: dirección, comuna y método de pago antes de crear la venta'),
+    ...captura('08-mis-compras.jpg', 'Mis compras: GET /api/v1/ventas/mis-compras con el token del cliente'),
+    ...captura('10-vendedor-ordenes.jpg', 'Panel de vendedor: listado de órdenes en modo solo lectura'),
+    ...captura('11-admin-dashboard.jpg', 'Panel de administración: indicadores calculados con datos reales de las APIs'),
+    ...captura('12-admin-inventario.jpg', 'Administración de inventario: stock por SKU y ajustes'),
+    ...captura('17-eureka.jpg', 'Eureka con los cuatro microservicios registrados'),
+    ...captura('18-swagger-catalogo.jpg', 'Documentación OpenAPI (Swagger UI) de ms-catalogoProductos'),
   ];
 
   return new Document({ sections: [{ properties: {}, children }] });
@@ -452,14 +491,34 @@ function anexo4() {
       [30, 32, 38]
     ),
 
-    h1('10. Capturas sugeridas para la entrega'),
-    bullet('Pantalla de login y de registro.'),
-    bullet('Catálogo y detalle de producto.'),
-    bullet('Carrito y formulario de checkout.'),
-    bullet('Confirmación de pago y “Mis compras”.'),
-    bullet('Panel de vendedor (productos y órdenes).'),
-    bullet('Panel de administración: dashboard, productos, inventario, usuarios, órdenes, clientes y reportes.'),
-    bullet('Eureka con los cinco servicios en estado UP.'),
+    h1('10. Capturas del sistema'),
+    p('Las siguientes capturas corresponden al sistema en funcionamiento, con los servicios levantados y el catálogo cargado.'),
+
+    h2('10.1 Acceso'),
+    ...captura('05-login.jpg', 'Pantalla de inicio de sesión'),
+    ...captura('06-registro.jpg', 'Formulario de registro: la cuenta se crea con rol CLIENTE'),
+
+    h2('10.2 Cliente'),
+    ...captura('02-catalogo.jpg', 'Catálogo de productos'),
+    ...captura('03-detalle-producto.jpg', 'Detalle de un producto'),
+    ...captura('04-carrito.jpg', 'Carrito con los productos agregados'),
+    ...captura('07-checkout.jpg', 'Finalizar la compra: dirección, comuna y método de pago'),
+    ...captura('08-mis-compras.jpg', 'Mis compras: historial del cliente autenticado'),
+
+    h2('10.3 Vendedor'),
+    ...captura('09-vendedor-productos.jpg', 'Panel de vendedor: catálogo en modo solo lectura'),
+    ...captura('10-vendedor-ordenes.jpg', 'Panel de vendedor: listado de órdenes'),
+
+    h2('10.4 Administrador'),
+    ...captura('11-admin-dashboard.jpg', 'Dashboard con los indicadores del sistema'),
+    ...captura('12-admin-inventario.jpg', 'Gestión de inventario y productos'),
+    ...captura('13-admin-usuarios.jpg', 'Gestión de usuarios'),
+    ...captura('14-admin-ordenes.jpg', 'Listado de órdenes'),
+    ...captura('15-admin-clientes.jpg', 'Listado de clientes'),
+    ...captura('16-admin-reportes.jpg', 'Reportes calculados con datos reales de la API'),
+
+    h2('10.5 Infraestructura'),
+    ...captura('17-eureka.jpg', 'Eureka con los cuatro microservicios registrados en estado UP'),
   ];
 
   return new Document({ sections: [{ properties: {}, children }] });
