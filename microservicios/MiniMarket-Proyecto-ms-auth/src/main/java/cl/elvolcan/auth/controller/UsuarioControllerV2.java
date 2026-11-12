@@ -12,6 +12,7 @@ import org.springframework.hateoas.EntityModel;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -61,10 +62,10 @@ public class UsuarioControllerV2 {
         return ResponseEntity.ok(assembler.toModel(usuarioService.actualizar(id, request)));
     }
 
-    @Operation(summary = "Eliminar usuario (V2)")
+    @Operation(summary = "Eliminar usuario (V2)", description = "Borra al usuario por su ID. Un ADMIN no puede eliminar su propia cuenta.")
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> eliminarUsuario(@PathVariable Long id) {
-        usuarioService.eliminar(id);
+    public ResponseEntity<Void> eliminarUsuario(@PathVariable Long id, Authentication authentication) {
+        usuarioService.eliminar(id, authentication != null ? authentication.getName() : null);
         return ResponseEntity.noContent().build();
     }
 }

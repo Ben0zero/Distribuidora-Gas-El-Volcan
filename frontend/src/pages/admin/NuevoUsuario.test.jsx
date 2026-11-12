@@ -1,7 +1,7 @@
 // Alta de usuarios por el Admin contra ms-auth (fetch simulado).
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest'
 import NuevoUsuario from './NuevoUsuario'
 import { validarNuevoUsuario } from '../../utils/validaciones'
@@ -90,5 +90,78 @@ describe('validarNuevoUsuario', () => {
     expect(validarNuevoUsuario({ ...valido, confirmar: 'otra' })).toBe('Las contraseñas no coinciden')
     expect(validarNuevoUsuario({ ...valido, rol: '' })).toBe('Selecciona el rol del usuario')
     expect(validarNuevoUsuario({ ...valido, comuna: '' })).toBe('Selecciona la comuna')
+  })
+
+  test('al editar la contraseña es opcional, pero si se escribe debe ser válida', () => {
+    const sinPassword = { ...valido, contrasena: '', confirmar: '' }
+    expect(validarNuevoUsuario(sinPassword, { requerirContrasena: false })).toBe('')
+    expect(validarNuevoUsuario({ ...sinPassword, contrasena: 'abc12' }, { requerirContrasena: false }))
+      .toBe('La contraseña debe tener entre 6 y 10 caracteres')
+    expect(validarNuevoUsuario({ ...sinPassword, contrasena: 'abc123' }, { requerirContrasena: false }))
+      .toBe('Las contraseñas no coinciden')
+  })
+})
+
+describe('Edición de usuario (PUT /api/v1/usuarios/:id)', () => {
+  let fetchMock
+
+  beforeEach(() => {
+    localStorage.clear()
+    guardarSesion({ rol: 'Administrador' })
+    fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  test('precarga los datos y actualiza sin enviar la contraseña vacía', async () => {
+    const user = userEvent.setup()
+    fetchMock.mockReturnValueOnce(
+      json(200, {
+        id: 2,
+        nombre: 'Maria Soto',
+        rut: '18765432',
+        username: 'vendedor@elvolcan.cl',
+        nombreRol: 'VENDEDOR',
+        telefono: '',
+        direccion: '',
+        region: 'Región de Ñuble',
+        comuna: 'Chillán',
+        tipoCliente: 'Residencial',
+      }),
+    )
+
+    render(
+      <MemoryRouter initialEntries={['/admin/usuarios/2/editar']}>
+        <Routes>
+          <Route path="/admin/usuarios/:id/editar" element={<NuevoUsuario />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByDisplayValue('Maria Soto')).toBeInTheDocument()
+    expect(screen.getByDisplayValue('vendedor@elvolcan.cl')).toBeInTheDocument()
+    expect(screen.getByLabelText('Nueva contraseña (opcional)')).toHaveValue('')
+
+    const nombre = screen.getByLabelText('Nombre Completo')
+    await user.clear(nombre)
+    await user.type(nombre, 'María Soto Díaz')
+
+    fetchMock.mockReturnValueOnce(json(200, { id: 2, username: 'vendedor@elvolcan.cl', nombreRol: 'VENDEDOR' }))
+    await user.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+
+    expect(await screen.findByText(/actualizado correctamente con rol VENDEDOR/)).toBeInTheDocument()
+    const [url, opciones] = fetchMock.mock.calls[1]
+    expect(url).toMatch(/\/api\/v1\/usuarios\/2$/)
+    expect(opciones.method).toBe('PUT')
+    const cuerpo = JSON.parse(opciones.body)
+    expect(cuerpo).toMatchObject({
+      nombre: 'María Soto Díaz',
+      username: 'vendedor@elvolcan.cl',
+      nombreRol: 'VENDEDOR',
+    })
+    expect(cuerpo).not.toHaveProperty('password')
   })
 })

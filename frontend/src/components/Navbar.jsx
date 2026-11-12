@@ -1,5 +1,5 @@
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
-import { Navbar as BootstrapNavbar, Nav, Container, Badge, Button } from 'react-bootstrap'
+import { Navbar as BootstrapNavbar, Nav, Container, Badge, NavDropdown } from 'react-bootstrap'
 import { sesionActiva, cerrarSesion, ROLES } from '../utils/sesion'
 import '../navbar.css'
 
@@ -26,7 +26,7 @@ function Navbar({ totalItems }) {
         <BootstrapNavbar.Collapse id="menu-principal">
           <Nav className="ms-auto align-items-lg-center">
             <Nav.Link as={NavLink} to="/" end>
-            Inicio
+              Inicio
             </Nav.Link>
             <Nav.Link as={NavLink} to="/productos">
               Productos
@@ -47,20 +47,35 @@ function Navbar({ totalItems }) {
               Carrito <Badge bg="light" text="dark">{totalItems}</Badge>
             </Nav.Link>
             {sesion ? (
-              <>
-                <Nav.Link as={NavLink} to="/mis-compras">
+              // Todo lo de la cuenta vive en un desplegable: evita que la barra
+              // se parta en dos líneas y deja el "Cerrar sesión" siempre accesible.
+              <NavDropdown
+                align="end"
+                id="menu-usuario"
+                className="navbar-usuario"
+                title={
+                  <>
+                    <i className="bi bi-person-circle me-1" aria-hidden="true" />
+                    Hola, {sesion.nombre}
+                  </>
+                }
+              >
+                <NavDropdown.Item as={NavLink} to="/mis-compras">
+                  <i className="bi bi-bag-check me-2" aria-hidden="true" />
                   Mis compras
-                </Nav.Link>
+                </NavDropdown.Item>
                 {esAdmin && (
-                  <Nav.Link as={NavLink} to="/admin">
+                  <NavDropdown.Item as={NavLink} to="/admin">
+                    <i className="bi bi-speedometer2 me-2" aria-hidden="true" />
                     Panel Admin
-                  </Nav.Link>
+                  </NavDropdown.Item>
                 )}
-                <span className="navbar-text ms-lg-2 small">Hola, {sesion.nombre}</span>
-                <Button variant="outline-light" size="sm" className="ms-lg-2 my-1" onClick={salir}>
+                <NavDropdown.Divider />
+                <NavDropdown.Item as="button" type="button" className="text-danger" onClick={salir}>
+                  <i className="bi bi-box-arrow-right me-2" aria-hidden="true" />
                   Cerrar sesión
-                </Button>
-              </>
+                </NavDropdown.Item>
+              </NavDropdown>
             ) : (
               <>
                 <Nav.Link as={NavLink} to="/login">

@@ -27,7 +27,11 @@ describe('Componente <Producto />', () => {
     // Props visibles en el DOM
     expect(screen.getByText('Cilindro GLP 5 kg')).toBeInTheDocument()
     expect(screen.getByText('Para uso residencial')).toBeInTheDocument()
-    expect(screen.getByText(/Precio residencial/)).toHaveTextContent('6.500')
+
+    // La tarjeta muestra los dos precios (residencial y comercial)
+    const tarjeta = screen.getByText('Cilindro GLP 5 kg').closest('.card')
+    expect(tarjeta).toHaveTextContent('Residencial: $6.500')
+    expect(tarjeta).toHaveTextContent('Comercial: $6.000')
 
     // Comportamiento: al hacer click se llama al callback con el id correcto
     fireEvent.click(screen.getByRole('button', { name: 'Agregar' }))

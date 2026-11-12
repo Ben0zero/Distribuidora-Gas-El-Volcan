@@ -17,7 +17,8 @@ public class UsuarioModelAssembler implements RepresentationModelAssembler<Usuar
             linkTo(methodOn(UsuarioControllerV2.class).obtenerUsuario(usuario.getId())).withSelfRel(),
             linkTo(methodOn(UsuarioControllerV2.class).listarUsuarios()).withRel("usuarios"),
             linkTo(methodOn(UsuarioControllerV2.class).actualizarUsuario(usuario.getId(), null)).withRel("actualizar"),
-            linkTo(methodOn(UsuarioControllerV2.class).eliminarUsuario(usuario.getId())).withRel("eliminar")
+            // El Authentication es solo para construir el enlace (queda null en la plantilla)
+            linkTo(methodOn(UsuarioControllerV2.class).eliminarUsuario(usuario.getId(), null)).withRel("eliminar")
         );
     }
 }

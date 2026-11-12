@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Table, Alert, Spinner } from 'react-bootstrap'
-import { listarUsuarios } from '../../utils/api'
-import { rolDesdeApi, ROLES } from '../../utils/sesion'
+import { Table, Alert, Spinner, Button, Modal } from 'react-bootstrap'
+import { listarUsuarios, eliminarUsuario, ApiError } from '../../utils/api'
+import { rolDesdeApi, sesionActiva, ROLES } from '../../utils/sesion'
 
 const FILTROS = {
   'Todos los usuarios': null,
@@ -16,6 +16,12 @@ function ListaUsuarios() {
   const [filtro, setFiltro] = useState('Todos los usuarios')
   const [usuarios, setUsuarios] = useState(null) // null = cargando
   const [error, setError] = useState('')
+  const [aviso, setAviso] = useState('')
+  const [porEliminar, setPorEliminar] = useState(null)
+  const [eliminando, setEliminando] = useState(false)
+
+  const sesion = sesionActiva()
+  const esMiCuenta = (u) => sesion?.id != null && String(u.id) === String(sesion.id)
 
   useEffect(() => {
     let activo = true
@@ -30,6 +36,26 @@ function ListaUsuarios() {
       activo = false
     }
   }, [])
+
+  const confirmarEliminar = async () => {
+    if (!porEliminar) return
+    setEliminando(true)
+    setError('')
+    setAviso('')
+    try {
+      await eliminarUsuario(porEliminar.id)
+      setUsuarios((prev) => prev.filter((u) => u.id !== porEliminar.id))
+      setAviso(`Usuario ${porEliminar.nombre || porEliminar.username} eliminado correctamente.`)
+      setPorEliminar(null)
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 403) setError('Tu sesión no tiene permisos de administrador.')
+      else if (e instanceof ApiError) setError(e.message)
+      else setError('No se pudo conectar con el servidor. Intenta nuevamente en unos minutos.')
+      setPorEliminar(null)
+    } finally {
+      setEliminando(false)
+    }
+  }
 
   const filtrados = (usuarios || []).filter((u) => !FILTROS[filtro] || u.rol === FILTROS[filtro])
 
@@ -67,7 +93,8 @@ function ListaUsuarios() {
         </select>
       </div>
 
-      {error && <Alert variant="danger">{error}</Alert>}
+      {error && <Alert variant="danger" dismissible onClose={() => setError('')}>{error}</Alert>}
+      {aviso && <Alert variant="success" dismissible onClose={() => setAviso('')}>{aviso}</Alert>}
       {usuarios === null && (
         <Spinner animation="border" role="status">
           <span className="visually-hidden">Cargando usuarios…</span>
@@ -83,12 +110,13 @@ function ListaUsuarios() {
               <th className="py-3">Correo (usuario)</th>
               <th className="py-3">Rol</th>
               <th className="py-3">Comuna</th>
+              <th className="py-3 text-end">Acciones</th>
             </tr>
           </thead>
           <tbody>
             {filtrados.length === 0 ? (
               <tr>
-                <td colSpan={5} className="text-center py-4 text-secondary">
+                <td colSpan={6} className="text-center py-4 text-secondary">
                   No hay usuarios para mostrar.
                 </td>
               </tr>
@@ -100,6 +128,29 @@ function ListaUsuarios() {
                   <td className="py-3">{u.username}</td>
                   <td className="py-3">{u.rol}</td>
                   <td className="py-3">{u.comuna || '-'}</td>
+                  <td className="py-3 text-end text-nowrap">
+                    <Button
+                      as={Link}
+                      to={`/admin/usuarios/${u.id}/editar`}
+                      size="sm"
+                      variant="outline-dark"
+                      className="me-2"
+                      aria-label={`Editar ${u.nombre || u.username}`}
+                      title="Editar usuario"
+                    >
+                      <i className="bi bi-pencil-square" aria-hidden="true" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline-danger"
+                      onClick={() => setPorEliminar(u)}
+                      disabled={esMiCuenta(u)}
+                      aria-label={`Eliminar ${u.nombre || u.username}`}
+                      title={esMiCuenta(u) ? 'No puedes eliminar tu propia cuenta' : 'Eliminar usuario'}
+                    >
+                      <i className="bi bi-trash" aria-hidden="true" />
+                    </Button>
+                  </td>
                 </tr>
               ))
             )}
@@ -126,6 +177,24 @@ function ListaUsuarios() {
           </li>
         </ul>
       </nav>
+
+      <Modal show={Boolean(porEliminar)} onHide={() => setPorEliminar(null)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title className="fs-5">Eliminar usuario</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          ¿Seguro que quieres eliminar a{' '}
+          <strong>{porEliminar?.nombre || porEliminar?.username}</strong>? Esta acción no se puede deshacer.
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setPorEliminar(null)} disabled={eliminando}>
+            Cancelar
+          </Button>
+          <Button variant="danger" onClick={confirmarEliminar} disabled={eliminando}>
+            {eliminando ? 'Eliminando…' : 'Eliminar'}
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </>
   )
 }

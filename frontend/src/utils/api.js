@@ -180,3 +180,23 @@ export async function crearUsuario(usuario) {
   if (!res.ok) await lanzarError(res, 'No se pudo crear el usuario')
   return res.json()
 }
+
+// Detalle de un usuario (para precargar el formulario de edición)
+export async function obtenerUsuario(id) {
+  const res = await fetch(`${API_USUARIOS}/${id}`, { headers: authHeaders() })
+  if (!res.ok) await lanzarError(res, 'No se pudo obtener el usuario')
+  return res.json()
+}
+
+// Edición por el ADMIN (PUT): si password viene vacío, el backend conserva la actual
+export async function actualizarUsuario(id, usuario) {
+  const res = await fetch(`${API_USUARIOS}/${id}`, { method: 'PUT', headers: authHeaders(), body: JSON.stringify(usuario) })
+  if (!res.ok) await lanzarError(res, 'No se pudo actualizar el usuario')
+  return res.json()
+}
+
+// Baja de usuario (DELETE). El backend rechaza que un ADMIN borre su propia cuenta
+export async function eliminarUsuario(id) {
+  const res = await fetch(`${API_USUARIOS}/${id}`, { method: 'DELETE', headers: authHeaders() })
+  if (!res.ok) await lanzarError(res, 'No se pudo eliminar el usuario')
+}

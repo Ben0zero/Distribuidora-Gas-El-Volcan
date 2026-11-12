@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -57,12 +58,13 @@ public class UsuarioController {
         return ResponseEntity.ok(usuarioService.actualizar(id, request));
     }
 
-    @Operation(summary = "Eliminar usuario", description = "Borra al usuario por su ID. Requiere rol ADMIN.")
+    @Operation(summary = "Eliminar usuario", description = "Borra al usuario por su ID. Requiere rol ADMIN. Un ADMIN no puede eliminar su propia cuenta.")
     @ApiResponse(responseCode = "204", description = "Usuario eliminado")
+    @ApiResponse(responseCode = "400", description = "El ADMIN intenta eliminar su propia cuenta")
     @ApiResponse(responseCode = "404", description = "Usuario no encontrado")
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> eliminarUsuario(@PathVariable Long id) {
-        usuarioService.eliminar(id);
+    public ResponseEntity<Void> eliminarUsuario(@PathVariable Long id, Authentication authentication) {
+        usuarioService.eliminar(id, authentication != null ? authentication.getName() : null);
         return ResponseEntity.noContent().build();
     }
 }
