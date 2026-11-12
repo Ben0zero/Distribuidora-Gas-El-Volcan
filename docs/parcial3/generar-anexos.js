@@ -196,7 +196,8 @@ function anexo2() {
     table(
       ['Recurso', 'URL'],
       [
-        ['Repositorio GitHub', 'https://github.com/Ben0zero/Distribuidora-Gas-El-Volcan'],
+        ['Repositorio GitHub (frontend)', 'https://github.com/Ben0zero/Distribuidora-Gas-El-Volcan/tree/main/frontend'],
+        ['Repositorio GitHub (backend)', 'https://github.com/Ben0zero/Distribuidora-Gas-El-Volcan/tree/main/microservicios'],
         ['Eureka Dashboard', 'http://localhost:8761'],
         ['Frontend React', 'http://localhost:5173'],
         ['ms-auth — Swagger UI', 'http://localhost:8081/swagger-ui/index.html'],
