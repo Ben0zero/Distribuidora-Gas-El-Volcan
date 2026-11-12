@@ -163,5 +163,6 @@ Distribuidora-Gas-El-Volcan/
 │   └── parcial3/                    # Anexos 2, 3 y 4, capturas y generador
 ├── package.json                     # Script `npm run anexos` (genera los Anexos 2 y 4)
 ├── Version 1/                       # Entrega 1: HTML + CSS + JS
-└── Version 2/                       # Entrega 2: React con localStorage
+├── Version 2/                       # Entrega 2: React con localStorage
+└── Version 3/                       # Entrega 3: snapshot de la EP3 (microservicios + React)
 ```

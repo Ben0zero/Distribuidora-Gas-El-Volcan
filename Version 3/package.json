@@ -1,0 +1,11 @@
+{
+  "name": "el-volcan-docs",
+  "private": true,
+  "description": "Generador de los Anexos 2 y 4 (documentacion EP3)",
+  "scripts": {
+    "anexos": "node docs/parcial3/generar-anexos.js"
+  },
+  "dependencies": {
+    "docx": "^9.15.0"
+  }
+}
