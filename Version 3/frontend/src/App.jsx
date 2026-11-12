@@ -124,6 +124,7 @@ function App() {
           <Route path="inventario" element={<Inventario />} />
           <Route path="usuarios" element={<ListaUsuarios />} />
           <Route path="usuarios/nuevo" element={<NuevoUsuario />} />
+          <Route path="usuarios/:id/editar" element={<NuevoUsuario />} />
           <Route path="ordenes" element={<Ordenes />} />
           <Route path="reportes" element={<Reportes />} />
           <Route path="clientes" element={<Clientes />} />

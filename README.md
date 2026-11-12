@@ -111,11 +111,11 @@ En Swagger, primero se hace `POST /api/v1/auth/login`, luego se presiona **Autho
 
 1. **Eureka:** los 4 servicios aparecen `UP`.
 2. **Registro / login:** crear una cuenta en `/registro` (queda como CLIENTE) e iniciar sesión.
-3. **Catálogo:** `/productos` muestra los 14 productos desde `ms-catalogoProductos`.
+3. **Catálogo:** `/productos` muestra los 14 productos desde `ms-catalogoProductos`; el buscador filtra por nombre, categoría o código con sugerencias en vivo y cada tarjeta muestra precio residencial y comercial.
 4. **Compra:** carrito → "Ir a pagar" → dirección, comuna y método de pago → `POST /api/v1/ventas` y `PUT /api/v1/ventas/{id}/confirmar`. El stock baja en `ms-inventario`.
 5. **Mis compras:** `/mis-compras` lista la orden como "Pagada".
 6. **Vendedor:** con `vendedor@elvolcan.cl`, el panel `/vendedor` muestra la orden y su detalle (solo lectura).
-7. **Admin:** con `admin@duoc.cl`, Inventario (CRUD), Órdenes, Usuarios (crear un Vendedor), Clientes y Reportes con datos reales.
+7. **Admin:** con `admin@duoc.cl`, Inventario (CRUD), Órdenes, Usuarios (crear, editar y eliminar; no permite borrar la propia cuenta), Clientes y Reportes con datos reales.
 
 ## Pruebas
 

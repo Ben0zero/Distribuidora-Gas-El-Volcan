@@ -245,7 +245,7 @@ Páginas informativas, sin cambios. `Nosotros` usa `useState` para expandir los 
 
 **Cómo se prueba la integración:** `vi.stubGlobal('fetch', vi.fn(...))` simula las respuestas de cada microservicio, según la URL y el método. Así se prueban el éxito y los errores (401, 403, 404, 409 y sin conexión) sin levantar el backend. `testUtils/jwt.js` genera JWT con `exp` real para probar la expiración de la sesión.
 
-**71 pruebas en 23 archivos.** El inventario completo y la cobertura están en `DOCUMENTO_COBERTURA_TESTING.md`.
+**91 pruebas en 26 archivos.** El inventario completo y la cobertura están en `DOCUMENTO_COBERTURA_TESTING.md`.
 
 ---
 
@@ -285,7 +285,7 @@ npm.cmd install        # la primera vez
 npm.cmd run dev        # desarrollo → http://localhost:5173 (con los microservicios levantados)
 npm run lint           # oxlint
 npm run build          # producción → dist/
-npm test               # 71 pruebas (una sola vez)
+npm test               # 91 pruebas (una sola vez)
 npm run test:coverage  # pruebas + cobertura en coverage/
 ```
 

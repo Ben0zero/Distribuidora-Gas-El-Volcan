@@ -5,15 +5,16 @@ import { CLAVES } from '../../utils/validaciones'
 const PRINCIPAL = [
   { to: '/admin', end: true, icono: 'bi-grid-fill', label: 'Dashboard' },
   { to: '/admin/inventario', icono: 'bi-box-seam', label: 'Inventario' },
-  { to: '/admin/usuarios', icono: 'bi-person-badge', label: 'Empleados' },
+  { to: '/admin/usuarios', icono: 'bi-person-badge', label: 'Usuarios' },
   { to: '/admin/ordenes', icono: 'bi-receipt', label: 'Órdenes' },
   { to: '/admin/reportes', icono: 'bi-file-earmark-bar-graph', label: 'Reportes' },
   { to: '/admin/clientes', icono: 'bi-people', label: 'Clientes' },
 ]
 
 const SECUNDARIA = [
+  { to: '/', icono: 'bi-shop', label: 'Ver tienda' },
   { icono: 'bi-gear', label: 'Configuración' },
-  { to: '/admin/usuarios/nuevo', icono: 'bi-person-plus', label: '+Profile' },
+  { to: '/admin/usuarios/nuevo', icono: 'bi-person-plus', label: 'Nuevo usuario' },
   { icono: 'bi-search', label: 'Buscar' },
   { icono: 'bi-question-circle', label: 'Ayuda' },
 ]

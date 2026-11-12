@@ -108,4 +108,24 @@ class UsuarioSeguridadTest {
                 .andExpect(status().isForbidden());
         verify(usuarioService, never()).crear(any());
     }
+
+    @Test
+    @WithMockUser(username = "admin@duoc.cl", roles = "ADMIN")
+    @DisplayName("ADMIN elimina a otro usuario: 204")
+    void adminEliminaAOtroUsuario() throws Exception {
+        mockMvc.perform(delete("/api/v1/usuarios/9")).andExpect(status().isNoContent());
+        verify(usuarioService).eliminar(9L, "admin@duoc.cl");
+    }
+
+    @Test
+    @WithMockUser(username = "admin@duoc.cl", roles = "ADMIN")
+    @DisplayName("ADMIN no puede eliminar su propia cuenta: 400")
+    void adminNoPuedeEliminarSuPropiaCuenta() throws Exception {
+        doThrow(new IllegalArgumentException("No puedes eliminar tu propia cuenta"))
+                .when(usuarioService).eliminar(1L, "admin@duoc.cl");
+
+        mockMvc.perform(delete("/api/v1/usuarios/1"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.mensaje").value("No puedes eliminar tu propia cuenta"));
+    }
 }

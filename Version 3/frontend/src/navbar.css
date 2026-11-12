@@ -23,6 +23,39 @@ background-color: #ffffff;
     border-bottom: 2px solid #e87524;
 }
 
+/* Botón del menú del usuario: visible en reposo (antes era blanco sobre blanco) */
+.navbar-gas .dropdown-toggle.nav-link {
+    color: #03244D;
+    font-weight: 600;
+    border: 1px solid #03244D;
+    border-radius: 999px;
+    padding: 0.25rem 0.9rem;
+    margin-left: 0.5rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.navbar-gas .dropdown-toggle.nav-link:hover,
+.navbar-gas .dropdown-toggle.nav-link:focus,
+.navbar-gas .dropdown-toggle.nav-link.show {
+    background-color: #03244D;
+    color: #ffffff;
+    border-color: #03244D;
+}
+
+/* Desplegable del usuario */
+.navbar-gas .dropdown-menu {
+    border-color: #e3e9f0;
+    box-shadow: 0 8px 24px rgba(3, 36, 77, 0.12);
+}
+
+.navbar-gas .dropdown-item.active,
+.navbar-gas .dropdown-item:active {
+    background-color: #03244D;
+    color: #ffffff;
+}
+
 /* Color del botón del menú en pantallas pequeñas */
 .navbar-gas .navbar-toggler {
     border-color: #03244D;

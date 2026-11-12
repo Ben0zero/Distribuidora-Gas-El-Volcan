@@ -8,7 +8,7 @@ const {
 const outDir = path.join(__dirname);
 const capturasDir = path.join(__dirname, 'capturas');
 const VER = '3.0';
-const FECHA = '11-11-2026';
+const FECHA = '12-11-2026';
 
 // ---------- helpers ----------
 function h1(text) {
@@ -196,6 +196,7 @@ function anexo2() {
     table(
       ['Recurso', 'URL'],
       [
+        ['Repositorio GitHub', 'https://github.com/Ben0zero/Distribuidora-Gas-El-Volcan'],
         ['Eureka Dashboard', 'http://localhost:8761'],
         ['Frontend React', 'http://localhost:5173'],
         ['ms-auth — Swagger UI', 'http://localhost:8081/swagger-ui/index.html'],
@@ -234,7 +235,7 @@ function anexo2() {
         ['GET', '/api/v1/usuarios/{id}', 'Sí', 'ADMIN', 'Obtiene un usuario por ID'],
         ['POST', '/api/v1/usuarios', 'Sí', 'ADMIN', 'Crea un usuario con el rol indicado'],
         ['PUT', '/api/v1/usuarios/{id}', 'Sí', 'ADMIN', 'Actualiza datos del usuario'],
-        ['DELETE', '/api/v1/usuarios/{id}', 'Sí', 'ADMIN', 'Elimina un usuario'],
+        ['DELETE', '/api/v1/usuarios/{id}', 'Sí', 'ADMIN', 'Elimina un usuario; un ADMIN no puede borrar su propia cuenta (400)'],
       ],
       [9, 27, 8, 10, 46]
     ),
@@ -335,7 +336,7 @@ function anexo2() {
       ['Componente', 'Herramienta', 'Resultado'],
       [
         ['ms-auth, ms-catalogoProductos, ms-inventario, ms-ventas', 'JUnit + MockMvc + JaCoCo', 'Pruebas unitarias, de controlador y de seguridad aprobadas'],
-        ['Frontend React', 'Vitest + Testing Library', '23 archivos de prueba y 71 pruebas aprobadas'],
+        ['Frontend React', 'Vitest + Testing Library', '26 archivos de prueba y 91 pruebas aprobadas'],
         ['Integración end-to-end', 'Manual sobre el frontend', 'Login, catálogo, carrito, venta, confirmación, mis compras, paneles admin y vendedor'],
       ],
       [40, 26, 34]
@@ -349,6 +350,7 @@ function anexo2() {
       'y la semilla de 14 productos cargada.'),
 
     ...captura('02-catalogo.jpg', 'Catálogo: GET /api/v1/productos (consulta pública, sin token)'),
+    ...captura('02b-catalogo-busqueda.jpg', 'Buscador del catálogo: filtra en vivo y sugiere palabras clave'),
     ...captura('03-detalle-producto.jpg', 'Detalle de producto con precios residencial y comercial'),
     ...captura('04-carrito.jpg', 'Carrito: el estado se mantiene en el frontend (localStorage)'),
     ...captura('07-checkout.jpg', 'Checkout: dirección, comuna y método de pago antes de crear la venta'),
@@ -458,6 +460,7 @@ function anexo4() {
     bullet('Ingresar a “Usuarios” para ver el listado completo.'),
     bullet('Presionar “Nuevo usuario” y completar los datos, seleccionando el rol (ADMIN, VENDEDOR o CLIENTE).'),
     bullet('Editar o eliminar un usuario desde la lista.'),
+    bullet('El sistema no permite eliminar la cuenta con la que se está conectado; el botón queda deshabilitado.'),
     h2('7.5 Órdenes'),
     bullet('Ingresar a “Órdenes” para ver todas las ventas.'),
     bullet('Abrir una orden para revisar el detalle completo.'),
@@ -497,9 +500,11 @@ function anexo4() {
     h2('10.1 Acceso'),
     ...captura('05-login.jpg', 'Pantalla de inicio de sesión'),
     ...captura('06-registro.jpg', 'Formulario de registro: la cuenta se crea con rol CLIENTE'),
+    ...captura('07a-menu-usuario.jpg', 'Menú de cuenta: Mis compras, Panel Admin y Cerrar sesión'),
 
     h2('10.2 Cliente'),
     ...captura('02-catalogo.jpg', 'Catálogo de productos'),
+    ...captura('02b-catalogo-busqueda.jpg', 'Buscador del catálogo con sugerencias y filtrado en vivo'),
     ...captura('03-detalle-producto.jpg', 'Detalle de un producto'),
     ...captura('04-carrito.jpg', 'Carrito con los productos agregados'),
     ...captura('07-checkout.jpg', 'Finalizar la compra: dirección, comuna y método de pago'),
@@ -513,6 +518,7 @@ function anexo4() {
     ...captura('11-admin-dashboard.jpg', 'Dashboard con los indicadores del sistema'),
     ...captura('12-admin-inventario.jpg', 'Gestión de inventario y productos'),
     ...captura('13-admin-usuarios.jpg', 'Gestión de usuarios'),
+    ...captura('13b-admin-usuarios-editar.jpg', 'Edición de un usuario existente (PUT /api/v1/usuarios/{id})'),
     ...captura('14-admin-ordenes.jpg', 'Listado de órdenes'),
     ...captura('15-admin-clientes.jpg', 'Listado de clientes'),
     ...captura('16-admin-reportes.jpg', 'Reportes calculados con datos reales de la API'),

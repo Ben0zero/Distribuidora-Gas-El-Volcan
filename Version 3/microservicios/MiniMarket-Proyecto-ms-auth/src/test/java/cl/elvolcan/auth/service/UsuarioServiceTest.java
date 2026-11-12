@@ -149,9 +149,30 @@ class UsuarioServiceTest {
     @DisplayName("actualizar o eliminar un usuario inexistente lanza UsuarioNoEncontradoException (404)")
     void usuarioInexistente() {
         when(usuarioRepository.findById(99L)).thenReturn(Optional.empty());
-        when(usuarioRepository.existsById(99L)).thenReturn(false);
         assertThrows(UsuarioNoEncontradoException.class, () -> usuarioService.actualizar(99L, vendedor()));
-        assertThrows(UsuarioNoEncontradoException.class, () -> usuarioService.eliminar(99L));
+        assertThrows(UsuarioNoEncontradoException.class, () -> usuarioService.eliminar(99L, "admin@duoc.cl"));
         verify(usuarioRepository, never()).deleteById(any());
+    }
+
+    @Test
+    @DisplayName("un ADMIN no puede eliminar su propia cuenta (400)")
+    void noPuedeEliminarSuPropiaCuenta() {
+        when(usuarioRepository.findById(5L)).thenReturn(Optional.of(existente()));
+
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+                () -> usuarioService.eliminar(5L, "carla@elvolcan.cl"));
+
+        assertEquals("No puedes eliminar tu propia cuenta", error.getMessage());
+        verify(usuarioRepository, never()).deleteById(any());
+    }
+
+    @Test
+    @DisplayName("un ADMIN elimina la cuenta de otro usuario")
+    void eliminaAOtroUsuario() {
+        when(usuarioRepository.findById(5L)).thenReturn(Optional.of(existente()));
+
+        usuarioService.eliminar(5L, "admin@duoc.cl");
+
+        verify(usuarioRepository).deleteById(5L);
     }
 }

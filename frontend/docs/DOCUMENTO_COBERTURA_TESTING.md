@@ -67,7 +67,7 @@ Las clases `*ApplicationTests` (`@SpringBootTest`) levantan el contexto completo
 ```bash
 # Frontend
 cd frontend
-npm test                 # 71 pruebas
+npm test                 # 91 pruebas
 npm run test:coverage    # + reporte en coverage/index.html y coverage/lcov.info
 
 # Backend (en cada microservicio)
@@ -80,7 +80,7 @@ npm run test:coverage    # + reporte en coverage/index.html y coverage/lcov.info
 
 ## 4. Inventario de pruebas
 
-### 4.1 Frontend: 71 pruebas en 23 archivos
+### 4.1 Frontend: 91 pruebas en 26 archivos
 
 | Archivo | N.º | Qué verifica | Tipo |
 |---|---|---|---|
@@ -92,6 +92,7 @@ npm run test:coverage    # + reporte en coverage/index.html y coverage/lcov.info
 | `utils/reportes.test.js` | 5 | Clientes con compras, ventas mensuales, categorías, tipo de cliente, más vendidos, CSV | Lógica |
 | `utils/sesion.test.js` | 4 | Rol de la API, ruta inicial por rol, sesión desde el login, **expiración del JWT** | Lógica (seguridad) |
 | `utils/useCatalogo.test.js` | 2 | Catálogo de la API con ids numéricos; sin conexión usa el de referencia y avisa | Hook + API |
+| `utils/busqueda.test.js` | 11 | Normalización sin tildes, coincidencia por nombre/categoría/código, combinación con filtro y sugerencias | Lógica (búsqueda) |
 | `components/Producto.test.jsx` | 1 | Props en el DOM y callback `onAgregar` (mock) | Componente |
 | `components/Navbar.test.jsx` | 4 | Enlaces, badge del carrito y menú por rol (visitante, cliente, admin, token expirado) | Componente (rol) |
 | `components/RutaProtegida.test.jsx` | 5 | Sin sesión → login; cliente en `/admin` → tienda; admin y cliente permitidos; token expirado | Seguridad (rutas) |
@@ -99,23 +100,25 @@ npm run test:coverage    # + reporte en coverage/index.html y coverage/lcov.info
 | `pages/Login.test.jsx` | 3 | Validaciones; 401 y sin conexión **sin usuarios locales**; login de cliente y admin con datos de la API | Formulario + API |
 | `pages/Registro.test.jsx` | 3 | `POST /register` sin rol; 409 duplicado; sin conexión | Formulario + API |
 | `pages/DetalleProducto.test.jsx` | 3 | `GET /productos/id/{id}`, 404, id local | Página + API |
+| `pages/Productos.test.jsx` | 4 | Catálogo con ambos precios; filtrado en vivo; sugerencias; aviso sin resultados combinado con categoría | Página + búsqueda |
 | `pages/Carrito.test.jsx` | 2 | Líneas con ids de la API y total; aviso y bloqueo sin conexión | Página + API |
 | `pages/Ventas.test.jsx` | 3 | `POST` venta + `PUT` confirmar; 409 sin stock; **reintento sobre la misma venta** | Compras + API |
 | `pages/MisCompras.test.jsx` | 2 | Sin sesión no consulta; historial y "Pagar ahora" | Página + API |
 | `pages/vendedor/PanelVendedor.test.jsx` | 6 | Menú con solo Productos y Órdenes; lista y detalle de órdenes; detalle de producto con stock; redirección fuera de la tienda | Rol Vendedor |
 | `pages/admin/Inventario.test.jsx` | 4 | Lista con stock crítico; crear (`POST` + aumentar); editar (`PUT` + disminuir por diferencia); eliminar | CRUD + API |
 | `pages/admin/PanelAdmin.test.jsx` | 3 | Órdenes (KPI y comunas), Dashboard (stock crítico), Usuarios (filtro por rol) | Admin + API |
-| `pages/admin/NuevoUsuario.test.jsx` | 4 | Alta de Vendedor con correo @elvolcan.cl; 409; validación previa | CRUD + API |
+| `pages/admin/ListaUsuarios.test.jsx` | 3 | Auto-borrado deshabilitado y enlace de edición; eliminación con confirmación; cancelar no llama a la API | Admin + API |
+| `pages/admin/NuevoUsuario.test.jsx` | 6 | Alta de Vendedor con correo @elvolcan.cl; 409; validación previa; edición (`PUT`) sin cambiar la contraseña | CRUD + API |
 | `pages/admin/ClientesReportes.test.jsx` | 2 | Clientes reales y mejores clientes; reportes y exportación CSV | Admin + API |
 
-### 4.2 Backend: 72 pruebas en 14 clases (sin base de datos)
+### 4.2 Backend: 76 pruebas en 14 clases (sin base de datos)
 
 | Microservicio | Clase | N.º | Qué verifica |
 |---|---|---|---|
 | ms-auth | `AuthServiceTest` | 6 | Login (token y `nombreRol`), contraseña incorrecta; registro **siempre CLIENTE**; RUT o usuario duplicado → `RegistroDuplicadoException` |
-| ms-auth | `UsuarioServiceTest` | 7 | Alta de VENDEDOR con BCrypt; sin contraseña; duplicado; rol inexistente; edición que conserva la contraseña; 404 |
+| ms-auth | `UsuarioServiceTest` | 9 | Alta de VENDEDOR con BCrypt; sin contraseña; duplicado; rol inexistente; edición que conserva la contraseña; 404; **auto-borrado bloqueado** |
 | ms-auth | `AuthControllerTest` | 3 | MockMvc: registro duplicado **409**, datos inválidos **400**, login incorrecto **401** |
-| ms-auth | `UsuarioSeguridadTest` | 4 | `@WebMvcTest`: ADMIN crea (201, sin `password` ni `token`); 409; 400; 404; **VENDEDOR → 403** |
+| ms-auth | `UsuarioSeguridadTest` | 6 | `@WebMvcTest`: ADMIN crea (201, sin `password` ni `token`); 409; 400; 404; **VENDEDOR → 403**; DELETE 204 y auto-borrado 400 |
 | ms-auth | `CorsConfigTest` | 3 | Orígenes permitidos, headers y métodos; CORS solo en `/api/**` |
 | ms-catalogoProductos | `ProductoServiceImplTest` | 9 | Crear (y crear su inventario con crítico 5 y máximo 500); SKU duplicado; buscar; listar; desactivar; **editar** y bloqueo del SKU |
 | ms-catalogoProductos | `DataInitializerTest` | 3 | Semilla = los 14 productos del frontend; no pisa datos; reinicio |

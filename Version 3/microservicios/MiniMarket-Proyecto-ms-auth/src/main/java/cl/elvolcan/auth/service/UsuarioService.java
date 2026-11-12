@@ -78,9 +78,16 @@ public class UsuarioService {
         return aRespuesta(usuarioRepository.save(usuario));
     }
 
-    public void eliminar(Long id) {
-        if (!usuarioRepository.existsById(id)) {
-            throw new UsuarioNoEncontradoException(id);
+    /**
+     * Elimina un usuario. No permite que un administrador borre su propia cuenta
+     * (perdería el acceso al panel) y responde 404 si el ID no existe.
+     *
+     * @param usernameActual usuario autenticado que ejecuta la acción
+     */
+    public void eliminar(Long id, String usernameActual) {
+        Usuario usuario = buscar(id);
+        if (usernameActual != null && usernameActual.equalsIgnoreCase(usuario.getUsername())) {
+            throw new IllegalArgumentException("No puedes eliminar tu propia cuenta");
         }
         usuarioRepository.deleteById(id);
     }

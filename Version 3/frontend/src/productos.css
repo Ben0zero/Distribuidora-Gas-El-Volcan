@@ -56,6 +56,11 @@
     background-color: transparent;
 }
 
+/* Buscador del catálogo */
+.buscador-productos {
+    max-width: 640px;
+}
+
 .btn-producto-detalle {
     background-color: white;
     color: #FF6B00;

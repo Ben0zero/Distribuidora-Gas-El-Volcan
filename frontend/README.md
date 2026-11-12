@@ -138,7 +138,7 @@ frontend/
 
 ## Pruebas
 
-**71 pruebas en 23 archivos** (Vitest + Testing Library). Las llamadas a la API se simulan con `vi.stubGlobal('fetch', …)`, así que las pruebas no necesitan los microservicios levantados.
+**91 pruebas en 26 archivos** (Vitest + Testing Library). Las llamadas a la API se simulan con `vi.stubGlobal('fetch', …)`, así que las pruebas no necesitan los microservicios levantados.
 
 | Área | Archivos de prueba |
 |---|---|

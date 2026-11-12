@@ -24,7 +24,7 @@ El Anexo 3 se mantiene en Excel y se edita directamente en `Anexo 3 - Documentac
 
 ## Antes de entregar
 
-- Los Anexo 2 y 4 ya incluyen las capturas de `capturas/` (10 y 16 imágenes respectivamente).
+- Los Anexo 2 y 4 ya incluyen las capturas de `capturas/` (11 y 19 imágenes respectivamente).
 - Verificar que las rutas documentadas coincidan con los controladores (`/api/v1` y `/api/v2`).
 - Confirmar que los servicios estén en estado `UP` en Eureka al momento de las capturas.
 - Si se regeneran las capturas, mantener los mismos nombres de archivo: el generador los referencia por nombre.

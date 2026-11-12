@@ -1,4 +1,5 @@
-// Prueba de componente: la barra de navegación recibe el total por props.
+// Prueba de componente: la barra de navegación recibe el total por props y
+// agrupa las acciones de la cuenta en un menú desplegable.
 import { render, screen, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, test, expect, beforeEach } from 'vitest'
@@ -29,23 +30,27 @@ describe('Componente <Navbar />', () => {
     expect(screen.queryByRole('link', { name: /Mis compras/ })).not.toBeInTheDocument()
   })
 
-  test('Cliente con sesión: "Mis compras" y "Cerrar sesión", sin Login ni Panel Admin', () => {
+  test('Cliente con sesión: el menú del usuario agrupa "Mis compras" y "Cerrar sesión"', () => {
     guardarSesion({ rol: 'Cliente', nombre: 'Ana' })
     renderNavbar()
 
+    // El saludo abre el desplegable (el botón debe verse siempre, no solo al pasar el mouse)
+    fireEvent.click(screen.getByRole('button', { name: /Hola, Ana/ }))
+
     expect(screen.getByRole('link', { name: /Mis compras/ })).toHaveAttribute('href', '/mis-compras')
-    expect(screen.getByText('Hola, Ana')).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /Panel Admin/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /^Login$/ })).not.toBeInTheDocument()
 
     // Cerrar sesión borra la sesión guardada
-    fireEvent.click(screen.getByRole('button', { name: 'Cerrar sesión' }))
+    fireEvent.click(screen.getByRole('button', { name: /Cerrar sesión/ }))
     expect(localStorage.getItem('sesion')).toBeNull()
   })
 
-  test('Administrador ve el enlace al Panel Admin', () => {
+  test('Administrador ve el enlace al Panel Admin dentro de su menú', () => {
     guardarSesion({ rol: 'Administrador', nombre: 'Juan' })
     renderNavbar()
+
+    fireEvent.click(screen.getByRole('button', { name: /Hola, Juan/ }))
     expect(screen.getByRole('link', { name: /Panel Admin/ })).toHaveAttribute('href', '/admin')
   })
 
@@ -54,6 +59,7 @@ describe('Componente <Navbar />', () => {
     renderNavbar()
     expect(screen.getByRole('link', { name: /^Login$/ })).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /Mis compras/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Hola,/ })).not.toBeInTheDocument()
   })
 })
 
