@@ -45,12 +45,24 @@ npm run test:coverage # pruebas + cobertura en coverage/
 > En PowerShell usar `npm.cmd` si la política de ejecución bloquea `npm.ps1`.
 
 **URLs de la API** (`src/utils/api.js`):
-- `http://localhost:8081/api/v1/auth` y `/api/v1/usuarios`
-- `http://localhost:8082/api/v1/productos`
-- `http://localhost:8084/api/v1/inventario`
-- `http://localhost:8086/api/v1/ventas`
 
-El backend permite CORS desde `localhost` y `127.0.0.1` en los puertos 5173 y 5174.
+El navegador usa rutas relativas (`/api/v1/...`) y Vite las redirige a cada
+microservicio (`vite.config.js`):
+
+| Ruta del frontend | Microservicio |
+|---|---|
+| `/api/v1/auth` y `/api/v1/usuarios` | `http://localhost:8081` |
+| `/api/v1/productos` | `http://localhost:8082` |
+| `/api/v1/inventario` | `http://localhost:8084` |
+| `/api/v1/ventas` | `http://localhost:8086` |
+
+Así el frontend funciona igual en `localhost`, por la IP de la red local
+(`http://192.168.x.x:5173`) o detrás de un túnel, sin depender de CORS ni de
+URLs fijas. Para apuntar a otro backend se define `VITE_API_BASE`.
+
+El servidor de desarrollo escucha en toda la red (`host: true`), así que otro
+equipo en la misma Wi-Fi puede abrir `http://<IP-del-PC>:5173`. Si el firewall
+de Windows lo bloquea, hay que permitir Node.js en redes privadas.
 
 **Credenciales de prueba:**
 
