@@ -16,7 +16,21 @@ const SERVICIOS = {
 
 function proxyServicios() {
   return Object.fromEntries(
-    Object.entries(SERVICIOS).map(([ruta, target]) => [ruta, { target, changeOrigin: true }]),
+    Object.entries(SERVICIOS).map(([ruta, target]) => [
+      ruta,
+      {
+        target,
+        changeOrigin: true,
+        // El navegador envía Origin con el dominio del túnel (o la IP de la red
+        // local) y Spring lo rechaza con 403 porque no está en CORS_ORIGINS.
+        // Como el proxy llama al microservicio desde el servidor, la petición
+        // ya es de confianza: quitamos Origin y así funciona con cualquier host
+        // (localhost, IP LAN o túnel) sin tocar la configuración de CORS.
+        configure: (proxy) => {
+          proxy.on('proxyReq', (proxyReq) => proxyReq.removeHeader('origin'))
+        },
+      },
+    ]),
   )
 }
 

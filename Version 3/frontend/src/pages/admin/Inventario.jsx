@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Card, Table, Button, Form, Modal, Alert, Row, Col, Spinner } from 'react-bootstrap'
 import { CATEGORIAS, formatearPrecio } from '../../utils/validaciones'
 import { desdeApi } from '../../utils/productos'
-import { combinarInventario, ajusteDeStock, productoDesdeFormulario, validarProducto } from '../../utils/inventario'
+import { combinarInventario, ajusteDeStock, productoDesdeFormulario, validarProducto, STOCK_MAXIMO } from '../../utils/inventario'
 import {
   obtenerProductos,
   obtenerInventario,
@@ -279,8 +279,8 @@ function Inventario() {
             <Row className="mb-3">
               <Col md={6} className="mb-3 mb-md-0">
                 <Form.Group controlId="nuevo-stock">
-                  <Form.Label className="text-uppercase fw-bold text-secondary" style={etiqueta}>Stock Inicial (Enteros, máx. 500)</Form.Label>
-                  <Form.Control type="number" step="1" min="0" className="rounded-0 border-dark" value={form.stock} onChange={cambiar('stock')} />
+                  <Form.Label className="text-uppercase fw-bold text-secondary" style={etiqueta}>Stock Inicial (Enteros, máx. {STOCK_MAXIMO})</Form.Label>
+                  <Form.Control type="number" step="1" min="0" max={STOCK_MAXIMO} className="rounded-0 border-dark" value={form.stock} onChange={cambiar('stock')} />
                 </Form.Group>
               </Col>
               <Col md={6}>
@@ -373,6 +373,7 @@ function Inventario() {
                       type="number"
                       step="1"
                       min="0"
+                      max={STOCK_MAXIMO}
                       className="rounded-0 border-dark"
                       value={editando.stock}
                       onChange={(e) => setEditando({ ...editando, stock: e.target.value })}

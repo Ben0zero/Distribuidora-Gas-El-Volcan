@@ -36,6 +36,8 @@ describe('utils/inventario', () => {
     expect(validarProducto({ ...valido, codigo: 'C1' }, { nuevo: false })).toBe('') // al editar el código no cambia
     expect(validarProducto({ ...valido, residencial: '' })).toMatch(/precios válidos/)
     expect(validarProducto({ ...valido, stock: '2.5' })).toMatch(/entero/)
+    expect(validarProducto({ ...valido, stock: '501' })).toMatch(/no puede superar 500/)
+    expect(validarProducto({ ...valido, stock: '500' })).toBe('')
     expect(validarProducto({ ...valido, categoria: '' })).toMatch(/categoría/)
   })
 })
