@@ -39,6 +39,10 @@ export function productoDesdeFormulario(form) {
 
 const esEntero = (v) => /^\d+$/.test(String(v).trim())
 
+// Tope de stock que acepta ms-inventario (NIVEL_MAXIMO_INICIAL en el backend).
+// Si se supera, responde 409 Conflict; conviene avisarlo antes de enviar.
+export const STOCK_MAXIMO = 500
+
 // Valida el formulario de producto; devuelve el primer error o ''
 export function validarProducto(form, { nuevo = true } = {}) {
   if (nuevo && form.codigo.trim().length < 3) return 'El código debe tener al menos 3 caracteres'
@@ -50,6 +54,9 @@ export function validarProducto(form, { nuevo = true } = {}) {
     return 'Ingresa precios válidos (residencial y comercial)'
   }
   if (form.stock !== '' && form.stock !== null && !esEntero(form.stock)) return 'El stock debe ser un entero mayor o igual a 0'
+  if (form.stock !== '' && form.stock !== null && Number(form.stock) > STOCK_MAXIMO) {
+    return `El stock no puede superar ${STOCK_MAXIMO} unidades`
+  }
   if (!form.categoria) return 'Selecciona una categoría'
   return ''
 }
