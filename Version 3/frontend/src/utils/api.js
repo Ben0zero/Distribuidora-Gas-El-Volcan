@@ -1,8 +1,15 @@
-const API_AUTH = 'http://localhost:8081/api/v1/auth'
-const API_CATALOGO = 'http://localhost:8082/api/v1/productos'
-const API_INVENTARIO = 'http://localhost:8084/api/v1/inventario'
-const API_VENTAS = 'http://localhost:8086/api/v1/ventas'
-const API_USUARIOS = 'http://localhost:8081/api/v1/usuarios'
+// Base de la API. En desarrollo queda vacía: Vite redirige /api/v1/... al
+// microservicio que corresponde (ver vite.config.js). Así el frontend funciona
+// igual en localhost, en la red local (http://<IP>:5173) o detrás de un túnel,
+// sin depender de CORS ni de URLs fijas. Para apuntar a otro backend se define
+// VITE_API_BASE (ej. http://192.168.1.18:8080).
+const API_BASE = (import.meta.env.VITE_API_BASE || '').replace(/\/$/, '')
+
+const API_AUTH = `${API_BASE}/api/v1/auth`
+const API_CATALOGO = `${API_BASE}/api/v1/productos`
+const API_INVENTARIO = `${API_BASE}/api/v1/inventario`
+const API_VENTAS = `${API_BASE}/api/v1/ventas`
+const API_USUARIOS = `${API_BASE}/api/v1/usuarios`
 
 export function getToken() {
   try {
