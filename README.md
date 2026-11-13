@@ -15,7 +15,8 @@ Proyecto semestral de **DSY1104 – Desarrollo Full Stack II (Duoc UC)**.
 
 | Documento | Enlace |
 |---|---|
-| ERS (Markdown) | [`ERS_ACTUALIZADO.md`](ERS_ACTUALIZADO.md) |
+| ERS v3.0 (Markdown) | [`ERS_ACTUALIZADO.md`](ERS_ACTUALIZADO.md) |
+| ERS v3.0 (PDF) | [`ERS_ACTUALIZADO.pdf`](ERS_ACTUALIZADO.pdf) |
 | Anexos EP3 (2, 3 y 4) | [`Version 3/docs/parcial3/`](Version%203/docs/parcial3) |
 | README técnico de la EP3 | [`Version 3/README.md`](Version%203/README.md) |
 
