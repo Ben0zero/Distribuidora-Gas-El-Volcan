@@ -62,7 +62,7 @@ class AuthServiceTest {
 
         when(usuarioRepository.findByUsername("admin")).thenReturn(Optional.of(usuario));
         when(passwordEncoder.matches("admin123", "hash_de_contraseña")).thenReturn(true);
-        when(jwtUtil.generateToken("admin", "ADMIN")).thenReturn("token_falso_123");
+        when(jwtUtil.generateToken("admin", "ADMIN", null)).thenReturn("token_falso_123");
 
         // When
         UsuarioResponseDTO resultado = authService.login(request);
@@ -76,7 +76,7 @@ class AuthServiceTest {
 
         verify(usuarioRepository).findByUsername("admin");
         verify(passwordEncoder).matches("admin123", "hash_de_contraseña");
-        verify(jwtUtil).generateToken("admin", "ADMIN");
+        verify(jwtUtil).generateToken("admin", "ADMIN", null);
     }
 
     @Test
@@ -103,7 +103,7 @@ class AuthServiceTest {
         assertEquals("Error: Usuario o contraseña incorrectos", exception.getMessage());
         verify(usuarioRepository).findByUsername("admin");
         verify(passwordEncoder).matches("clave_mala", "hash_de_contraseña");
-        verify(jwtUtil, never()).generateToken(anyString(), anyString()); // Verifica que NO se genere token
+        verify(jwtUtil, never()).generateToken(anyString(), anyString(), any()); // Verifica que NO se genere token
     }
 
     @Test

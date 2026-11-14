@@ -156,6 +156,151 @@ class VentaServiceTest {
         verify(ventaRepository, never()).save(any(Venta.class)); // Nunca debe guardar
     }
 
+    // --- H-02: el tipo de cliente sale del JWT, nunca del body ---
+
+    // Simula un CLIENTE cuyo token trae (o no) el claim tipoCliente, como lo deja el filtro JWT
+    private void autenticarClienteConTipo(String tipoCliente) {
+        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
+                "cliente@elvolcan.cl", null, List.of(new SimpleGrantedAuthority("ROLE_CLIENTE")));
+        auth.setDetails(tipoCliente);
+        SecurityContextHolder.getContext().setAuthentication(auth);
+    }
+
+    // Compra 2 unidades de un cilindro con precio residencial 20.000 y comercial 18.000; devuelve el precio unitario guardado
+    private double precioUnitarioCobrado() {
+        DetalleVentaRequestDTO detalleDTO = new DetalleVentaRequestDTO();
+        detalleDTO.setProductoId(10L);
+        detalleDTO.setCantidad(2);
+        VentaRequestDTO request = new VentaRequestDTO();
+        request.setDetalles(List.of(detalleDTO));
+
+        ProductoDTO producto = new ProductoDTO();
+        producto.setId(10L);
+        producto.setSku("CL015");
+        producto.setNombre("Cilindro 15 kg");
+        producto.setPrecioResidencial(20000);
+        producto.setPrecioComercial(18000);
+        StockResponseDTO stock = new StockResponseDTO();
+        stock.setStockActual(10.0);
+
+        when(catalogoClient.obtenerProductoPorId(anyString(), eq(10L))).thenReturn(producto);
+        when(inventarioClient.obtenerStock(anyString(), eq("CL015"))).thenReturn(stock);
+        when(ventaRepository.save(any(Venta.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(ventaModelAssembler.toModel(any(Venta.class))).thenReturn(new VentaResponseDTO());
+
+        ventaService.crearPedido(request);
+
+        org.mockito.ArgumentCaptor<Venta> captor = org.mockito.ArgumentCaptor.forClass(Venta.class);
+        verify(ventaRepository).save(captor.capture());
+        return captor.getValue().getDetalles().get(0).getPrecioUnitario();
+    }
+
+    @Test
+    @DisplayName("crearPedido usa el precio Residencial si el token no trae el claim tipoCliente")
+    void crearPedidoSinClaimUsaResidencial() {
+        autenticarClienteConTipo(null);
+        assertEquals(20000.0, precioUnitarioCobrado());
+    }
+
+    @Test
+    @DisplayName("crearPedido usa el precio Comercial solo si el token dice Comercial")
+    void crearPedidoConClaimComercialUsaComercial() {
+        autenticarClienteConTipo("Comercial");
+        assertEquals(18000.0, precioUnitarioCobrado());
+    }
+
+    @Test
+    @DisplayName("crearPedido usa el precio Residencial si el token dice Residencial (el body ya no tiene tipoCliente)")
+    void crearPedidoConClaimResidencialUsaResidencial() {
+        autenticarClienteConTipo("Residencial");
+        assertEquals(20000.0, precioUnitarioCobrado());
+    }
+
+    // --- H-05 / H-08 / H-03: productos inactivos, ítems repetidos y topes ---
+
+    private DetalleVentaRequestDTO item(Long productoId, int cantidad) {
+        DetalleVentaRequestDTO d = new DetalleVentaRequestDTO();
+        d.setProductoId(productoId);
+        d.setCantidad(cantidad);
+        return d;
+    }
+
+    @Test
+    @DisplayName("crearPedido rechaza (400) un producto desactivado en el catálogo")
+    void crearPedidoRechazaProductoInactivo() {
+        VentaRequestDTO request = new VentaRequestDTO();
+        request.setDetalles(List.of(item(10L, 1)));
+        ProductoDTO inactivo = new ProductoDTO();
+        inactivo.setId(10L);
+        inactivo.setSku("CL045");
+        inactivo.setNombre("Cilindro 45 kg");
+        inactivo.setPrecio(60000);
+        inactivo.setActivo(false);
+        when(catalogoClient.obtenerProductoPorId(anyString(), eq(10L))).thenReturn(inactivo);
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> ventaService.crearPedido(request));
+        assertTrue(ex.getMessage().contains("no está disponible"));
+        verify(inventarioClient, never()).obtenerStock(anyString(), anyString());
+        verify(ventaRepository, never()).save(any(Venta.class));
+    }
+
+    @Test
+    @DisplayName("crearPedido agrupa un producto repetido y valida el stock con la suma")
+    void crearPedidoAgrupaProductoRepetido() {
+        VentaRequestDTO request = new VentaRequestDTO();
+        request.setDetalles(List.of(item(10L, 2), item(10L, 2))); // 4 en total, cada ítem por separado "cabría"
+        ProductoDTO producto = new ProductoDTO();
+        producto.setId(10L);
+        producto.setSku("CL015");
+        producto.setNombre("Cilindro 15 kg");
+        producto.setPrecio(20000);
+        producto.setActivo(true);
+        StockResponseDTO stock = new StockResponseDTO();
+        stock.setStockActual(3.0); // alcanza para 2, pero no para 4
+        when(catalogoClient.obtenerProductoPorId(anyString(), eq(10L))).thenReturn(producto);
+        when(inventarioClient.obtenerStock(anyString(), eq("CL015"))).thenReturn(stock);
+
+        assertThrows(InsufficientStockException.class, () -> ventaService.crearPedido(request));
+        // una sola consulta por producto, aunque venga dos veces
+        verify(catalogoClient, times(1)).obtenerProductoPorId(anyString(), eq(10L));
+        verify(ventaRepository, never()).save(any(Venta.class));
+    }
+
+    @Test
+    @DisplayName("crearPedido guarda un solo detalle con la cantidad sumada si hay stock")
+    void crearPedidoGuardaDetalleAgrupado() {
+        VentaRequestDTO request = new VentaRequestDTO();
+        request.setDetalles(List.of(item(10L, 2), item(10L, 3)));
+        ProductoDTO producto = new ProductoDTO();
+        producto.setId(10L);
+        producto.setSku("CL015");
+        producto.setNombre("Cilindro 15 kg");
+        producto.setPrecio(20000);
+        StockResponseDTO stock = new StockResponseDTO();
+        stock.setStockActual(10.0);
+        when(catalogoClient.obtenerProductoPorId(anyString(), eq(10L))).thenReturn(producto);
+        when(inventarioClient.obtenerStock(anyString(), eq("CL015"))).thenReturn(stock);
+        when(ventaRepository.save(any(Venta.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(ventaModelAssembler.toModel(any(Venta.class))).thenReturn(new VentaResponseDTO());
+
+        ventaService.crearPedido(request);
+
+        verify(ventaRepository).save(argThat(v -> v.getDetalles().size() == 1
+                && v.getDetalles().get(0).getCantidad() == 5
+                && v.getTotal() == 100000.0));
+    }
+
+    @Test
+    @DisplayName("crearPedido rechaza (400) más de 100 unidades del mismo producto sumando ítems, sin llamar a Feign")
+    void crearPedidoRechazaCantidadExcesivaSumada() {
+        VentaRequestDTO request = new VentaRequestDTO();
+        request.setDetalles(List.of(item(10L, 60), item(10L, 60))); // cada uno pasa el @Max(100), la suma no
+
+        assertThrows(IllegalArgumentException.class, () -> ventaService.crearPedido(request));
+        verifyNoInteractions(catalogoClient, inventarioClient);
+        verify(ventaRepository, never()).save(any(Venta.class));
+    }
+
     @Test
     @DisplayName("confirmarPago debe cambiar estado a PAGADA y descontar stock")
     void confirmarPagoDebeCambiarEstadoYDescontarStock() {

@@ -30,6 +30,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -100,7 +101,7 @@ public class VentaService {
     @Transactional
     public VentaResponseDTO crearPedido(VentaRequestDTO requestDTO) {
         String token = getToken();
-        String tipoCliente = requestDTO.getTipoCliente() == null ? "RESIDENCIAL" : requestDTO.getTipoCliente().toUpperCase(Locale.ROOT);
+        String tipoCliente = tipoClienteDelToken();
         Venta venta = new Venta();
         try {
             org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
@@ -116,14 +117,17 @@ public class VentaService {
         double totalVenta = 0.0;
         List<DetalleVenta> detalles = new ArrayList<>();
 
-        for (DetalleVentaRequestDTO detalleDTO : requestDTO.getDetalles()) {
-            if (detalleDTO.getProductoId() == null || detalleDTO.getCantidad() == null) {
-                throw new IllegalArgumentException("Cada detalle debe indicar productoId y cantidad");
-            }
-            ProductoDTO producto = catalogoClient.obtenerProductoPorId(token, detalleDTO.getProductoId());
+        for (Map.Entry<Long, Integer> item : agruparPorProducto(requestDTO.getDetalles()).entrySet()) {
+            Long productoId = item.getKey();
+            int cantidad = item.getValue();
+            ProductoDTO producto = catalogoClient.obtenerProductoPorId(token, productoId);
             if (producto == null) throw new ResourceNotFoundException("Producto no encontrado");
+            if (Boolean.FALSE.equals(producto.getActivo())) {
+                throw new IllegalArgumentException("El producto " + producto.getNombre() + " no está disponible para la venta");
+            }
+            // El stock se valida con la cantidad total del producto (aunque venga repetido en varios ítems)
             StockResponseDTO stock = inventarioClient.obtenerStock(token, producto.getSku());
-            if (stock == null || stock.getStockActual() < detalleDTO.getCantidad()) {
+            if (stock == null || stock.getStockActual() < cantidad) {
                 throw new InsufficientStockException("Stock insuficiente para: " + producto.getNombre());
             }
 
@@ -134,9 +138,9 @@ public class VentaService {
             DetalleVenta detalle = new DetalleVenta();
             detalle.setVenta(venta);
             detalle.setProductoId(producto.getId());
-            detalle.setCantidad(detalleDTO.getCantidad());
+            detalle.setCantidad(cantidad);
             detalle.setPrecioUnitario(precio.doubleValue());
-            detalle.setSubtotal(precio.doubleValue() * detalleDTO.getCantidad());
+            detalle.setSubtotal(precio.doubleValue() * cantidad);
             detalles.add(detalle);
             totalVenta += detalle.getSubtotal();
         }
@@ -144,6 +148,42 @@ public class VentaService {
         venta.setTotal(totalVenta);
         venta.setDetalles(detalles);
         return ventaModelAssembler.toModel(ventaRepository.save(venta));
+    }
+
+    /** Máximo de unidades de un mismo producto por venta (igual al @Max del DTO). */
+    static final int MAX_CANTIDAD_POR_PRODUCTO = 100;
+
+    /**
+     * Suma las cantidades de los ítems con el mismo productoId (en el orden en que llegan),
+     * para validar el stock con el total real y hacer una sola consulta Feign por producto.
+     */
+    private Map<Long, Integer> agruparPorProducto(List<DetalleVentaRequestDTO> detalles) {
+        Map<Long, Integer> cantidades = new LinkedHashMap<>();
+        for (DetalleVentaRequestDTO detalleDTO : detalles) {
+            if (detalleDTO.getProductoId() == null || detalleDTO.getCantidad() == null) {
+                throw new IllegalArgumentException("Cada detalle debe indicar productoId y cantidad");
+            }
+            int total = cantidades.merge(detalleDTO.getProductoId(), detalleDTO.getCantidad(), Integer::sum);
+            if (total > MAX_CANTIDAD_POR_PRODUCTO) {
+                throw new IllegalArgumentException("No se pueden comprar más de " + MAX_CANTIDAD_POR_PRODUCTO
+                        + " unidades del mismo producto en una venta");
+            }
+        }
+        return cantidades;
+    }
+
+    /**
+     * Tipo de cliente para el precio, tomado del claim "tipoCliente" del JWT
+     * (JwtAuthenticationFilter lo deja en los details). Nunca se usa un valor del body:
+     * si el token no trae el claim o trae otro valor, se aplica el precio Residencial.
+     */
+    private String tipoClienteDelToken() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        Object details = auth != null ? auth.getDetails() : null;
+        if (details instanceof String tipo && "COMERCIAL".equals(tipo.trim().toUpperCase(Locale.ROOT))) {
+            return "COMERCIAL";
+        }
+        return "RESIDENCIAL";
     }
 
     /**

@@ -1,6 +1,7 @@
 package cl.elvolcan.ventas.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import lombok.Data;
 
@@ -12,6 +13,7 @@ public class DetalleVentaRequestDTO {
     private Long productoId; 
     
     @Min(value = 1, message = "Si envías cantidad, debe ser al menos 1")
+    @Max(value = 100, message = "No se pueden comprar más de 100 unidades de un producto")
     @Schema(description = "Cantidad del producto a comprar", example = "2")
     private Integer cantidad;
 
