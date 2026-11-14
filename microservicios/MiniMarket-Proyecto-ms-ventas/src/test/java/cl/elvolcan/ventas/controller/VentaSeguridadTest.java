@@ -19,7 +19,18 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
+import org.springframework.security.core.context.SecurityContextHolder;
+
+import java.nio.charset.StandardCharsets;
+import java.util.Date;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -97,5 +108,51 @@ class VentaSeguridadTest {
         mockMvc.perform(post("/api/v1/ventas").contentType(MediaType.APPLICATION_JSON).content(VENTA))
                 .andExpect(status().isCreated());
         mockMvc.perform(get("/api/v1/ventas")).andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(username = "cliente@elvolcan.cl", roles = "CLIENTE")
+    @DisplayName("comprar un producto inactivo o con cantidades inválidas responde 400")
+    void ventaInvalidaResponde400() throws Exception {
+        when(ventaService.crearPedido(any()))
+                .thenThrow(new IllegalArgumentException("El producto Cilindro 45 kg no está disponible para la venta"));
+        mockMvc.perform(post("/api/v1/ventas").contentType(MediaType.APPLICATION_JSON).content(VENTA))
+                .andExpect(status().isBadRequest());
+
+        // 101 unidades: lo rechaza la validación del DTO antes de llegar al servicio
+        String ventaExcesiva = VENTA.replace("\"cantidad\":1", "\"cantidad\":101");
+        mockMvc.perform(post("/api/v1/ventas").contentType(MediaType.APPLICATION_JSON).content(ventaExcesiva))
+                .andExpect(status().isBadRequest());
+        verify(ventaService, times(1)).crearPedido(any());
+    }
+
+    @Test
+    @DisplayName("H-02: el tipo de cliente se toma del claim del JWT aunque el body diga Comercial")
+    void tipoClienteSaleDelTokenYNoDelBody() throws Exception {
+        // Token firmado con la clave de pruebas, como lo emitiría ms-auth para un cliente Residencial
+        String token = Jwts.builder()
+                .setClaims(Map.of("rol", "ROLE_CLIENTE", "tipoCliente", "Residencial"))
+                .setSubject("cliente@elvolcan.cl")
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + 60_000))
+                .signWith(Keys.hmacShaKeyFor("clave_solo_para_tests_unitarios_0123456789"
+                        .getBytes(StandardCharsets.UTF_8)), SignatureAlgorithm.HS256)
+                .compact();
+        String ventaConTipoManipulado = """
+                {"tipoCliente":"Comercial","direccion":"Calle Nueva 789","comuna":"Chillán","metodoPago":"Efectivo",
+                 "detalles":[{"productoId":2,"cantidad":1}]}
+                """;
+        AtomicReference<Object> tipoVistoPorElServicio = new AtomicReference<>();
+        when(ventaService.crearPedido(any())).thenAnswer(inv -> {
+            tipoVistoPorElServicio.set(SecurityContextHolder.getContext().getAuthentication().getDetails());
+            return new VentaResponseDTO();
+        });
+
+        mockMvc.perform(post("/api/v1/ventas").header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content(ventaConTipoManipulado))
+                .andExpect(status().isCreated());
+
+        // El servicio ve el tipo del token ("Residencial"), no el "Comercial" del body
+        assertEquals("Residencial", tipoVistoPorElServicio.get());
     }
 }

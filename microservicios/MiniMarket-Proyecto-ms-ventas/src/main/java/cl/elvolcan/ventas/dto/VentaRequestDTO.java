@@ -13,8 +13,8 @@ import java.util.List;
 @Schema(description = "Objeto que representa la solicitud para registrar una nueva venta en caja")
 public class VentaRequestDTO {
 
-    @Schema(description = "Tipo de cliente que determina el precio", example = "Residencial", allowableValues = {"Residencial", "Comercial"})
-    private String tipoCliente = "Residencial";
+    // El tipo de cliente (Residencial/Comercial) NO se recibe en el body: se toma del JWT
+    // emitido por ms-auth, para que un cliente no pueda elegir el precio comercial.
 
     @Schema(description = "Dirección de despacho", example = "Av. Argentina 455")
     @NotBlank(message = "La dirección de despacho es obligatoria")
@@ -32,6 +32,7 @@ public class VentaRequestDTO {
     private String metodoPago;
 
     @NotEmpty(message = "La venta debe tener al menos un producto")
+    @Size(max = 50, message = "Una venta no puede tener más de 50 ítems")
     @Valid // Dispara la validación interna de la lista
     @Schema(description = "Lista de productos de gas incluidos en la venta")
     private List<DetalleVentaRequestDTO> detalles;

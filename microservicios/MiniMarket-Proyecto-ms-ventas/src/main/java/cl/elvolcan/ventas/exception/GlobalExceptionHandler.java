@@ -45,6 +45,18 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
     }
 
+    // 2b. Datos de la venta inválidos para el negocio (producto inactivo, cantidad sobre el tope, ítem sin datos)
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException ex, HttpServletRequest request) {
+        ErrorResponse errorResponse = new ErrorResponse();
+        errorResponse.setStatus(HttpStatus.BAD_REQUEST.value()); // 400
+        errorResponse.setError(HttpStatus.BAD_REQUEST.getReasonPhrase());
+        errorResponse.setMessage(ex.getMessage());
+        errorResponse.setPath(request.getRequestURI());
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
+
     // 3. Manejo de reglas de negocio: Stock Insuficiente o Estado Ilegal (Ej: pagar algo ya pagado)
     @ExceptionHandler({InsufficientStockException.class, IllegalStateException.class})
     public ResponseEntity<ErrorResponse> handleBusinessLogicRules(RuntimeException ex, HttpServletRequest request) {
