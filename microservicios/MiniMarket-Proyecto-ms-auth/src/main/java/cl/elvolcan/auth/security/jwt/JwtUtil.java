@@ -26,13 +26,24 @@ public class JwtUtil {
         this.SECRET_KEY = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
-public String generateToken(String username, String rol){
+    public String generateToken(String username, String rol){
+        return generateToken(username, rol, null);
+    }
+
+    /**
+     * Genera el token con el rol y, si existe, el tipo de cliente (Residencial/Comercial).
+     * ms-ventas lee el claim "tipoCliente" para fijar el precio, así el cliente no puede elegirlo en el body.
+     */
+    public String generateToken(String username, String rol, String tipoCliente){
         Map<String, Object> claims = new HashMap<>();
         // forzar a que el token guarde el rol con el formato que Spring espera, ya que arrojaba errores al comunicarse antes
         if (!rol.startsWith("ROLE_")) {
             rol = "ROLE_" + rol;
         }
         claims.put("rol", rol);
+        if (tipoCliente != null && !tipoCliente.isBlank()) {
+            claims.put("tipoCliente", tipoCliente);
+        }
 
         return Jwts.builder()       
                 .setClaims(claims)

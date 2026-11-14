@@ -53,8 +53,9 @@ public class AuthService {
             throw new RuntimeException("Error: Usuario o contraseña incorrectos");
         }
 
-        //se genera el token
-        String tokenGenerado = jwtUtil.generateToken(usuario.getUsername(), usuario.getRol().getNombreRol());
+        //se genera el token (incluye el tipo de cliente para que ms-ventas no confíe en el body)
+        String tokenGenerado = jwtUtil.generateToken(usuario.getUsername(), usuario.getRol().getNombreRol(),
+                usuario.getTipoCliente());
 
         //si todo pasa y esta bien, se retorna
         UsuarioResponseDTO response = new UsuarioResponseDTO();
