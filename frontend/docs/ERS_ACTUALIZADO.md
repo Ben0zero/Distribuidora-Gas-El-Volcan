@@ -5,7 +5,7 @@
 **Asignatura:** DSY1104 — Desarrollo Fullstack II
 **Evaluación:** Evaluación Parcial N° 3 (integración frontend React + microservicios Spring Boot)
 **Tecnología principal de esta entrega:** React (SPA) + microservicios Spring Boot + Oracle Cloud
-**Versión del documento:** 3.2
+**Versión del documento:** 3.3
 **Fecha:** Noviembre 2026
 
 ---
@@ -20,6 +20,7 @@
 | **3.0** | **EP3** | **Backend de 4 microservicios Spring Boot + Eureka con JWT, roles ADMIN / VENDEDOR / CLIENTE, API versionada (v1 / v2 HATEOAS), base Oracle Cloud y frontend conectado a la API. Se reemplaza `localStorage` como base de datos; se redefinen los roles; se agregan los RF-38 a RF-47 y el modelo de datos real.** | **Equipo** |
 | **3.1** | **EP3** | **Correcciones de la auditoría OWASP (`docs/AUDITORIA_EP3.md`): tipo de cliente desde el JWT, topes de cantidades, bloqueo optimista al confirmar el pago, errores internos con mensaje genérico, JWT de 2 h, contraseñas de 8 a 64 caracteres con letra y número, y estado de los secretos.** | **Equipo** |
 | **3.2** | **EP3** | **Nuevas funciones: activar y desactivar productos, eliminar usuarios, cambiar la contraseña con sesión iniciada y recuperarla con un enlace de un solo uso (RF-48 a RF-51). Además: buscador con sugerencias de productos, precio destacado según el tipo de cliente, carrito que se vacía al cerrar sesión y RUT con formato y dígito verificador.** | **Equipo** |
+| **3.3** | **EP3** | **Límite de intentos de login (429 con mensaje genérico), envío del enlace de recuperación por correo activable por configuración, RUT válido en los usuarios semilla, el frontend deja de enviar el tipo de cliente en la venta y se agregan las pruebas correspondientes.** | **Equipo** |
 
 ---
 
@@ -203,15 +204,16 @@ main.jsx
 - **Autenticación:**
   - `POST /api/v1/auth/login` valida con **BCrypt** y emite un **JWT** con el rol y el tipo de cliente, válido por **2 horas**.
   - Las contraseñas nuevas deben tener **8 a 64 caracteres** con al menos una letra y un número (el backend acepta hasta 72).
+  - **Límite de intentos de login** (`LimiteIntentosLogin`, en memoria): **5 fallos** del mismo usuario desde la misma IP, o **20 fallos** desde una IP con cualquier usuario, dentro de **15 minutos**, bloquean el login por **15 minutos**. Durante el bloqueo se responde **429** con un mensaje genérico ("Demasiados intentos. Intenta nuevamente en unos minutos."), sin revelar si el usuario existe; los usuarios inexistentes se cuentan igual. Se cuenta por usuario + IP para que un tercero no pueda bloquear la cuenta de otro desde su propia IP. Un login correcto reinicia el contador, y cada bloqueo queda en el log con el usuario y la IP (nunca la contraseña). Detrás del proxy de Vite se usa la IP de `X-Forwarded-For`, en la que solo se confía si la petición llega desde la misma máquina.
   - El frontend guarda el token en la sesión y lo envía en cada petición.
   - Si el token expiró, se pide volver a iniciar sesión. Al cerrar sesión (o si el token vence) también se **vacía el carrito**, para que el siguiente usuario del navegador no lo vea.
 - **Contraseñas:**
   - **Cambio con sesión iniciada** (`PUT /api/v1/cuenta/contrasena`): exige el token y la **contraseña actual**; el usuario sale del token, nunca del cuerpo de la petición.
-  - **Recuperación** (`POST /api/v1/auth/recuperar` y `/restablecer`): responde **siempre el mismo mensaje**, exista o no la cuenta (anti-enumeración). Se crea un token aleatorio de 32 bytes (`SecureRandom`) y se guarda **solo su SHA-256**. El token vence en **15 minutos**, es de **un solo uso** e invalida los enlaces anteriores. Hay un máximo de **3 solicitudes por usuario cada 15 minutos**. El enlace se envía por la interfaz `NotificacionService`: en desarrollo solo se escribe en el log de ms-auth y nunca en la respuesta de la API.
+  - **Recuperación** (`POST /api/v1/auth/recuperar` y `/restablecer`): responde **siempre el mismo mensaje**, exista o no la cuenta (anti-enumeración). Se crea un token aleatorio de 32 bytes (`SecureRandom`) y se guarda **solo su SHA-256**. El token vence en **15 minutos**, es de **un solo uso** e invalida los enlaces anteriores. Hay un máximo de **3 solicitudes por usuario cada 15 minutos**. El enlace se envía por la interfaz `NotificacionService` y nunca viene en la respuesta de la API. La implementación se elige con `app.notificacion.modo`: **`log`** (por defecto) lo escribe solo en el log de ms-auth, y **`correo`** lo envía por SMTP (`spring-boot-starter-mail`) con un correo en español que avisa que vence en 15 minutos y que, si el usuario no lo pidió, puede ignorarlo. Las credenciales SMTP (`spring.mail.*`) se leen del archivo externo de secretos. Si el envío falla, solo se registra en el log y el usuario recibe la misma respuesta.
 - **Autorización en el backend:**
   - `@PreAuthorize` y reglas por método HTTP en cada `SecurityConfig`.
   - El servicio de ventas verifica además que el cliente sea **dueño** de la venta.
-  - Respuestas: **401** sin token o con credenciales malas; **403** sin permiso; **500** con mensaje genérico ante un error interno (el detalle queda en el log).
+  - Respuestas: **401** sin token o con credenciales malas; **403** sin permiso; **429** por demasiados intentos de login; **500** con mensaje genérico ante un error interno (el detalle queda en el log).
 - **Autorización en el frontend:** `RutaProtegida` y el Navbar muestran solo las vistas del rol. Un Vendedor en la tienda es redirigido a su panel.
 - **Registro:** el body **no** decide el rol: siempre se crea un CLIENTE.
 - **Secretos:** la contraseña de la base, la ruta del Wallet y la clave JWT se leen de un archivo externo. Hoy el Wallet **no** se versiona. La contraseña de la base de datos y la clave JWT que quedaron en el historial de git (commit 1bec55c) ya se cambiaron; el Oracle Wallet, que también quedó en ese historial (se retiró en el commit 21e47ba), está pendiente de rotar.
@@ -281,7 +283,7 @@ El catálogo vive en **ms-catalogoProductos**:
 | **RF-14** | El usuario debe poder **registrarse** como cliente (Residencial o Comercial) en ms-auth (`POST /api/v1/auth/register`). | A | ✅ |
 | **RF-15** | El sistema debe **validar** el RUT (con o sin puntos y guion; al **crear** un usuario se exige el **dígito verificador** por módulo 11) y mostrarlo como `12.345.678-5`, teléfono, formato y dominio de correo, contraseña (**8–64**, con letra y número) y términos. El backend vuelve a validar (`@Valid`). | A | ✅ |
 | **RF-16** | El sistema debe **impedir correos o RUN duplicados** en el registro (409). | A | ✅ |
-| **RF-17** | El usuario debe poder **iniciar sesión** contra ms-auth y ser dirigido según su rol: Administrador a `/admin`, Vendedor a `/vendedor`, Cliente a la tienda. | A | ✅ |
+| **RF-17** | El usuario debe poder **iniciar sesión** contra ms-auth y ser dirigido según su rol: Administrador a `/admin`, Vendedor a `/vendedor`, Cliente a la tienda. Tras 5 intentos fallidos del mismo usuario e IP (o 20 desde una IP) en 15 minutos, el login se bloquea 15 minutos y se muestra un mensaje genérico (429). | A | ✅ |
 | **RF-18** | El sistema debe **cerrar sesión** eliminando el token, los datos de sesión y el **carrito**. | A | ✅ |
 | **RF-19** | El sistema debe usar **selectores dependientes** Región → Comuna. | M | ✅ |
 
@@ -351,8 +353,8 @@ El catálogo vive en **ms-catalogoProductos**:
 | **RNF-02** | **Usabilidad** | Formularios de pocos pasos; errores en español, claros, incluido el motivo que envía el backend (ej. "Stock insuficiente para: …"). |
 | **RNF-03** | **Compatibilidad** | Navegadores modernos (Chrome, Edge, Firefox) y teléfonos Android de gama media-baja. |
 | **RNF-04** | **Rendimiento** | Carga rápida; bundle de producción optimizado; los paneles cargan sus datos en paralelo. |
-| **RNF-05** | **Seguridad** | Toda operación que no sea pública (catálogo, login y registro) exige JWT. Contraseñas con BCrypt. Roles aplicados en el servidor. Secretos fuera del repositorio. CORS restringido. |
-| **RNF-06** | **Confiabilidad** | Errores controlados con códigos HTTP coherentes (400 / 401 / 403 / 404 / 409); un error interno responde 500 sin detalles técnicos. Las fallas parciales de un servicio no bloquean todo el panel. |
+| **RNF-05** | **Seguridad** | Toda operación que no sea pública (catálogo, login y registro) exige JWT. Contraseñas con BCrypt. Límite de intentos de login (429). Roles aplicados en el servidor. Secretos fuera del repositorio. CORS restringido. |
+| **RNF-06** | **Confiabilidad** | Errores controlados con códigos HTTP coherentes (400 / 401 / 403 / 404 / 409 / 429); un error interno responde 500 sin detalles técnicos. Las fallas parciales de un servicio no bloquean todo el panel. |
 | **RNF-07** | **Mantenibilidad** | Capas controller / service / repository con DTOs; componentes y utilidades reutilizables; lint sin errores. |
 | **RNF-08** | **Testabilidad** | La lógica de negocio y las reglas de seguridad deben tener **pruebas automatizadas** con reporte de cobertura (frontend y backend). |
 | **RNF-09** | **Accesibilidad** | Etiquetas asociadas a los campos, `role` y `aria-label` en navegación, botones y alertas. |
@@ -394,7 +396,7 @@ ms-ventas:    ventas 1───N detalles_venta ·· producto_id → productos.i
 
 | Servicio | Método | Ruta | Descripción | Acceso |
 |---|---|---|---|---|
-| ms-auth | `POST` | `/api/v1/auth/login` | Inicia sesión y devuelve el JWT y los datos del usuario | Público |
+| ms-auth | `POST` | `/api/v1/auth/login` | Inicia sesión y devuelve el JWT y los datos del usuario (429 tras demasiados intentos fallidos) | Público |
 | ms-auth | `POST` | `/api/v1/auth/register` | Registra un cliente | Público |
 | ms-auth | `POST` | `/api/v1/auth/recuperar` | Pide un enlace de recuperación (respuesta siempre igual) | Público |
 | ms-auth | `POST` | `/api/v1/auth/restablecer` | Nueva contraseña con el token del enlace | Público |
@@ -441,8 +443,8 @@ El detalle completo (parámetros, body, respuestas y códigos de error) está en
 | RF-02, RF-03, RF-06, RF-46 | `pages/Productos.jsx`, `utils/useCatalogo.js`, `utils/productos.js` · ms-catalogoProductos `ProductoController` | `useCatalogo.test.js`, `productos.test.js`, `Producto.test.jsx` · `ProductoSeguridadTest` (catálogo público) |
 | RF-04, RF-05 | `pages/DetalleProducto.jsx` | `DetalleProducto.test.jsx` |
 | RF-07 – RF-13 | `utils/carrito.js`, `pages/Carrito.jsx`, `App.jsx` | `carrito.test.js`, `Carrito.test.jsx`, `Navbar.test.jsx` |
-| RF-14 – RF-16, RF-19 | `pages/Registro.jsx`, `utils/validaciones.js` · ms-auth `AuthService.registrar` | `Registro.test.jsx`, `validaciones.test.js` · `AuthServiceTest`, `AuthControllerTest` (409, 400) |
-| RF-17, RF-18, RF-38, RF-47 | `pages/Login.jsx`, `utils/sesion.js`, `components/RutaProtegida.jsx` · ms-auth `AuthController.login`, `JwtUtil` | `Login.test.jsx`, `sesion.test.js`, `RutaProtegida.test.jsx` · `AuthServiceTest` |
+| RF-14 – RF-16, RF-19 | `pages/Registro.jsx`, `utils/validaciones.js` · ms-auth `AuthService.registrar` | `Registro.test.jsx`, `validaciones.test.js` · `AuthServiceTest`, `AuthControllerTest` (409, 400), `DataInitializerTest` de ms-auth (RUT semilla válido) |
+| RF-17, RF-18, RF-38, RF-47 | `pages/Login.jsx`, `utils/sesion.js`, `components/RutaProtegida.jsx` · ms-auth `AuthController.login`, `JwtUtil`, `LimiteIntentosLogin` | `Login.test.jsx` (incluye el 429), `sesion.test.js`, `RutaProtegida.test.jsx` · `AuthServiceTest`, `AuthControllerTest` (429 e IP), `LimiteIntentosLoginTest` |
 | RF-20 – RF-24 | `pages/Ventas.jsx` · ms-ventas `VentaService.crearPedido` / `confirmarPago` (Feign a catálogo e inventario) | `Ventas.test.jsx` · `VentaServiceTest`, `VentaRequestDTOTest` |
 | RF-26 – RF-28 | `pages/Contacto.jsx`, `Nosotros.jsx`, `Consejos.jsx`, `Tiendas.jsx` | `validaciones.test.js`, `Nosotros.test.jsx` |
 | RF-29, RF-43 | `pages/admin/Dashboard.jsx`, `Ordenes.jsx`, `utils/ventas.js` · ms-ventas `GET /ventas`, `/ventas/{id}` | `PanelAdmin.test.jsx`, `ventas.test.js` · `VentaServiceTest` (detalle por rol) |
@@ -456,7 +458,7 @@ El detalle completo (parámetros, body, respuestas y códigos de error) está en
 | RF-48 | `pages/admin/Inventario.jsx` · ms-catalogoProductos `ProductoController.cambiarEstado`, `listarTodosAdmin` | `Inventario.test.jsx` · `ProductoServiceImplTest`, `ProductoSeguridadTest` |
 | RF-49 | `pages/admin/ListaUsuarios.jsx`, `NuevoUsuario.jsx` · ms-auth `UsuarioService.eliminar` / `actualizar` | `ListaUsuarios.test.jsx`, `NuevoUsuario.test.jsx` · `UsuarioServiceTest` |
 | RF-50 | `pages/CambiarContrasena.jsx` · ms-auth `CuentaController`, `CuentaService` | `CambiarContrasena.test.jsx` · `CuentaServiceTest`, `CuentaSeguridadTest` |
-| RF-51 | `pages/RecuperarContrasena.jsx`, `RestablecerContrasena.jsx` · ms-auth `RecuperacionController`, `RecuperacionService`, `NotificacionService` | `RecuperacionContrasena.test.jsx` · `RecuperacionServiceTest`, `RecuperacionControllerTest` |
+| RF-51 | `pages/RecuperarContrasena.jsx`, `RestablecerContrasena.jsx` · ms-auth `RecuperacionController`, `RecuperacionService`, `NotificacionService` (`NotificacionLogService` / `NotificacionCorreoService`) | `RecuperacionContrasena.test.jsx` · `RecuperacionServiceTest`, `RecuperacionControllerTest`, `NotificacionCorreoServiceTest` |
 
 ---
 
@@ -467,7 +469,7 @@ El detalle completo (parámetros, body, respuestas y códigos de error) está en
 3. Un **vendedor** solo ve lista y detalle de productos y de órdenes. Cualquier escritura en la API devuelve **403**.
 4. El **administrador** puede crear, editar, activar y desactivar productos, ajustar stock, crear, editar y eliminar usuarios con rol y ver órdenes, clientes y reportes con datos reales.
 5. Un usuario puede **cambiar su contraseña** con la actual y **recuperarla** con un enlace de un solo uso; la solicitud de recuperación responde igual exista o no la cuenta.
-6. Sin token, las operaciones protegidas responden **401**; un cliente no puede ver ni pagar ventas ajenas (**403**); un registro duplicado responde **409**.
+6. Sin token, las operaciones protegidas responden **401**; un cliente no puede ver ni pagar ventas ajenas (**403**); un registro duplicado responde **409**; tras demasiados intentos fallidos el login responde **429** con un mensaje genérico.
 7. Las pruebas automatizadas del frontend y del backend pasan y generan **reporte de cobertura**.
 8. `npm run build` y `npm run lint` terminan **sin errores**, y ningún secreto queda en el repositorio.
 
