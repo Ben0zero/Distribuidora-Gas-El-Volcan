@@ -140,5 +140,5 @@ Registro de lo corregido después de la auditoría (`9cd7d7e`). Cada fila indica
 | Seguridad por rol en ventas | `5f15ed0` | Se conserva el 403 por rol al permitir `/error` en `SecurityConfig` | Corregido |
 | RUT de la semilla | `fix(auth): corrige el RUT de los usuarios semilla con digito verificador valido` | `DataInitializer` siembra RUT válidos (módulo 11) y corrige de forma idempotente el RUT antiguo de los 3 usuarios en BD ya sembradas | Corregido |
 | H-01 | — | Rotar el Wallet en OCI y confirmar el cambio de contraseña de ADMIN | Pendiente (operativo) |
-| H-07 límite de intentos (deseable 9) | — | — | Pendiente |
+| H-07 límite de intentos (deseable 9) | `feat(auth): limita los intentos fallidos de login por usuario e IP` | `LimiteIntentosLogin` en memoria (`ConcurrentHashMap`, con limpieza de vencidos y tope de entradas): 5 fallos por usuario + IP o 20 por IP en 15 min bloquean por 15 min. Responde 429 con un mensaje genérico, el éxito reinicia el contador de usuario + IP y los bloqueos quedan en el log (usuario e IP, sin contraseñas). Detrás del proxy de Vite (`xfwd`) se usa la última IP de `X-Forwarded-For` (solo si la petición llega desde loopback). El Login muestra el mensaje | Corregido |
 | H-06, H-11, H-12 resto, H-13, H-16 rol propio, H-17, H-20 | — | — | Pendiente (deseable) |
