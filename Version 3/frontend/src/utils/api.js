@@ -57,6 +57,10 @@ export async function login(username, password) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, password })
   })
+  if (res.status === 429) {
+    // Límite de intentos (H-07): se muestra el mensaje genérico del backend
+    return lanzarError(res, 'Demasiados intentos. Intenta nuevamente en unos minutos.')
+  }
   if (!res.ok) {
     throw new ApiError(res.status === 401 ? 'Credenciales incorrectas' : 'Error al iniciar sesión', res.status)
   }

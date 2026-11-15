@@ -1,7 +1,9 @@
 package cl.elvolcan.auth.controller;
 
 import org.springframework.security.authentication.BadCredentialsException;
+import cl.elvolcan.auth.exception.DemasiadosIntentosException;
 import cl.elvolcan.auth.exception.GlobalExceptionHandler;
+import cl.elvolcan.auth.security.LimiteIntentosLogin;
 import cl.elvolcan.auth.exception.RegistroDuplicadoException;
 import cl.elvolcan.auth.service.AuthService;
 import org.junit.jupiter.api.BeforeEach;
@@ -12,6 +14,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -65,7 +68,7 @@ class AuthControllerTest {
     @Test
     @DisplayName("POST /login con credenciales incorrectas sigue respondiendo 401")
     void loginIncorrectoResponde401() throws Exception {
-        when(authService.login(any())).thenThrow(new BadCredentialsException("Error: Usuario o contraseña incorrectos"));
+        when(authService.login(any(), any())).thenThrow(new BadCredentialsException("Error: Usuario o contraseña incorrectos"));
 
         mockMvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"username\":\"ana@duoc.cl\",\"password\":\"mala\"}"))
@@ -75,7 +78,7 @@ class AuthControllerTest {
     @Test
     @DisplayName("H-10: un error interno responde 500 con mensaje neutro (sin detalles técnicos ni 401)")
     void errorInternoResponde500SinDetalles() throws Exception {
-        when(authService.login(any())).thenThrow(new RuntimeException("ORA-00942: table or view does not exist"));
+        when(authService.login(any(), any())).thenThrow(new RuntimeException("ORA-00942: table or view does not exist"));
 
         mockMvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"username\":\"ana@duoc.cl\",\"password\":\"Clave1234\"}"))
@@ -92,7 +95,7 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.validationErrors.username").exists())
                 .andExpect(jsonPath("$.validationErrors.password").exists());
 
-        verify(authService, never()).login(any());
+        verify(authService, never()).login(any(), any());
     }
 
     @Test
@@ -105,5 +108,37 @@ class AuthControllerTest {
                     .andExpect(jsonPath("$.validationErrors.password").exists());
         }
         verify(authService, never()).registrar(any());
+    }
+
+    private static final String LOGIN = "{\"username\":\"admin@duoc.cl\",\"password\":\"Clave1234\"}";
+
+    @Test
+    @DisplayName("H-07: login bloqueado responde 429 con un mensaje genérico")
+    void loginBloqueadoResponde429() throws Exception {
+        when(authService.login(any(), any())).thenThrow(new DemasiadosIntentosException(LimiteIntentosLogin.MENSAJE));
+
+        mockMvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON).content(LOGIN))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(jsonPath("$.mensaje").value("Demasiados intentos. Intenta nuevamente en unos minutos."));
+    }
+
+    @Test
+    @DisplayName("H-07: detrás del proxy local se usa la última IP de X-Forwarded-For")
+    void ipDesdeProxyLocal() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON).content(LOGIN)
+                        .with(r -> { r.setRemoteAddr("127.0.0.1"); return r; })
+                        .header("X-Forwarded-For", "1.2.3.4, 203.0.113.7"));
+
+        verify(authService).login(any(), eq("203.0.113.7"));
+    }
+
+    @Test
+    @DisplayName("H-07: X-Forwarded-For se ignora si la petición no viene de la misma máquina")
+    void ipNoConfiaEnCabeceraExterna() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON).content(LOGIN)
+                        .with(r -> { r.setRemoteAddr("198.51.100.9"); return r; })
+                        .header("X-Forwarded-For", "203.0.113.7"));
+
+        verify(authService).login(any(), eq("198.51.100.9"));
     }
 }

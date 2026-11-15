@@ -22,6 +22,9 @@ function proxyServicios() {
       {
         target,
         changeOrigin: true,
+        // Agrega X-Forwarded-For con la IP real del navegador: ms-auth la usa para el
+        // límite de intentos de login (si no, todos llegarían como 127.0.0.1)
+        xfwd: true,
         // El navegador envía Origin con el dominio del túnel (o la IP de la red
         // local) y Spring lo rechaza con 403 porque no está en CORS_ORIGINS.
         // Como el proxy llama al microservicio desde el servidor, la petición

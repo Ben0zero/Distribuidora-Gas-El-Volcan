@@ -15,6 +15,7 @@ import cl.elvolcan.auth.model.Rol;
 import cl.elvolcan.auth.model.Usuario;
 import cl.elvolcan.auth.repository.RolRepository;
 import cl.elvolcan.auth.repository.UsuarioRepository;
+import cl.elvolcan.auth.security.LimiteIntentosLogin;
 import cl.elvolcan.auth.security.jwt.JwtUtil;
 
 @Service
@@ -29,21 +30,30 @@ public class AuthService {
     private final RolRepository rolRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final LimiteIntentosLogin limiteIntentos;
 
 
-    public AuthService(UsuarioRepository usuarioRepository, RolRepository rolRepository, PasswordEncoder passwordEncoder, JwtUtil jwtUtil){          //inyeccion de dependencias
+    public AuthService(UsuarioRepository usuarioRepository, RolRepository rolRepository, PasswordEncoder passwordEncoder, JwtUtil jwtUtil,
+                       LimiteIntentosLogin limiteIntentos){          //inyeccion de dependencias
         this.usuarioRepository = usuarioRepository;
         this.rolRepository = rolRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
+        this.limiteIntentos = limiteIntentos;
     }
 
-    // METODO DE LOGIN
-    public UsuarioResponseDTO login(LoginRequestDTO request){
+    // METODO DE LOGIN (ip = IP del cliente, para el límite de intentos fallidos)
+    public UsuarioResponseDTO login(LoginRequestDTO request, String ip){
+
+        // H-07: si el usuario + IP o la IP están bloqueados, 429 antes de consultar la BD
+        // (aunque esta vez la contraseña sea correcta)
+        limiteIntentos.verificar(request.getUsername(), ip);
 
         //buscar si existe el username
         Optional<Usuario> usuarioOpt = usuarioRepository.findByUsername(request.getUsername());
         if (usuarioOpt.isEmpty()) {
+            // un usuario inexistente cuenta igual que una contraseña mala (no se revela si existe)
+            limiteIntentos.registrarFallo(request.getUsername(), ip);
             throw new BadCredentialsException("Error: Usuario o contraseña incorrectos");
             // tiene que ser usuario o contra incorrectos, nunca dar informacion de más, siempre generico
         }
@@ -52,8 +62,12 @@ public class AuthService {
 
         //comparacion de contraseñas
         if (!passwordEncoder.matches(request.getPassword(), usuario.getPassword())) {
+            limiteIntentos.registrarFallo(request.getUsername(), ip);
             throw new BadCredentialsException("Error: Usuario o contraseña incorrectos");
         }
+
+        // login correcto: se reinicia el contador de este usuario + IP
+        limiteIntentos.registrarExito(request.getUsername(), ip);
 
         //se genera el token (incluye el tipo de cliente para que ms-ventas no confíe en el body)
         String tokenGenerado = jwtUtil.generateToken(usuario.getUsername(), usuario.getRol().getNombreRol(),
