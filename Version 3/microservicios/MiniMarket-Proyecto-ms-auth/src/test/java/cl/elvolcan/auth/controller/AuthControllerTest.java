@@ -4,6 +4,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import cl.elvolcan.auth.exception.DemasiadosIntentosException;
 import cl.elvolcan.auth.exception.GlobalExceptionHandler;
 import cl.elvolcan.auth.security.LimiteIntentosLogin;
+import cl.elvolcan.auth.security.ProxiesConfiables;
 import cl.elvolcan.auth.exception.RegistroDuplicadoException;
 import cl.elvolcan.auth.service.AuthService;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,7 +38,11 @@ class AuthControllerTest {
     @BeforeEach
     void setUp() {
         authService = mock(AuthService.class);
-        mockMvc = MockMvcBuilders.standaloneSetup(new AuthController(authService))
+        mockMvc = crearMockMvc(new ProxiesConfiables(new String[] {"127.0.0.1", "::1"}));
+    }
+
+    private MockMvc crearMockMvc(ProxiesConfiables proxies) {
+        return MockMvcBuilders.standaloneSetup(new AuthController(authService, proxies))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
     }
@@ -140,5 +145,27 @@ class AuthControllerTest {
                         .header("X-Forwarded-For", "203.0.113.7"));
 
         verify(authService).login(any(), eq("198.51.100.9"));
+    }
+
+    @Test
+    @DisplayName("H-07: con la red de Docker como proxy confiable se usa la IP real que envía Nginx")
+    void ipDesdeNginxEnDocker() throws Exception {
+        MockMvc conDocker = crearMockMvc(new ProxiesConfiables(new String[] {"127.0.0.1", "::1", "172.28.0.0/16"}));
+
+        conDocker.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON).content(LOGIN)
+                        .with(r -> { r.setRemoteAddr("172.28.0.5"); return r; })
+                        .header("X-Forwarded-For", "203.0.113.7"));
+
+        verify(authService).login(any(), eq("203.0.113.7"));
+    }
+
+    @Test
+    @DisplayName("H-07: sin configurar la red de Docker, la petición desde Nginx no confía en X-Forwarded-For")
+    void ipDesdeRedDockerNoConfigurada() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON).content(LOGIN)
+                        .with(r -> { r.setRemoteAddr("172.28.0.5"); return r; })
+                        .header("X-Forwarded-For", "203.0.113.7"));
+
+        verify(authService).login(any(), eq("172.28.0.5"));
     }
 }

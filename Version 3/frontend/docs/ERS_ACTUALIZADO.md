@@ -5,7 +5,7 @@
 **Asignatura:** DSY1104 — Desarrollo Fullstack II
 **Evaluación:** Evaluación Parcial N° 3 (integración frontend React + microservicios Spring Boot)
 **Tecnología principal de esta entrega:** React (SPA) + microservicios Spring Boot + Oracle Cloud
-**Versión del documento:** 3.5
+**Versión del documento:** 3.6
 **Fecha:** Noviembre 2026
 
 ---
@@ -23,6 +23,7 @@
 | **3.3** | **EP3** | **Límite de intentos de login (429 con mensaje genérico), envío del enlace de recuperación por correo activable por configuración, RUT válido en los usuarios semilla, el frontend deja de enviar el tipo de cliente en la venta y se agregan las pruebas correspondientes.** | **Equipo** |
 | **3.4** | **EP3** | **Un administrador no puede quitarse su propio rol ni dejar el sistema sin administradores (H-16); ms-auth maneja tokens inválidos o expirados respondiendo 401 en JSON (H-20); el correo de recuperación se envía en segundo plano.** | **Equipo** |
 | **3.5** | **EP3** | **Eliminación definitiva de productos sin ventas (RF-52): `DELETE /api/v1/productos/{sku}` pasa a ser un borrado real que consulta a ms-ventas y borra también el inventario; la baja lógica queda en `PATCH /{id}/estado`. Nuevos endpoints `GET /api/v1/ventas/productos-vendidos` y `DELETE /api/v1/inventario/{sku}`, y botón Eliminar en el panel.** | **Equipo** |
+| **3.6** | **EP3** | **Arquitectura de contenedores: Dockerfile multi-etapa para Eureka, los 4 microservicios y el frontend (Nginx con proxy de la API v1/v2 y headers de seguridad, H-13), `docker-compose.yml` con red interna, healthchecks y secretos por `.env` (el Wallet se monta en solo lectura y ya no se copia a las imágenes). Lista de proxies confiables configurable para el límite de intentos de login. Guía `docs/DOCKER.md` para local y AWS EC2.** | **Equipo** |
 
 ---
 
@@ -64,13 +65,14 @@ El ERS sirve como:
   - panel de administración con datos reales (inventario, órdenes, usuarios, clientes y reportes con exportación CSV).
 - **Pruebas automatizadas:** Vitest en el frontend y JUnit, Mockito y `@WebMvcTest` en el backend, con reporte de cobertura (V8 y JaCoCo).
 - Persistencia en **Oracle Autonomous Database (Oracle Cloud, con Wallet)**.
+- **Contenedores Docker:** imágenes de Eureka, los 4 microservicios y el frontend (Nginx), orquestadas con Docker Compose para levantar en local y en **AWS EC2** (§3.8 y `docs/DOCKER.md`).
 
 **Fuera del alcance de esta entrega:**
 
 - `ms-produccion`: microservicio heredado del template MiniMarket, no adaptado.
 - **Seguimiento de pedidos en tiempo real** con mapas y roles de despacho (Operadora y Repartidor).
 - **Pasarela de pago real:** el pago se registra con la confirmación de la venta.
-- Despliegue de los microservicios en **AWS con Docker**. El frontend de la V2 ya se desplegó en EC2 (ver `DEPLOY.md`).
+- HTTPS con dominio propio y despliegue automatizado (CI/CD). El despliegue con Docker en EC2 queda documentado y se realiza por HTTP en el puerto 80.
 
 ### 1.3 Definiciones y acrónimos
 
@@ -206,7 +208,7 @@ main.jsx
 - **Autenticación:**
   - `POST /api/v1/auth/login` valida con **BCrypt** y emite un **JWT** con el rol y el tipo de cliente, válido por **2 horas**.
   - Las contraseñas nuevas deben tener **8 a 64 caracteres** con al menos una letra y un número (el backend acepta hasta 72).
-  - **Límite de intentos de login** (`LimiteIntentosLogin`, en memoria): **5 fallos** del mismo usuario desde la misma IP, o **20 fallos** desde una IP con cualquier usuario, dentro de **15 minutos**, bloquean el login por **15 minutos**. Durante el bloqueo se responde **429** con un mensaje genérico ("Demasiados intentos. Intenta nuevamente en unos minutos."), sin revelar si el usuario existe; los usuarios inexistentes se cuentan igual. Se cuenta por usuario + IP para que un tercero no pueda bloquear la cuenta de otro desde su propia IP. Un login correcto reinicia el contador, y cada bloqueo queda en el log con el usuario y la IP (nunca la contraseña). Detrás del proxy de Vite se usa la IP de `X-Forwarded-For`, en la que solo se confía si la petición llega desde la misma máquina.
+  - **Límite de intentos de login** (`LimiteIntentosLogin`, en memoria): **5 fallos** del mismo usuario desde la misma IP, o **20 fallos** desde una IP con cualquier usuario, dentro de **15 minutos**, bloquean el login por **15 minutos**. Durante el bloqueo se responde **429** con un mensaje genérico ("Demasiados intentos. Intenta nuevamente en unos minutos."), sin revelar si el usuario existe; los usuarios inexistentes se cuentan igual. Se cuenta por usuario + IP para que un tercero no pueda bloquear la cuenta de otro desde su propia IP. Un login correcto reinicia el contador, y cada bloqueo queda en el log con el usuario y la IP (nunca la contraseña). Detrás de un proxy se usa la IP de `X-Forwarded-For` (la última entrada), en la que solo se confía si la petición llega desde un **proxy confiable** (`app.seguridad.proxies-confiables`, IPs o rangos CIDR). Por defecto es `127.0.0.1,::1` (el proxy de Vite); en Docker se agrega la red interna `172.28.0.0/16`, desde donde llega Nginx.
   - El frontend guarda el token en la sesión y lo envía en cada petición.
   - Si el token expiró, se pide volver a iniciar sesión. Al cerrar sesión (o si el token vence) también se **vacía el carrito**, para que el siguiente usuario del navegador no lo vea.
 - **Contraseñas:**
@@ -221,7 +223,8 @@ main.jsx
 - **Autorización en el frontend:** `RutaProtegida` y el Navbar muestran solo las vistas del rol. Un Vendedor en la tienda es redirigido a su panel.
 - **Registro:** el body **no** decide el rol: siempre se crea un CLIENTE.
 - **Secretos:** la contraseña de la base, la ruta del Wallet y la clave JWT se leen de un archivo externo. Hoy el Wallet **no** se versiona. La contraseña de la base de datos y la clave JWT que quedaron en el historial de git (commit 1bec55c) ya se cambiaron; el Oracle Wallet, que también quedó en ese historial (se retiró en el commit 21e47ba), está pendiente de rotar.
-- **CORS:** solo para `/api/**` y los orígenes configurados. En desarrollo el frontend llama por el **proxy de Vite**, que quita `Origin`, así que esas llamadas no dependen de CORS.
+- **CORS:** solo para `/api/**` y los orígenes configurados. En desarrollo el frontend llama por el **proxy de Vite**, y en Docker por **Nginx**; ambos quitan `Origin`, así que esas llamadas no dependen de CORS.
+- **Headers de seguridad (H-13):** en Docker, Nginx agrega `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin` y una **Content-Security-Policy** que solo permite recursos del propio sitio, más los iframes de Google Maps y YouTube. Por eso las imágenes de productos deben ser rutas locales `/IMAGENES/...`.
 
 ### 3.5 Versionado de la API
 
@@ -246,6 +249,35 @@ El catálogo vive en **ms-catalogoProductos**:
 - La semilla inicial contiene los **14 productos** de la empresa (CL001…AC003).
 
 ---
+
+### 3.8 Arquitectura de contenedores (Docker)
+
+El sistema completo se levanta con **Docker Compose** (`docker-compose.yml` en la raíz), tanto en local (Docker Desktop) como en **AWS EC2**. El paso a paso está en `docs/DOCKER.md`.
+
+```
+              Navegador ── puerto 80 (único puerto público)
+┌──────────────────────────────▼───────────────────────────────────┐
+│ Red interna Docker "elvolcan" (172.28.0.0/16)                    │
+│  frontend (Nginx :80): SPA + proxy /api/v1 y /api/v2             │
+│     ├─ auth | usuarios | cuenta → ms-auth :8081                  │
+│     ├─ productos                → ms-catalogoproductos :8082     │
+│     ├─ inventario               → ms-inventario :8084            │
+│     └─ ventas                   → ms-ventas :8086                │
+│  los 4 servicios se registran en eureka :8761 (127.0.0.1:8761)   │
+└───────────────┬──────────────────────────────────────────────────┘
+                └─ salida TLS → Oracle Autonomous Database (Wallet en /wallet, solo lectura)
+```
+
+| Contenedor | Imagen base (ejecución) | Puerto | Publicado |
+|---|---|---|---|
+| `eureka` | `eclipse-temurin:21-jre-alpine` | 8761 | solo `127.0.0.1:8761` |
+| `ms-auth`, `ms-catalogoproductos`, `ms-inventario`, `ms-ventas` | `eclipse-temurin:21-jre-alpine` | 8081 / 8082 / 8084 / 8086 | no |
+| `frontend` | `nginx:1.27-alpine` | 80 | `80` |
+
+- **Imágenes multi-etapa:** los microservicios se compilan con Maven + Java 21 dentro de la imagen y se ejecutan con un JRE 21 liviano, con un usuario sin privilegios. La memoria se configura con `JAVA_OPTS` (por defecto `-Xmx384m`). El frontend se compila con Node 22 y lo sirve Nginx, con `try_files` para React Router.
+- **Arranque ordenado:** healthchecks HTTP y `depends_on`, en el orden Eureka → microservicios → frontend. Los servicios encuentran a Eureka por el nombre del contenedor (`http://eureka:8761/eureka/`).
+- **Secretos:** `DB_USER`, `DB_PASSWORD`, `JWT_SECRET`, el correo (`NOTIFICACION_MODO`, `SPRING_MAIL_*`) y `APP_FRONTEND_URL` se leen de un `.env` que no se versiona (plantilla `.env.example`). Tienen prioridad sobre el archivo de secretos opcional. El Wallet **no se copia a las imágenes**: se monta como volumen de solo lectura (`WALLET_HOST_DIR` → `/wallet`). Los `.dockerignore` excluyen el Wallet, `target`, `node_modules`, `dist`, `coverage`, `.env` y los logs.
+- **En EC2:** el grupo de seguridad abre solo los puertos 22 (IP del equipo) y 80. Eureka se revisa con un túnel SSH. La IP pública de la instancia debe estar permitida en la lista de acceso de la base Oracle.
 
 ## 4. Requisitos funcionales (RF)
 
@@ -358,13 +390,13 @@ El catálogo vive en **ms-catalogoProductos**:
 | **RNF-02** | **Usabilidad** | Formularios de pocos pasos; errores en español, claros, incluido el motivo que envía el backend (ej. "Stock insuficiente para: …"). |
 | **RNF-03** | **Compatibilidad** | Navegadores modernos (Chrome, Edge, Firefox) y teléfonos Android de gama media-baja. |
 | **RNF-04** | **Rendimiento** | Carga rápida; bundle de producción optimizado; los paneles cargan sus datos en paralelo. |
-| **RNF-05** | **Seguridad** | Toda operación que no sea pública (catálogo, login y registro) exige JWT. Contraseñas con BCrypt. Límite de intentos de login (429). Roles aplicados en el servidor. Secretos fuera del repositorio. CORS restringido. |
+| **RNF-05** | **Seguridad** | Toda operación que no sea pública (catálogo, login y registro) exige JWT. Contraseñas con BCrypt. Límite de intentos de login (429). Roles aplicados en el servidor. Secretos fuera del repositorio y de las imágenes Docker. CORS restringido. Headers de seguridad y CSP en Nginx. |
 | **RNF-06** | **Confiabilidad** | Errores controlados con códigos HTTP coherentes (400 / 401 / 403 / 404 / 409 / 429); un error interno responde 500 sin detalles técnicos. Las fallas parciales de un servicio no bloquean todo el panel. |
 | **RNF-07** | **Mantenibilidad** | Capas controller / service / repository con DTOs; componentes y utilidades reutilizables; lint sin errores. |
 | **RNF-08** | **Testabilidad** | La lógica de negocio y las reglas de seguridad deben tener **pruebas automatizadas** con reporte de cobertura (frontend y backend). |
 | **RNF-09** | **Accesibilidad** | Etiquetas asociadas a los campos, `role` y `aria-label` en navegación, botones y alertas. |
 | **RNF-10** | **Escalabilidad** | Microservicios independientes con descubrimiento en Eureka; se pueden agregar servicios sin cambiar los existentes. |
-| **RNF-11** | **Disponibilidad** | Despliegue planificado en **AWS** con **Docker** (el frontend de la V2 ya se desplegó en EC2). |
+| **RNF-11** | **Disponibilidad** | Despliegue con **Docker Compose** en local y en **AWS EC2** (§3.8): healthchecks, arranque ordenado y reinicio automático de los contenedores (`restart: unless-stopped`). |
 | **RNF-12** | **Privacidad** | Los datos de clientes y pedidos solo los ve el personal autorizado y cada cliente ve solo los suyos. La API nunca devuelve contraseñas. |
 | **RNF-13** | **Interoperabilidad** | API REST/JSON documentada con OpenAPI (Swagger), versionada en v1 y v2. |
 

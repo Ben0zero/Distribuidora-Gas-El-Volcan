@@ -3,6 +3,7 @@ package cl.elvolcan.auth.controller;
 import cl.elvolcan.auth.dto.LoginRequestDTO;
 import cl.elvolcan.auth.dto.RegistroRequestDTO;
 import cl.elvolcan.auth.dto.UsuarioResponseDTO;
+import cl.elvolcan.auth.security.ProxiesConfiables;
 import cl.elvolcan.auth.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -21,9 +22,11 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
+    private final ProxiesConfiables proxiesConfiables;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, ProxiesConfiables proxiesConfiables) {
         this.authService = authService;
+        this.proxiesConfiables = proxiesConfiables;
     }
 
     @Operation(summary = "Iniciar sesión",
@@ -46,13 +49,14 @@ public class AuthController {
 
     /**
      * IP del cliente para el límite de intentos. Solo se confía en X-Forwarded-For si la petición
-     * llega desde la misma máquina (el proxy de Vite, con xfwd). Se toma la ÚLTIMA entrada, que es
-     * la que agrega el proxy; las anteriores las puede inventar el cliente.
+     * llega desde un proxy confiable (app.seguridad.proxies-confiables: por defecto la misma máquina,
+     * es decir el proxy de Vite; en Docker, la red interna donde está Nginx). Se toma la ÚLTIMA
+     * entrada, que es la que agrega el proxy; las anteriores las puede inventar el cliente.
      */
-    static String ipCliente(HttpServletRequest peticion) {
+    String ipCliente(HttpServletRequest peticion) {
         String remota = peticion.getRemoteAddr();
         String reenviada = peticion.getHeader("X-Forwarded-For");
-        if (reenviada != null && !reenviada.isBlank() && esLocal(remota)) {
+        if (reenviada != null && !reenviada.isBlank() && proxiesConfiables.esConfiable(remota)) {
             String[] partes = reenviada.split(",");
             String ultima = partes[partes.length - 1].trim();
             if (!ultima.isEmpty()) {
@@ -60,10 +64,6 @@ public class AuthController {
             }
         }
         return remota;
-    }
-
-    private static boolean esLocal(String ip) {
-        return ip != null && (ip.startsWith("127.") || ip.equals("::1") || ip.equals("0:0:0:0:0:0:0:1"));
     }
 
     @Operation(summary = "Registrar nuevo usuario", description = "Registra un usuario CLIENTE para Distribuidora de Gas El Volcán.")

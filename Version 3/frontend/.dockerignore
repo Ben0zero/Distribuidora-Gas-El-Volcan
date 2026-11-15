@@ -1,0 +1,15 @@
+# Solo el código fuente entra al contexto de build
+node_modules/
+dist/
+dist-ssr/
+coverage/
+.env
+.env.*
+logs/
+*.log
+docs/
+.vscode/
+.idea/
+.git
+Dockerfile
+.dockerignore
