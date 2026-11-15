@@ -122,3 +122,23 @@ Al final de cada tanda (no después de cada cambio) se espeja en `Version 3/` (c
 - **¿Qué pasa si se repite el confirmar pago?** De forma secuencial, una venta ya PAGADA se devuelve sin volver a descontar. Dos peticiones concurrentes requieren `@Version` (H-03).
 - **¿Cómo se cierra la sesión?** El front borra el token de localStorage. El token expira a las 10 h y no hay revocación en el servidor (mejora: menor expiración o refresh token).
 
+
+## 7. Estado de las correcciones
+Registro de lo corregido después de la auditoría (`9cd7d7e`). Cada fila indica el hallazgo, el commit en la raíz (luego espejado en `Version 3/`) y el estado. Se actualiza al final de cada tanda.
+
+| Hallazgo / punto del plan | Commit(s) | Qué se hizo | Estado |
+|---|---|---|---|
+| H-02 (plan 1) | `e062eef`, `eca04b6` | ms-auth agrega el claim `tipoCliente` al JWT y ms-ventas calcula el precio con ese claim, ignorando el body | Corregido |
+| H-02 (limpieza) | `fix(ventas): deja de enviar el tipo de cliente en el body de la venta` | `Ventas.jsx` ya no envía `tipoCliente`; el test verifica que el body no lo lleve | Corregido |
+| H-05, H-08 límites, H-03 detalles repetidos (plan 2) | `eca04b6` | Rechaza productos inactivos, agrupa los detalles por `productoId`, `@Size(max=50)` en ítems y `@Max(100)` en cantidad | Corregido |
+| H-04 (plan 3) | `29f7609` | `@Positive @Max(500)` en los ajustes de stock, `cantidad > 0` en `sumar-stock` y `@Version` en `Inventario` | Corregido |
+| H-03 (plan 4) | `bbafb86` | `@Version` en `Venta` y 409 ante un conflicto de bloqueo optimista; el estado se escribe antes de descontar stock | Corregido |
+| H-10 (plan 5) | `5b6a938` | Los 4 `GlobalExceptionHandler` responden un mensaje genérico (500) y registran el detalle con SLF4J | Corregido |
+| H-14, H-09, H-12 show-sql (plan 6) | `09f99d3` | Sin `println` del token, JWT de 2 h y `show-sql=false` | Corregido |
+| H-07 parcial (plan 7) | `c697906`, `3d35fc1` | `@Valid` en el login y contraseñas de 8 a 64 caracteres con letra y número | Corregido |
+| Entregables (plan 8) | `066e534`, `bdd1c55`, `917cb81` | Anexo 2 con modelo ER, tabla de pruebas y estado de los secretos; ERS v3.2 | Corregido |
+| Seguridad por rol en ventas | `5f15ed0` | Se conserva el 403 por rol al permitir `/error` en `SecurityConfig` | Corregido |
+| RUT de la semilla | `fix(auth): corrige el RUT de los usuarios semilla con digito verificador valido` | `DataInitializer` siembra RUT válidos (módulo 11) y corrige de forma idempotente el RUT antiguo de los 3 usuarios en BD ya sembradas | Corregido |
+| H-01 | — | Rotar el Wallet en OCI y confirmar el cambio de contraseña de ADMIN | Pendiente (operativo) |
+| H-07 límite de intentos (deseable 9) | — | — | Pendiente |
+| H-06, H-11, H-12 resto, H-13, H-16 rol propio, H-17, H-20 | — | — | Pendiente (deseable) |
