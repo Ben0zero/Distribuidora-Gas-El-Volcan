@@ -61,6 +61,22 @@ describe('Componente <Navbar />', () => {
     expect(screen.queryByRole('link', { name: /Mis compras/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Hola,/ })).not.toBeInTheDocument()
   })
+
+  test('colapsa al menú hamburguesa bajo 1200 px y no parte el nombre ni el carrito en dos líneas', () => {
+    guardarSesion({ rol: 'Cliente', nombre: 'María José González de la Fuente' })
+    const { container } = render(
+      <MemoryRouter>
+        <Navbar totalItems={2} />
+      </MemoryRouter>,
+    )
+
+    // expand="xl": una sola fila desde 1200 px; bajo eso, menú hamburguesa
+    expect(container.querySelector('nav')).toHaveClass('navbar-expand-xl')
+    expect(screen.getByRole('button', { name: /Toggle navigation/i })).toBeInTheDocument()
+    // el nombre largo va en un span que se corta con "…" (CSS) y el carrito no se parte
+    expect(screen.getByText(/Hola, María José González de la Fuente/)).toHaveClass('navbar-usuario-nombre')
+    expect(screen.getByRole('link', { name: /Carrito/ })).toHaveClass('text-nowrap')
+  })
 })
 
 function renderNavbar() {

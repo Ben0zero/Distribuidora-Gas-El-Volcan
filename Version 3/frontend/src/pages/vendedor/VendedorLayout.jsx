@@ -6,6 +6,8 @@ import { sesionActiva, cerrarSesion } from '../../utils/sesion'
 const MENU = [
   { to: '/vendedor/productos', icono: 'bi-box-seam', label: 'Productos' },
   { to: '/vendedor/ordenes', icono: 'bi-receipt', label: 'Órdenes' },
+  // Vuelve a la tienda pública sin cerrar la sesión
+  { to: '/', end: true, icono: 'bi-shop', label: 'Ver tienda' },
 ]
 
 function classNav({ isActive }) {
@@ -57,7 +59,7 @@ function VendedorLayout() {
           <nav className="nav nav-pills flex-column mb-auto mt-2" aria-label="Menú del vendedor">
             {MENU.map((l) => (
               <div className="nav-item mb-1" key={l.to}>
-                <NavLink to={l.to} className={classNav}>
+                <NavLink to={l.to} end={l.end} className={classNav}>
                   <i className={`bi ${l.icono} me-2`} /> {l.label}
                 </NavLink>
               </div>

@@ -6,6 +6,7 @@ import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest'
 import Ordenes from './Ordenes'
 import Dashboard from './Dashboard'
 import ListaUsuarios from './ListaUsuarios'
+import AdminLayout from './AdminLayout'
 import { guardarSesion } from '../../testUtils/jwt'
 
 const VENTAS = [
@@ -83,5 +84,21 @@ describe('Panel de administración con datos reales', () => {
     expect(screen.getAllByRole('row')).toHaveLength(2)
     expect(screen.getByText('vendedor@elvolcan.cl')).toBeInTheDocument()
     expect(screen.queryByText('Pedro Rojas')).not.toBeInTheDocument()
+  })
+})
+
+describe('Menú lateral del administrador', () => {
+  test('"Ver tienda" está en el bloque principal y los accesos secundarios se mantienen', () => {
+    guardarSesion({ rol: 'Administrador', nombre: 'Juan' })
+    renderConRouter(<AdminLayout />)
+
+    const enlaces = screen.getAllByRole('link').map((a) => a.textContent.trim())
+    // queda justo después de Clientes (último del bloque principal), antes de "Nuevo usuario"
+    expect(enlaces.indexOf('Ver tienda')).toBe(enlaces.indexOf('Clientes') + 1)
+    expect(enlaces.indexOf('Ver tienda')).toBeLessThan(enlaces.indexOf('Nuevo usuario'))
+    expect(screen.getByRole('link', { name: /Ver tienda/ })).toHaveAttribute('href', '/')
+    for (const texto of ['Configuración', 'Buscar', 'Ayuda']) {
+      expect(screen.getByText(texto)).toBeInTheDocument()
+    }
   })
 })
