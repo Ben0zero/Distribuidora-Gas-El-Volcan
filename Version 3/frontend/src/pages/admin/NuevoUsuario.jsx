@@ -175,11 +175,11 @@ function NuevoUsuario() {
                 <Col md={6} className="mb-3 mb-md-0">
                   <Form.Group controlId="usuario-contrasena">
                     <Form.Label className="text-uppercase fw-bold text-secondary" style={etiqueta}>
-                      {editando ? 'Nueva contraseña (opcional)' : 'Contraseña (8 a 10)'}
+                      {editando ? 'Nueva contraseña (opcional)' : 'Contraseña (8 a 64)'}
                     </Form.Label>
                     <Form.Control
                       type="password"
-                      maxLength={10}
+                      maxLength={64}
                       className="rounded-0 border-dark"
                       placeholder={editando ? 'Dejar vacío para conservar la actual' : ''}
                       value={form.contrasena}
