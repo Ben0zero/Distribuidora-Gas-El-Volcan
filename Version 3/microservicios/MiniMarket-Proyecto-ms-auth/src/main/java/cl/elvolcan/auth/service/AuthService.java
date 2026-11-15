@@ -1,6 +1,7 @@
 package cl.elvolcan.auth.service;
 
 
+import cl.elvolcan.auth.util.Rut;
 import org.springframework.security.authentication.BadCredentialsException;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
@@ -78,8 +79,15 @@ public class AuthService {
     // METODO DE REGISTRO
     public UsuarioResponseDTO registrar(RegistroRequestDTO request){
 
+        // Al CREAR se exige un RUT válido (módulo 11) y se guarda normalizado (sin puntos ni guion).
+        // Al editar no se revisa el dígito verificador: hay usuarios antiguos con un DV inválido.
+        String rut = Rut.normalizar(request.getRut());
+        if (!Rut.esValido(rut)) {
+            throw new IllegalArgumentException("El RUT no es válido: revisa el dígito verificador");
+        }
+
         // duplicados -> 409 Conflict (antes caían en el handler genérico como 401)
-        if (usuarioRepository.existsByRut(request.getRut())) {
+        if (usuarioRepository.existsByRut(rut)) {
             throw new RegistroDuplicadoException("Error: Ya existe un usuario registrado con este RUT");
         }
 
@@ -93,7 +101,7 @@ public class AuthService {
 
         Usuario nuevoUsuario = new Usuario();
         nuevoUsuario.setNombre(request.getNombre());
-        nuevoUsuario.setRut(request.getRut());
+        nuevoUsuario.setRut(rut);
         nuevoUsuario.setUsername(request.getUsername());
 
         //aca se encripta la clave antes de guardarla en bd

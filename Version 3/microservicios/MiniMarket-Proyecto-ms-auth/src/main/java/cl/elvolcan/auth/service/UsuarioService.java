@@ -1,5 +1,6 @@
 package cl.elvolcan.auth.service;
 
+import cl.elvolcan.auth.util.Rut;
 import cl.elvolcan.auth.dto.UsuarioAdminRequestDTO;
 import cl.elvolcan.auth.dto.UsuarioResponseDTO;
 import cl.elvolcan.auth.exception.RegistroDuplicadoException;
@@ -43,7 +44,13 @@ public class UsuarioService {
         if (request.getPassword() == null || request.getPassword().isBlank()) {
             throw new IllegalArgumentException("La contraseña es obligatoria al crear un usuario");
         }
-        if (usuarioRepository.existsByRut(request.getRut())) {
+        // Al CREAR se exige un RUT válido (módulo 11) y se guarda normalizado (sin puntos ni guion).
+        // Al editar no se revisa el dígito verificador: hay usuarios antiguos con un DV inválido.
+        String rut = Rut.normalizar(request.getRut());
+        if (!Rut.esValido(rut)) {
+            throw new IllegalArgumentException("El RUT no es válido: revisa el dígito verificador");
+        }
+        if (usuarioRepository.existsByRut(rut)) {
             throw new RegistroDuplicadoException("Error: Ya existe un usuario registrado con este RUT");
         }
         if (usuarioRepository.existsByUsername(request.getUsername())) {
@@ -51,7 +58,7 @@ public class UsuarioService {
         }
 
         Usuario usuario = new Usuario();
-        usuario.setRut(request.getRut());
+        usuario.setRut(rut);
         usuario.setUsername(request.getUsername());
         usuario.setPassword(passwordEncoder.encode(request.getPassword()));
         copiarDatos(request, usuario);
@@ -61,15 +68,17 @@ public class UsuarioService {
     public UsuarioResponseDTO actualizar(Long id, UsuarioAdminRequestDTO request) {
         Usuario usuario = buscar(id);
 
-        // RUT y usuario pueden cambiar, pero no a uno que ya use otra persona
-        if (!usuario.getRut().equals(request.getRut()) && usuarioRepository.existsByRut(request.getRut())) {
+        // RUT y usuario pueden cambiar, pero no a uno que ya use otra persona.
+        // Al editar el RUT solo se normaliza (no se exige el dígito verificador).
+        String rut = Rut.normalizar(request.getRut());
+        if (!usuario.getRut().equals(rut) && usuarioRepository.existsByRut(rut)) {
             throw new RegistroDuplicadoException("Error: Ya existe un usuario registrado con este RUT");
         }
         if (!usuario.getUsername().equals(request.getUsername()) && usuarioRepository.existsByUsername(request.getUsername())) {
             throw new RegistroDuplicadoException("Error: El nombre de usuario ya está en uso");
         }
 
-        usuario.setRut(request.getRut());
+        usuario.setRut(rut);
         usuario.setUsername(request.getUsername());
         if (request.getPassword() != null && !request.getPassword().isBlank()) {
             usuario.setPassword(passwordEncoder.encode(request.getPassword()));
