@@ -1,6 +1,7 @@
 package cl.elvolcan.auth.service;
 
 
+import org.springframework.security.authentication.BadCredentialsException;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -42,7 +43,7 @@ public class AuthService {
         //buscar si existe el username
         Optional<Usuario> usuarioOpt = usuarioRepository.findByUsername(request.getUsername());
         if (usuarioOpt.isEmpty()) {
-            throw new RuntimeException("Error: Usuario o contraseña incorrectos");
+            throw new BadCredentialsException("Error: Usuario o contraseña incorrectos");
             // tiene que ser usuario o contra incorrectos, nunca dar informacion de más, siempre generico
         }
 
@@ -50,7 +51,7 @@ public class AuthService {
 
         //comparacion de contraseñas
         if (!passwordEncoder.matches(request.getPassword(), usuario.getPassword())) {
-            throw new RuntimeException("Error: Usuario o contraseña incorrectos");
+            throw new BadCredentialsException("Error: Usuario o contraseña incorrectos");
         }
 
         //se genera el token (incluye el tipo de cliente para que ms-ventas no confíe en el body)

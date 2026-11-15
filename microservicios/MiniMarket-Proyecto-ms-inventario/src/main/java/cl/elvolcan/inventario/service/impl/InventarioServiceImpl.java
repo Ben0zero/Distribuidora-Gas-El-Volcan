@@ -29,7 +29,7 @@ public class InventarioServiceImpl implements InventarioService {
     public StockResponseDTO crearProducto(StockRequestDTO request) {
 
         if (repository.existsBySku(request.getSku())) {
-            throw new RuntimeException("El producto ya existe");
+            throw new IllegalArgumentException("El producto ya existe");
         }
 
         Inventario inventario = new Inventario();

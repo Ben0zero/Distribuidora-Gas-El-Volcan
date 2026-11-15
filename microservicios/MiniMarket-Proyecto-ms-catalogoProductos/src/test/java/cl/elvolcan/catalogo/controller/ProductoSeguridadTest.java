@@ -1,5 +1,8 @@
 package cl.elvolcan.catalogo.controller;
 
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import cl.elvolcan.catalogo.exception.ProductoNoEncontradoException;
+import cl.elvolcan.catalogo.exception.GlobalExceptionHandler;
 import cl.elvolcan.catalogo.client.InventarioClient;
 import cl.elvolcan.catalogo.config.CorsConfig;
 import cl.elvolcan.catalogo.dto.ProductoResponseDTO;
@@ -88,5 +91,19 @@ class ProductoSeguridadTest {
     void editarSinToken() throws Exception {
         mockMvc.perform(put("/api/v1/productos/2").contentType(MediaType.APPLICATION_JSON).content(PRODUCTO))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("H-10: producto inexistente responde 404; un error interno responde 500 sin detalles técnicos")
+    void erroresConCodigoCorrecto() throws Exception {
+        when(productoService.obtenerPorId(99L)).thenThrow(new ProductoNoEncontradoException("Producto no encontrado con ID: 99"));
+        when(productoService.obtenerPorSku("CL002")).thenThrow(new RuntimeException("ORA-00942: table or view does not exist"));
+
+        mockMvc.perform(get("/api/v1/productos/id/99")).andExpect(status().isNotFound());
+        mockMvc.perform(get("/api/v1/productos/CL002"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.mensaje").value(GlobalExceptionHandler.MENSAJE_INTERNO));
+        // un id con formato inválido es error del cliente (400), no un 500
+        mockMvc.perform(get("/api/v1/productos/id/abc")).andExpect(status().isBadRequest());
     }
 }

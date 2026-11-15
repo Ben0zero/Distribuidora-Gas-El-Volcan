@@ -1,5 +1,7 @@
 package cl.elvolcan.ventas.controller;
 
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import cl.elvolcan.ventas.exception.GlobalExceptionHandler;
 import cl.elvolcan.ventas.client.CatalogoClient;
 import cl.elvolcan.ventas.client.InventarioClient;
 import cl.elvolcan.ventas.config.CorsConfig;
@@ -164,5 +166,16 @@ class VentaSeguridadTest {
                 .thenThrow(new org.springframework.orm.ObjectOptimisticLockingFailureException("Venta", 5L));
 
         mockMvc.perform(put("/api/v1/ventas/5/confirmar")).andExpect(status().isConflict());
+    }
+
+    @Test
+    @WithMockUser(username = "admin@duoc.cl", roles = "ADMIN")
+    @DisplayName("H-10: un error interno responde 500 sin el mensaje técnico")
+    void errorInternoResponde500SinDetalles() throws Exception {
+        when(ventaService.listarTodas()).thenThrow(new RuntimeException("ORA-00942: table or view does not exist"));
+
+        mockMvc.perform(get("/api/v1/ventas"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.message").value(GlobalExceptionHandler.MENSAJE_INTERNO));
     }
 }
