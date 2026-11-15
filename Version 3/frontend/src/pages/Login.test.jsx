@@ -126,4 +126,9 @@ describe('Página <Login /> (formulario controlado + ms-auth)', () => {
     expect(screen.getByRole('button', { name: 'Panel Admin' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Ver productos' })).toBeInTheDocument()
   })
+
+  test('ofrece recuperar la contraseña desde el login', () => {
+    renderLogin()
+    expect(screen.getByRole('link', { name: '¿Olvidaste tu contraseña?' })).toHaveAttribute('href', '/recuperar')
+  })
 })

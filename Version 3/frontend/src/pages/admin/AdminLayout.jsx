@@ -110,6 +110,9 @@ function AdminLayout() {
               <strong>Perfil Admin</strong>
             </span>
           </div>
+          <NavLink to="/admin/contrasena" className="small link-dark mt-2">
+            <i className="bi bi-key me-1" aria-hidden="true" /> Cambiar contraseña
+          </NavLink>
           <button className="btn btn-sm btn-outline-dark rounded-0 mt-2" type="button" onClick={cerrarSesion}>
             Cerrar sesión
           </button>

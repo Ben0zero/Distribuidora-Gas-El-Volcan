@@ -10,6 +10,7 @@ const API_CATALOGO = `${API_BASE}/api/v1/productos`
 const API_INVENTARIO = `${API_BASE}/api/v1/inventario`
 const API_VENTAS = `${API_BASE}/api/v1/ventas`
 const API_USUARIOS = `${API_BASE}/api/v1/usuarios`
+const API_CUENTA = `${API_BASE}/api/v1/cuenta`
 
 export function getToken() {
   try {
@@ -224,4 +225,40 @@ export async function actualizarUsuario(id, usuario) {
 export async function eliminarUsuario(id) {
   const res = await fetch(`${API_USUARIOS}/${id}`, { method: 'DELETE', headers: authHeaders() })
   if (!res.ok) await lanzarError(res, 'No se pudo eliminar el usuario')
+}
+
+// ---------- Recuperación de contraseña (pública) ----------
+
+// POST /api/v1/auth/recuperar: siempre responde 200 con el mismo mensaje (exista o no la cuenta)
+export async function solicitarRecuperacion(usuario) {
+  const res = await fetch(`${API_AUTH}/recuperar`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ usuario }),
+  })
+  if (!res.ok) await lanzarError(res, 'No se pudo procesar la solicitud')
+  return res.json()
+}
+
+// POST /api/v1/auth/restablecer: token del enlace + contraseña nueva
+export async function restablecerContrasena(token, contrasenaNueva) {
+  const res = await fetch(`${API_AUTH}/restablecer`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, contrasenaNueva }),
+  })
+  if (!res.ok) await lanzarError(res, 'No se pudo restablecer la contraseña')
+  return res.json()
+}
+
+// ---------- Mi cuenta (cualquier usuario con sesión) ----------
+
+// PUT /api/v1/cuenta/contrasena: el backend toma el usuario del token y exige la contraseña actual
+export async function cambiarContrasena(contrasenaActual, contrasenaNueva) {
+  const res = await fetch(`${API_CUENTA}/contrasena`, {
+    method: 'PUT',
+    headers: authHeaders(),
+    body: JSON.stringify({ contrasenaActual, contrasenaNueva }),
+  })
+  if (!res.ok) await lanzarError(res, 'No se pudo cambiar la contraseña')
 }

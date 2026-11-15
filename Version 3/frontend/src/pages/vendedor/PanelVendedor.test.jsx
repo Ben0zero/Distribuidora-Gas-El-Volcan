@@ -60,6 +60,7 @@ describe('Panel del Vendedor (solo lectura)', () => {
     const enlaces = within(menu).getAllByRole('link').map((a) => a.textContent.trim())
     expect(enlaces).toEqual(['Productos', 'Órdenes', 'Ver tienda'])
     expect(within(menu).getByRole('link', { name: /Ver tienda/ })).toHaveAttribute('href', '/')
+    expect(screen.getByRole('link', { name: /Cambiar contraseña/ })).toHaveAttribute('href', '/vendedor/contrasena')
     expect(screen.getByText('María Soto')).toBeInTheDocument()
     // espera a que termine la carga de órdenes (evita actualizaciones fuera de act)
     expect(await screen.findByText('Aún no hay órdenes registradas.')).toBeInTheDocument()

@@ -38,6 +38,7 @@ describe('Componente <Navbar />', () => {
     fireEvent.click(screen.getByRole('button', { name: /Hola, Ana/ }))
 
     expect(screen.getByRole('link', { name: /Mis compras/ })).toHaveAttribute('href', '/mis-compras')
+    expect(screen.getByRole('link', { name: /Cambiar contraseña/ })).toHaveAttribute('href', '/cuenta/contrasena')
     expect(screen.queryByRole('link', { name: /Panel Admin/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /^Login$/ })).not.toBeInTheDocument()
 
