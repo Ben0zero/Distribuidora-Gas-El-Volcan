@@ -4,6 +4,9 @@ dist/
 build/
 target/
 
+# Secretos de Docker Compose (la plantilla .env.example sí se versiona)
+.env
+
 # Sistema
 .DS_Store
 Thumbs.db
