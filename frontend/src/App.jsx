@@ -14,6 +14,8 @@ import Contacto from './pages/Contacto'
 import Ventas from './pages/Ventas'
 import MisCompras from './pages/MisCompras'
 import CambiarContrasena from './pages/CambiarContrasena'
+import RecuperarContrasena from './pages/RecuperarContrasena'
+import RestablecerContrasena from './pages/RestablecerContrasena'
 import AdminLayout from './pages/admin/AdminLayout'
 import Dashboard from './pages/admin/Dashboard'
 import Inventario from './pages/admin/Inventario'
@@ -85,6 +87,8 @@ function App() {
           <Route path="/contacto" element={<Contacto />} />
           <Route path="/login" element={<Login />} />
           <Route path="/registro" element={<Registro />} />
+          <Route path="/recuperar" element={<RecuperarContrasena />} />
+          <Route path="/restablecer" element={<RestablecerContrasena />} />
           <Route
             path="/carrito"
             element={

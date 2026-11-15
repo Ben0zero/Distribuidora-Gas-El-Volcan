@@ -227,6 +227,30 @@ export async function eliminarUsuario(id) {
   if (!res.ok) await lanzarError(res, 'No se pudo eliminar el usuario')
 }
 
+// ---------- Recuperación de contraseña (pública) ----------
+
+// POST /api/v1/auth/recuperar: siempre responde 200 con el mismo mensaje (exista o no la cuenta)
+export async function solicitarRecuperacion(usuario) {
+  const res = await fetch(`${API_AUTH}/recuperar`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ usuario }),
+  })
+  if (!res.ok) await lanzarError(res, 'No se pudo procesar la solicitud')
+  return res.json()
+}
+
+// POST /api/v1/auth/restablecer: token del enlace + contraseña nueva
+export async function restablecerContrasena(token, contrasenaNueva) {
+  const res = await fetch(`${API_AUTH}/restablecer`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, contrasenaNueva }),
+  })
+  if (!res.ok) await lanzarError(res, 'No se pudo restablecer la contraseña')
+  return res.json()
+}
+
 // ---------- Mi cuenta (cualquier usuario con sesión) ----------
 
 // PUT /api/v1/cuenta/contrasena: el backend toma el usuario del token y exige la contraseña actual

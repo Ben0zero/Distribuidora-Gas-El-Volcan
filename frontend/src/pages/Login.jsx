@@ -102,6 +102,9 @@ function Login() {
                       onChange={(event) => setPassword(event.target.value)}
                     />
                   </Form.Group>
+                  <p className="small mb-3">
+                    <Link to="/recuperar">¿Olvidaste tu contraseña?</Link>
+                  </p>
                   {error && <Alert variant="danger">{error}</Alert>}
                   <Button className="btn-login" type="submit" variant="primary" disabled={cargando}>
                     {cargando ? 'Ingresando…' : 'Ingresar'}
