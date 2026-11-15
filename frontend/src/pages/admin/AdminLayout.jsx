@@ -9,10 +9,11 @@ const PRINCIPAL = [
   { to: '/admin/ordenes', icono: 'bi-receipt', label: 'Órdenes' },
   { to: '/admin/reportes', icono: 'bi-file-earmark-bar-graph', label: 'Reportes' },
   { to: '/admin/clientes', icono: 'bi-people', label: 'Clientes' },
+  // Vuelve a la tienda pública sin cerrar la sesión
+  { to: '/', end: true, icono: 'bi-shop', label: 'Ver tienda' },
 ]
 
 const SECUNDARIA = [
-  { to: '/', icono: 'bi-shop', label: 'Ver tienda' },
   { icono: 'bi-gear', label: 'Configuración' },
   { to: '/admin/usuarios/nuevo', icono: 'bi-person-plus', label: 'Nuevo usuario' },
   { icono: 'bi-search', label: 'Buscar' },
