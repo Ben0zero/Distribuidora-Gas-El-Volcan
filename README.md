@@ -94,6 +94,19 @@ npm install
 npm run dev        # http://localhost:5173
 ```
 
+### Alternativa: todo con Docker (local o AWS EC2)
+
+Con Docker Compose se levantan Eureka, los 4 microservicios y el frontend (Nginx) en una red interna. Solo se publica el puerto 80. Los secretos se leen de `.env` y el Wallet se monta como volumen de solo lectura.
+
+```bash
+cp .env.example .env      # completar WALLET_HOST_DIR, DB_PASSWORD y JWT_SECRET
+docker compose up -d --build
+# Sitio: http://localhost · Eureka: http://127.0.0.1:8761
+docker compose down
+```
+
+El paso a paso (Docker Desktop, despliegue en EC2, grupo de seguridad y CSP) está en **[docs/DOCKER.md](docs/DOCKER.md)**.
+
 ## URLs
 
 | Servicio | URL |
@@ -139,6 +152,7 @@ npm run lint             # oxlint
 | Documento | Ubicación |
 |---|---|
 | Plan de trabajo de la Evaluación Parcial 3 | `docs/PLAN_EVALUACION3.md` |
+| Levantar con Docker en local y en AWS EC2 | `docs/DOCKER.md` |
 | Anexos EP3: Anexo 2 (Word), Anexo 3 (Excel), Anexo 4 (Word) y capturas | `docs/parcial3/` |
 | Cómo regenerar los Anexos 2 y 4 (`npm run anexos`) | `docs/parcial3/README.md` |
 | ERS, documentación técnica, cobertura y despliegue del frontend | `frontend/docs/` |
@@ -158,7 +172,10 @@ Distribuidora-Gas-El-Volcan/
 │   ├── secrets.example.properties
 │   ├── levantar-servicios.ps1 / detener-servicios.ps1
 ├── frontend/                        # React + Vite (versión actual, conectada a la API)
+├── docker-compose.yml               # Los 6 contenedores (ver docs/DOCKER.md)
+├── .env.example                     # Plantilla de secretos para Docker (copiar a .env)
 ├── docs/
+│   ├── DOCKER.md                    # Guía de Docker local y AWS EC2
 │   ├── PLAN_EVALUACION3.md          # Plan de trabajo de la EP3
 │   └── parcial3/                    # Anexos 2, 3 y 4, capturas y generador
 ├── package.json                     # Script `npm run anexos` (genera los Anexos 2 y 4)
