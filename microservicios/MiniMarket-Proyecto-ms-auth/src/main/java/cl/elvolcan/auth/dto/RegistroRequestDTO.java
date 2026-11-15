@@ -14,7 +14,7 @@ public class RegistroRequestDTO {
     @NotBlank(message = "El nombre es obligatorio")
     private String nombre;
 
-    @Schema(description = "RUT del usuario", example = "12345678-9")
+    @Schema(description = "RUT del usuario, con o sin puntos y guion (se valida el dígito verificador)", example = "12.345.678-5")
     @NotBlank(message = "El RUT es obligatorio")
     private String rut;
 

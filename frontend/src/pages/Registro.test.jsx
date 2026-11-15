@@ -11,7 +11,7 @@ function json(status, cuerpo) {
 
 async function completarFormulario(user) {
   await user.type(screen.getByLabelText('Nombre completo'), 'Ana Pérez')
-  await user.type(screen.getByLabelText('RUN'), '17234567')
+  await user.type(screen.getByLabelText('RUN'), '17.234.560') // con puntos y sin guion: se normaliza
   await user.type(screen.getByLabelText('Correo electrónico'), 'Ana@Duoc.cl')
   await user.type(screen.getByLabelText('Teléfono'), '+56912345678')
   await user.type(screen.getByLabelText('Dirección de despacho'), 'Calle Nueva 789')
@@ -51,7 +51,7 @@ describe('Página <Registro /> (ms-auth)', () => {
     const [url, opciones] = fetchMock.mock.calls[0]
     expect(url).toMatch(/\/api\/v1\/auth\/register$/)
     expect(JSON.parse(opciones.body)).toEqual({
-      nombre: 'Ana Pérez', rut: '17234567', username: 'ana@duoc.cl', password: 'Clave123',
+      nombre: 'Ana Pérez', rut: '17234560', username: 'ana@duoc.cl', password: 'Clave123',
       direccion: 'Calle Nueva 789', region: 'Región de Ñuble', comuna: 'Chillán',
       tipoCliente: 'Residencial', telefono: '+56912345678',
     })

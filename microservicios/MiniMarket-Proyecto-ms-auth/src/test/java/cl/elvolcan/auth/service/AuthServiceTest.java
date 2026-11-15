@@ -112,7 +112,7 @@ class AuthServiceTest {
         // Given
         RegistroRequestDTO request = new RegistroRequestDTO();
         request.setNombre("Nuevo Usuario");
-        request.setRut("11222333-4");
+        request.setRut("11.222.333-9");
         request.setUsername("nuevo_user");
         request.setPassword("123456");
 
@@ -122,11 +122,11 @@ class AuthServiceTest {
         Usuario usuarioGuardado = new Usuario();
         usuarioGuardado.setId(2L);
         usuarioGuardado.setNombre("Nuevo Usuario");
-        usuarioGuardado.setRut("11222333-4");
+        usuarioGuardado.setRut("11.222.333-9");
         usuarioGuardado.setUsername("nuevo_user");
         usuarioGuardado.setRol(rolCliente);
 
-        when(usuarioRepository.existsByRut("11222333-4")).thenReturn(false);
+        when(usuarioRepository.existsByRut("112223339")).thenReturn(false);
         when(usuarioRepository.existsByUsername("nuevo_user")).thenReturn(false);
         when(rolRepository.findByNombreRol("CLIENTE")).thenReturn(Optional.of(rolCliente));
         when(passwordEncoder.encode("123456")).thenReturn("hash_nuevo");
@@ -141,7 +141,7 @@ class AuthServiceTest {
         assertEquals("nuevo_user", resultado.getUsername());
         assertEquals("CLIENTE", resultado.getNombreRol());
 
-        verify(usuarioRepository).existsByRut("11222333-4");
+        verify(usuarioRepository).existsByRut("112223339");
         verify(usuarioRepository).existsByUsername("nuevo_user");
         verify(rolRepository).findByNombreRol("CLIENTE");
         verify(passwordEncoder).encode("123456");
@@ -153,7 +153,7 @@ class AuthServiceTest {
     void registrarSiempreAsignaRolCliente() {
         // Given
         RegistroRequestDTO request = new RegistroRequestDTO();
-        request.setRut("99888777-6");
+        request.setRut("99888777-1");
         request.setUsername("intruso");
         request.setPassword("123456");
 
@@ -183,7 +183,7 @@ class AuthServiceTest {
     void registrarDebeLanzarExcepcionCuandoUsernameExiste() {
         // Given
         RegistroRequestDTO request = new RegistroRequestDTO();
-        request.setRut("11222333-4");
+        request.setRut("11.222.333-9");
         request.setUsername("user_duplicado");
 
         when(usuarioRepository.existsByRut(anyString())).thenReturn(false);
@@ -203,10 +203,10 @@ class AuthServiceTest {
     @DisplayName("registrar debe lanzar RegistroDuplicadoException cuando el RUT ya existe")
     void registrarDebeLanzarExcepcionCuandoRutExiste() {
         RegistroRequestDTO request = new RegistroRequestDTO();
-        request.setRut("17234567");
+        request.setRut("17234560");
         request.setUsername("otro_usuario");
 
-        when(usuarioRepository.existsByRut("17234567")).thenReturn(true);
+        when(usuarioRepository.existsByRut("17234560")).thenReturn(true);
 
         RegistroDuplicadoException exception = assertThrows(
                 RegistroDuplicadoException.class,
@@ -215,6 +215,19 @@ class AuthServiceTest {
 
         assertEquals("Error: Ya existe un usuario registrado con este RUT", exception.getMessage());
         verify(usuarioRepository, never()).existsByUsername(anyString());
+        verify(usuarioRepository, never()).save(any(Usuario.class));
+    }
+
+    @Test
+    @DisplayName("registrar con un RUT de dígito verificador inválido lanza 400 y no guarda")
+    void registrarConRutInvalido() {
+        RegistroRequestDTO request = new RegistroRequestDTO();
+        request.setRut("17.234.567"); // DV correcto sería 0
+        request.setUsername("nuevo@duoc.cl");
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> authService.registrar(request));
+        assertTrue(ex.getMessage().contains("dígito verificador"));
+        verify(usuarioRepository, never()).existsByRut(anyString());
         verify(usuarioRepository, never()).save(any(Usuario.class));
     }
 }

@@ -20,7 +20,7 @@ public class UsuarioAdminRequestDTO {
     @Size(max = 100, message = "El nombre no puede superar 100 caracteres")
     private String nombre;
 
-    @Schema(description = "RUT/RUN sin puntos ni guion", example = "18765432")
+    @Schema(description = "RUT/RUN con o sin puntos y guion; al crear se valida el dígito verificador", example = "16.543.217")
     @NotBlank(message = "El RUT es obligatorio")
     private String rut;
 

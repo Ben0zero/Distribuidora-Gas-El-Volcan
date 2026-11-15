@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { Container, Row, Col, Card, Form, Button, Alert } from 'react-bootstrap'
-import { REGIONES, validarFormularioRegistro } from '../utils/validaciones'
+import { REGIONES, validarFormularioRegistro, normalizarRut, formatearRut } from '../utils/validaciones'
 import { register, ApiError } from '../utils/api'
 
 function Registro() {
@@ -49,7 +49,7 @@ function Registro() {
     try {
       await register({
         nombre,
-        rut: run,
+        rut: normalizarRut(run), // se guarda sin puntos ni guion
         username: correo.trim().toLowerCase(),
         password,
         direccion,
@@ -89,7 +89,14 @@ function Registro() {
 
                   <Form.Group className="mb-3" controlId="run">
                     <Form.Label>RUN</Form.Label>
-                    <Form.Control type="text" value={run} onChange={(e) => setRun(e.target.value)} />
+                    <Form.Control
+                      type="text"
+                      maxLength={12}
+                      placeholder="Ej: 12.345.678-5"
+                      value={run}
+                      onChange={(e) => setRun(e.target.value)}
+                      onBlur={() => setRun(formatearRut(run))}
+                    />
                   </Form.Group>
 
                   <Form.Group className="mb-3" controlId="correo">

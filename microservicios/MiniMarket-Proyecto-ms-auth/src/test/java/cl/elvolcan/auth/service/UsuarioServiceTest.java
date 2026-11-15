@@ -48,7 +48,7 @@ class UsuarioServiceTest {
     private static UsuarioAdminRequestDTO vendedor() {
         UsuarioAdminRequestDTO dto = new UsuarioAdminRequestDTO();
         dto.setNombre("Carla Muñoz");
-        dto.setRut("16543210");
+        dto.setRut("16543217");
         dto.setUsername("carla@elvolcan.cl");
         dto.setPassword("Vende123");
         dto.setNombreRol("vendedor"); // se acepta sin importar mayúsculas
@@ -60,7 +60,7 @@ class UsuarioServiceTest {
         Usuario u = new Usuario();
         u.setId(5L);
         u.setNombre("Carla");
-        u.setRut("16543210");
+        u.setRut("16543217");
         u.setUsername("carla@elvolcan.cl");
         u.setPassword("hash-anterior");
         u.setRol(rol("CLIENTE"));
@@ -70,7 +70,7 @@ class UsuarioServiceTest {
     @Test
     @DisplayName("crear guarda un VENDEDOR con la contraseña encriptada y responde sin contraseña")
     void crearVendedor() {
-        when(usuarioRepository.existsByRut("16543210")).thenReturn(false);
+        when(usuarioRepository.existsByRut("16543217")).thenReturn(false);
         when(usuarioRepository.existsByUsername("carla@elvolcan.cl")).thenReturn(false);
         when(rolRepository.findByNombreRol("VENDEDOR")).thenReturn(Optional.of(rol("VENDEDOR")));
         when(passwordEncoder.encode("Vende123")).thenReturn("hash-bcrypt");
@@ -174,5 +174,48 @@ class UsuarioServiceTest {
         usuarioService.eliminar(5L, "admin@duoc.cl");
 
         verify(usuarioRepository).deleteById(5L);
+    }
+
+    // --- RUT: dígito verificador solo al crear ---
+
+    @Test
+    @DisplayName("crear con un RUT de dígito verificador inválido lanza 400 y no guarda")
+    void crearConRutInvalido() {
+        UsuarioAdminRequestDTO dto = vendedor();
+        dto.setRut("16.543.210");
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> usuarioService.crear(dto));
+        assertTrue(ex.getMessage().contains("dígito verificador"));
+        verify(usuarioRepository, never()).save(any(Usuario.class));
+    }
+
+    @Test
+    @DisplayName("crear guarda el RUT normalizado aunque llegue con puntos y guion")
+    void crearNormalizaRut() {
+        UsuarioAdminRequestDTO dto = vendedor();
+        dto.setRut("16.543.217");
+        when(usuarioRepository.existsByRut("16543217")).thenReturn(false);
+        when(usuarioRepository.existsByUsername(anyString())).thenReturn(false);
+        when(rolRepository.findByNombreRol("VENDEDOR")).thenReturn(Optional.of(rol("VENDEDOR")));
+        when(passwordEncoder.encode(anyString())).thenReturn("hash");
+        when(usuarioRepository.save(any(Usuario.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        assertEquals("16543217", usuarioService.crear(dto).getRut());
+    }
+
+    @Test
+    @DisplayName("actualizar NO exige el dígito verificador (usuarios existentes con DV antiguo)")
+    void actualizarConRutAntiguoInvalido() {
+        Usuario usuario = existente();
+        usuario.setRut("18765432"); // DV inválido guardado antes de esta validación
+        UsuarioAdminRequestDTO dto = vendedor();
+        dto.setRut("18.765.432");
+        dto.setPassword(null);
+        when(usuarioRepository.findById(5L)).thenReturn(Optional.of(usuario));
+        when(rolRepository.findByNombreRol("VENDEDOR")).thenReturn(Optional.of(rol("VENDEDOR")));
+        when(usuarioRepository.save(any(Usuario.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        assertEquals("18765432", usuarioService.actualizar(5L, dto).getRut());
+        verify(usuarioRepository, never()).existsByRut(anyString()); // mismo RUT normalizado: no hay cambio
     }
 }
