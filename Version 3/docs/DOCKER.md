@@ -271,7 +271,87 @@ docker image prune -f                  # borra imágenes antiguas
 
 ---
 
-## 5. Solución de problemas
+## 5. Kit portátil (PC con solo Docker Desktop)
+
+El kit permite levantar El Volcán en un PC que **solo tiene Docker Desktop**, sin el código, Java ni Node. Se genera desde el repositorio y se comparte como un `.zip`.
+
+> ⚠️ **El kit contiene secretos.** Antes de crearlo o compartirlo, ten en cuenta:
+> - Incluye el **`.env`**, con la contraseña de la base Oracle y el `JWT_SECRET`. Si `NOTIFICACION_MODO=correo`, trae también la **contraseña de aplicación de Gmail** (`SPRING_MAIL_PASSWORD`).
+> - Incluye el **Oracle Wallet** completo.
+> - **Se comparte solo por privado** con el equipo: mensaje directo o una unidad compartida solo con ellos. **Nunca** se sube a GitHub, foros ni enlaces públicos, y se borra cuando ya no se usa.
+> - **No se entrega al docente con credenciales de ADMIN.** Si el docente necesita levantar el sistema, prepara un `.env` aparte y entrégale solo un usuario de demostración. Para revisar el código no necesita el kit: le basta el repositorio.
+> - Si el kit se filtra, hay que **rotar** la contraseña de la base, el `JWT_SECRET`, la contraseña de aplicación de Gmail y el Wallet.
+
+### Qué contiene
+
+| Archivo | Contenido |
+|---|---|
+| `imagenes.tar` | Las 6 imágenes `elvolcan/*:1.0`, guardadas con `docker save` |
+| `docker-compose.yml` | Copia de `docker-compose.kit.yml`: sin `build`, proyecto `elvolcan-kit`, Wallet desde `./OracleWallet` |
+| `.env` | Copia del `.env` de la raíz del repositorio |
+| `OracleWallet/` | Copia de la carpeta indicada en `WALLET_HOST_DIR` |
+| `levantar.ps1` / `detener.ps1` | Levantan y detienen el kit |
+| `LEEME.txt` | Instrucciones para quien lo recibe |
+
+### Crear el kit (desde el repositorio)
+
+Requisitos: Docker Desktop corriendo, el `.env` completo en la raíz y el Wallet en `WALLET_HOST_DIR`.
+
+```powershell
+# Por defecto crea C:\Users\<usuario>\elvolcan-kit y C:\Users\<usuario>\elvolcan-kit.zip
+powershell -ExecutionPolicy Bypass -File scripts\crear-kit.ps1
+
+# Otra carpeta (siempre FUERA del repositorio; el script lo exige)
+powershell -ExecutionPolicy Bypass -File scripts\crear-kit.ps1 -Destino D:\kits\elvolcan-kit
+
+# Sin volver a construir las imágenes (usa las elvolcan/*:1.0 que ya existen)
+powershell -ExecutionPolicy Bypass -File scripts\crear-kit.ps1 -SinBuild
+```
+
+El script hace lo siguiente:
+1. Construye las imágenes con `docker compose build`.
+2. Las guarda en `imagenes.tar`.
+3. Copia el compose del kit, el `.env`, el Wallet y los scripts.
+4. Comprime todo y muestra el tamaño.
+
+Nunca muestra el contenido del `.env` ni del Wallet. Si la carpeta de destino ya existe, solo la reemplaza si es un kit anterior. Como red de seguridad, `.gitignore` ignora `elvolcan-kit*/` y `elvolcan-kit*.zip`.
+
+### Usar el kit en un PC nuevo
+
+1. Instala y abre **Docker Desktop**, y espera a que diga *Engine running*.
+2. Descomprime `elvolcan-kit.zip`.
+3. Abre **PowerShell en la carpeta del kit**, la que tiene `levantar.ps1`. En el Explorador: clic derecho → *Abrir en Terminal*.
+4. Si el zip **se descargó de internet** (correo, Drive, etc.), desbloquea los archivos primero:
+   ```powershell
+   Get-ChildItem -Recurse | Unblock-File
+   ```
+5. Levanta el sistema:
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File .\levantar.ps1
+   ```
+   `-ExecutionPolicy Bypass` vale solo para esa ejecución: **no cambia la política del sistema**.
+6. Abre **http://localhost**.
+7. Para detener:
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File .\detener.ps1
+   ```
+
+`levantar.ps1` hace esto:
+1. Revisa que Docker esté corriendo, que estén los archivos del kit y que el puerto 80 esté libre.
+2. Carga `imagenes.tar` con `docker load`, solo si falta alguna imagen.
+3. Ejecuta `docker compose up -d --wait`, que espera a que los 6 contenedores estén *healthy*, con un máximo de 5 minutos.
+
+### Consideraciones
+
+- **IP en Oracle:** la IP pública del PC que usa el kit debe estar permitida en la ACL de la base (sección 4.2).
+- **`APP_FRONTEND_URL`:** viene del `.env` original. Para usar el kit en otra máquina con otra URL, edita el `.env` del kit.
+- **Tamaño:** el zip pesa varios cientos de MB.
+- **No convive con el stack del repositorio:** los dos usan el puerto 80 y la subred `172.28.0.0/16`. Baja uno (`docker compose down`) antes de levantar el otro.
+- **Actualizar:** se genera un kit nuevo. Como el tag sigue siendo `1.0`, en el PC destino hay que borrar las imágenes antiguas antes de levantar el kit nuevo: `docker image rm elvolcan/eureka:1.0 elvolcan/ms-auth:1.0 elvolcan/ms-catalogoproductos:1.0 elvolcan/ms-inventario:1.0 elvolcan/ms-ventas:1.0 elvolcan/frontend:1.0`.
+
+---
+
+## 6. Solución de problemas
 
 | Síntoma | Causa probable | Solución |
 |---|---|---|

@@ -1,0 +1,48 @@
+==============================================================================
+ DISTRIBUIDORA DE GAS EL VOLCAN - KIT PORTATIL
+==============================================================================
+
+Este kit levanta el sistema completo (Eureka, 4 microservicios y el sitio web)
+en un PC que solo tenga Docker Desktop. No necesita el codigo, Java ni Node.
+
+!!! ATENCION: ESTE KIT CONTIENE SECRETOS !!!
+  - .env: contrasena de la base de datos Oracle y clave JWT. Si NOTIFICACION_MODO
+    es "correo", tambien la contrasena de aplicacion de Gmail.
+  - OracleWallet: credenciales de conexion a la base Oracle Cloud.
+  Compartelo SOLO por privado con el equipo. Nunca en GitHub, foros ni enlaces
+  publicos. Borralo cuando ya no lo uses.
+
+------------------------------------------------------------------------------
+REQUISITOS
+------------------------------------------------------------------------------
+  - Docker Desktop instalado y abierto ("Engine running").
+  - Puerto 80 libre.
+  - Internet: los servicios se conectan a la base Oracle Cloud. La IP publica
+    de este PC debe estar permitida en la lista de acceso de la base (ACL).
+
+------------------------------------------------------------------------------
+LEVANTAR (en un PC nuevo)
+------------------------------------------------------------------------------
+  1. Descomprime elvolcan-kit.zip.
+  2. Abre PowerShell en la carpeta elvolcan-kit (la que tiene levantar.ps1).
+     En el Explorador: clic derecho en la carpeta > "Abrir en Terminal".
+  3. Si el zip se descargo de internet (correo, Drive, etc.), desbloquea los
+     archivos primero:
+        Get-ChildItem -Recurse | Unblock-File
+  4. Ejecuta (no cambia la politica de ejecucion del sistema):
+        powershell -ExecutionPolicy Bypass -File .\levantar.ps1
+     La primera vez carga las imagenes desde imagenes.tar (unos minutos).
+  5. Cuando diga que esta arriba, abre http://localhost
+
+------------------------------------------------------------------------------
+DETENER
+------------------------------------------------------------------------------
+        powershell -ExecutionPolicy Bypass -File .\detener.ps1
+
+------------------------------------------------------------------------------
+PROBLEMAS FRECUENTES
+------------------------------------------------------------------------------
+  - "Docker no esta corriendo": abre Docker Desktop y espera "Engine running".
+  - "El puerto 80 esta ocupado": cierra el otro servidor (IIS, otro contenedor).
+  - Un contenedor no queda healthy: revisa  docker compose logs ms-auth
+    (la base Oracle puede estar detenida o la IP de este PC no permitida).

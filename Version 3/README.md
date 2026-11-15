@@ -153,6 +153,7 @@ npm run lint             # oxlint
 |---|---|
 | Plan de trabajo de la Evaluación Parcial 3 | `docs/PLAN_EVALUACION3.md` |
 | Levantar con Docker en local y en AWS EC2 | `docs/DOCKER.md` |
+| Kit portátil (PC con solo Docker Desktop; contiene secretos) | `docs/DOCKER.md` §5 · `scripts/crear-kit.ps1` |
 | Anexos EP3: Anexo 2 (Word), Anexo 3 (Excel), Anexo 4 (Word) y capturas | `docs/parcial3/` |
 | Cómo regenerar los Anexos 2 y 4 (`npm run anexos`) | `docs/parcial3/README.md` |
 | ERS, documentación técnica, cobertura y despliegue del frontend | `frontend/docs/` |

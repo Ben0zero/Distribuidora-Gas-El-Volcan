@@ -46,7 +46,7 @@ x-healthcheck: &healthcheck
 services:
   eureka:
     build: ./microservicios/MiniMarket-Proyecto-ms-eureka/eurekaserver
-    image: elvolcan/eureka
+    image: elvolcan/eureka:1.0
     restart: unless-stopped
     networks: [elvolcan]
     environment:
@@ -63,7 +63,7 @@ services:
   ms-auth:
     <<: *microservicio
     build: ./microservicios/MiniMarket-Proyecto-ms-auth
-    image: elvolcan/ms-auth
+    image: elvolcan/ms-auth:1.0
     environment:
       <<: *entorno-comun
       # Límite de intentos de login: además de la misma máquina, se confía en el
@@ -89,7 +89,7 @@ services:
   ms-catalogoproductos:
     <<: *microservicio
     build: ./microservicios/MiniMarket-Proyecto-ms-catalogoProductos
-    image: elvolcan/ms-catalogoproductos
+    image: elvolcan/ms-catalogoproductos:1.0
     environment:
       <<: *entorno-comun
       REINICIAR_SEMILLA: ${REINICIAR_SEMILLA:-false}
@@ -100,7 +100,7 @@ services:
   ms-inventario:
     <<: *microservicio
     build: ./microservicios/MiniMarket-Proyecto-ms-inventario
-    image: elvolcan/ms-inventario
+    image: elvolcan/ms-inventario:1.0
     environment:
       <<: *entorno-comun
       REINICIAR_SEMILLA: ${REINICIAR_SEMILLA:-false}
@@ -111,7 +111,7 @@ services:
   ms-ventas:
     <<: *microservicio
     build: ./microservicios/MiniMarket-Proyecto-ms-ventas
-    image: elvolcan/ms-ventas
+    image: elvolcan/ms-ventas:1.0
     environment:
       <<: *entorno-comun
     healthcheck:
@@ -120,7 +120,7 @@ services:
 
   frontend:
     build: ./frontend
-    image: elvolcan/frontend
+    image: elvolcan/frontend:1.0
     restart: unless-stopped
     networks: [elvolcan]
     ports:
