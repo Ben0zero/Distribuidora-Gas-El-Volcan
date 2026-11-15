@@ -25,8 +25,45 @@ export const CLAVES = {
 
 // --- Validaciones puras (sin DOM) ---
 
+// --- RUT chileno ---
+// Se guarda normalizado: solo dígitos + dígito verificador (0-9 o K), sin puntos ni guion.
+// Ej.: "12.345.678-5" -> "123456785". Se muestra formateado: "12.345.678-5".
+
+export function normalizarRut(valor) {
+  return String(valor ?? '').replace(/[.\s-]/g, '').toUpperCase()
+}
+
+// Formato: cuerpo de 6 a 8 dígitos + dígito verificador (7 a 9 caracteres en total).
+// Acepta el RUT con o sin puntos, guion o espacios. No revisa el dígito verificador.
 export function validarRun(valor) {
-  return /^\d{7,9}$/.test(String(valor).replace(/\s/g, ''))
+  return /^\d{6,8}[\dK]$/.test(normalizarRut(valor))
+}
+
+// Dígito verificador por módulo 11 (factores 2..7 desde la derecha; 11 -> 0, 10 -> K).
+export function digitoVerificadorRut(cuerpo) {
+  let suma = 0
+  let factor = 2
+  for (const digito of String(cuerpo).split('').reverse()) {
+    suma += Number(digito) * factor
+    factor = factor === 7 ? 2 : factor + 1
+  }
+  const resto = 11 - (suma % 11)
+  return resto === 11 ? '0' : resto === 10 ? 'K' : String(resto)
+}
+
+// Formato correcto y dígito verificador válido. Se exige solo al CREAR usuarios
+// (registro y alta por el admin): los usuarios existentes pueden tener un DV antiguo inválido.
+export function rutValido(valor) {
+  const rut = normalizarRut(valor)
+  return validarRun(rut) && digitoVerificadorRut(rut.slice(0, -1)) === rut.slice(-1)
+}
+
+// "123456785" -> "12.345.678-5". Si no tiene formato de RUT, devuelve el valor tal cual.
+export function formatearRut(valor) {
+  const rut = normalizarRut(valor)
+  if (!validarRun(rut)) return String(valor ?? '')
+  const cuerpo = rut.slice(0, -1).replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+  return `${cuerpo}-${rut.slice(-1)}`
 }
 
 export function validarTelefono(valor) {
@@ -62,7 +99,8 @@ export function validarFormularioRegistro(datos) {
 
   if (!nombre) return 'Ingresa tu nombre completo'
   if (nombre.length > 100) return 'El nombre no puede superar los 100 caracteres'
-  if (!validarRun(run)) return 'El RUN debe tener entre 7 y 9 dígitos, sin puntos y sin guion'
+  if (!validarRun(run)) return 'Ingresa un RUT válido, con o sin puntos y guion (ej: 12.345.678-5)'
+  if (!rutValido(run)) return 'El dígito verificador del RUT no es válido'
   if (!correoDominioPermitido(correo)) return 'El correo debe ser @duoc.cl, @profesor.duoc.cl o @gmail.com'
   if (!validarTelefono(telefono)) return 'Ingresa un teléfono válido (ej: +56 9 1234 5678)'
   if (!direccion) return 'Ingresa tu dirección de despacho'
@@ -78,11 +116,13 @@ export function validarFormularioRegistro(datos) {
 
 // Valida el formulario de alta/edición de usuarios del admin (NuevoUsuario); devuelve el primer error o ''.
 // Acepta cualquier correo válido: los empleados usan el dominio de la empresa (@elvolcan.cl).
-// Al editar, la contraseña es opcional (vacía = se conserva la actual).
-export function validarNuevoUsuario(form, { requerirContrasena = true } = {}) {
+// Al editar, la contraseña es opcional (vacía = se conserva la actual) y no se revisa el dígito
+// verificador del RUT, para no bloquear a usuarios existentes con un DV antiguo inválido.
+export function validarNuevoUsuario(form, { requerirContrasena = true, validarDigitoVerificador = requerirContrasena } = {}) {
   if (!form.nombre.trim()) return 'Ingresa el nombre completo'
   if (!validarCorreo(form.correo)) return 'Ingresa un correo válido'
-  if (!validarRun(form.run)) return 'El RUN debe tener entre 7 y 9 dígitos, sin puntos y sin guion'
+  if (!validarRun(form.run)) return 'Ingresa un RUT válido, con o sin puntos y guion (ej: 12.345.678-5)'
+  if (validarDigitoVerificador && !rutValido(form.run)) return 'El dígito verificador del RUT no es válido'
   const escribioContrasena = String(form.contrasena || '').length > 0 || String(form.confirmar || '').length > 0
   if (requerirContrasena || escribioContrasena) {
     const errorContrasena = validarContrasena(form.contrasena)

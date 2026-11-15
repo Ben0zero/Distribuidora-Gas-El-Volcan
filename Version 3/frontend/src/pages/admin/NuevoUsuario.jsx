@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Card, Form, Button, Alert, Row, Col, Spinner } from 'react-bootstrap'
-import { REGIONES, validarNuevoUsuario } from '../../utils/validaciones'
+import { REGIONES, validarNuevoUsuario, normalizarRut, formatearRut } from '../../utils/validaciones'
 import { crearUsuario, actualizarUsuario, obtenerUsuario, ApiError } from '../../utils/api'
 import { ROLES } from '../../utils/sesion'
 
@@ -56,7 +56,7 @@ function NuevoUsuario() {
         setForm({
           nombre: u.nombre || '',
           correo: u.username || '',
-          run: u.rut || '',
+          run: formatearRut(u.rut || ''),
           contrasena: '',
           confirmar: '',
           telefono: u.telefono || '',
@@ -89,7 +89,7 @@ function NuevoUsuario() {
     try {
       const datos = {
         nombre: form.nombre.trim(),
-        rut: form.run,
+        rut: normalizarRut(form.run), // se guarda sin puntos ni guion
         username: form.correo.trim().toLowerCase(),
         nombreRol: form.rol,
         telefono: form.telefono || undefined,
@@ -160,14 +160,15 @@ function NuevoUsuario() {
 
               <Form.Group className="mb-3" controlId="usuario-run">
                 <Form.Label className="text-uppercase fw-bold text-secondary" style={etiqueta}>
-                  RUN (7 a 9 dígitos, sin puntos y sin guion)
+                  RUN (con o sin puntos y guion)
                 </Form.Label>
                 <Form.Control
                   className="rounded-0 border-dark"
-                  maxLength={9}
-                  placeholder="Ej: 12345678"
+                  maxLength={12}
+                  placeholder="Ej: 12.345.678-5"
                   value={form.run}
                   onChange={cambiar('run')}
+                  onBlur={() => setForm((f) => ({ ...f, run: formatearRut(f.run) }))}
                 />
               </Form.Group>
 

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Table, Alert, Spinner, Button, Modal } from 'react-bootstrap'
 import { listarUsuarios, eliminarUsuario, ApiError } from '../../utils/api'
 import { rolDesdeApi, sesionActiva, ROLES } from '../../utils/sesion'
+import { formatearRut } from '../../utils/validaciones'
 
 const FILTROS = {
   'Todos los usuarios': null,
@@ -123,7 +124,7 @@ function ListaUsuarios() {
             ) : (
               filtrados.map((u) => (
                 <tr key={u.id}>
-                  <td className="py-3">{u.rut || '-'}</td>
+                  <td className="py-3 text-nowrap">{u.rut ? formatearRut(u.rut) : '-'}</td>
                   <td className="py-3">{u.nombre || '-'}</td>
                   <td className="py-3">{u.username}</td>
                   <td className="py-3">{u.rol}</td>

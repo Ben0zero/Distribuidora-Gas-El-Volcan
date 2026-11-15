@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { NavLink, Link, Outlet, useNavigate } from 'react-router-dom'
-import { CLAVES } from '../../utils/validaciones'
+import { cerrarSesion as cerrarSesionGuardada } from '../../utils/sesion'
 
 const PRINCIPAL = [
   { to: '/admin', end: true, icono: 'bi-grid-fill', label: 'Dashboard' },
@@ -31,7 +31,7 @@ function AdminLayout() {
   const navigate = useNavigate()
 
   const cerrarSesion = () => {
-    localStorage.removeItem(CLAVES.sesion)
+    cerrarSesionGuardada() // borra sesión y carrito
     navigate('/login')
   }
 

@@ -2,6 +2,10 @@
 // Se prueban funciones puras: reciben datos y devuelven un resultado, sin DOM.
 import {
   validarRun,
+  normalizarRut,
+  digitoVerificadorRut,
+  rutValido,
+  formatearRut,
   validarTelefono,
   validarCorreo,
   correoDominioPermitido,
@@ -20,13 +24,15 @@ describe('validaciones (lógica de formularios)', () => {
   })
 
   test('valida campos simples: RUN, teléfono, correo y formato de precio', () => {
-    // RUN: 7 a 9 dígitos, sin puntos ni guion (tolera espacios)
+    // RUN: cuerpo de 6 a 8 dígitos + DV (0-9 o K), con o sin puntos, guion o espacios
     expect(validarRun('1234567')).toBe(true)
     expect(validarRun('12 345 678')).toBe(true)
+    expect(validarRun('19.011.022')).toBe(true)
+    expect(validarRun('12.345.678-K')).toBe(true)
     expect(validarRun('123456')).toBe(false)
     expect(validarRun('1234567890')).toBe(false)
-    expect(validarRun('19.011.022')).toBe(false)
     expect(validarRun('abcdefgh')).toBe(false)
+    expect(validarRun('1234567K8')).toBe(false) // la K solo puede ir al final
 
     // Teléfono: 9 a 12 dígitos con "+" opcional
     expect(validarTelefono('+56 9 1234 5678')).toBe(true)
@@ -50,7 +56,7 @@ describe('validaciones (lógica de formularios)', () => {
   test('validarFormularioRegistro, validarFormularioContacto y helpers de almacenamiento', () => {
     const validoRegistro = {
       nombre: 'Ana Pérez',
-      run: '12345678',
+      run: '12.345.678-5',
       correo: 'ana@duoc.cl',
       telefono: '+56912345678',
       direccion: 'Av. Siempre Viva 123',
@@ -68,8 +74,10 @@ describe('validaciones (lógica de formularios)', () => {
       'El nombre no puede superar los 100 caracteres',
     )
     expect(validarFormularioRegistro({ ...validoRegistro, run: '1' })).toBe(
-      'El RUN debe tener entre 7 y 9 dígitos, sin puntos y sin guion',
+      'Ingresa un RUT válido, con o sin puntos y guion (ej: 12.345.678-5)',
     )
+    // al crear (registro) se exige el dígito verificador correcto
+    expect(validarFormularioRegistro({ ...validoRegistro, run: '12.345.678-9' })).toBe('El dígito verificador del RUT no es válido')
     expect(validarFormularioRegistro({ ...validoRegistro, correo: 'x@hotmail.com' })).toBe(
       'El correo debe ser @duoc.cl, @profesor.duoc.cl o @gmail.com',
     )
@@ -139,5 +147,38 @@ describe('validarContrasena (H-07)', () => {
     expect(validarContrasena('a1' + 'x'.repeat(62))).toBe('') // 64: el máximo
     expect(validarContrasena('a1' + 'x'.repeat(63))).toBe(error) // 65: sobre el máximo
     expect(validarContrasena(undefined)).toBe(error)
+  })
+})
+
+describe('RUT: normalizar, dígito verificador (módulo 11) y formato', () => {
+  test('normaliza quitando puntos, guion y espacios, con K en mayúscula', () => {
+    expect(normalizarRut('12.345.678-5')).toBe('123456785')
+    expect(normalizarRut(' 9.876.543-k ')).toBe('9876543K')
+    expect(normalizarRut(undefined)).toBe('')
+  })
+
+  test('calcula el dígito verificador con módulo 11, incluidos los casos 0 y K', () => {
+    expect(digitoVerificadorRut('12345678')).toBe('5')
+    expect(digitoVerificadorRut('1723456')).toBe('0') // resto 11 -> 0
+    expect(digitoVerificadorRut('1901102')).toBe('K') // resto 10 -> K
+  })
+
+  test('rutValido exige formato y dígito verificador correctos', () => {
+    expect(rutValido('12.345.678-5')).toBe(true)
+    expect(rutValido('123456785')).toBe(true)
+    expect(rutValido('1.901.102-k')).toBe(true)
+    expect(rutValido('17234560')).toBe(true)
+    expect(rutValido('12.345.678-9')).toBe(false)
+    expect(rutValido('19011022')).toBe(false) // RUT semilla antiguo: DV inválido
+    expect(rutValido('abc')).toBe(false)
+  })
+
+  test('formatea con puntos y guion; si no es un RUT lo deja tal cual', () => {
+    expect(formatearRut('123456785')).toBe('12.345.678-5')
+    expect(formatearRut('19011022')).toBe('1.901.102-2')
+    expect(formatearRut('9876543k')).toBe('9.876.543-K')
+    expect(formatearRut('12.345.678-5')).toBe('12.345.678-5')
+    expect(formatearRut('')).toBe('')
+    expect(formatearRut('abc')).toBe('abc')
   })
 })
