@@ -376,13 +376,13 @@ function anexo2() {
         ['ms-auth', 'JUnit + MockMvc', '34', 'Login, registro, JWT (claims y expiración), política de contraseñas, roles en usuarios, errores'],
         ['ms-catalogoProductos', 'JUnit + MockMvc', '18', 'CRUD, SKU no modificable, catálogo público, solo ADMIN escribe, 404/500'],
         ['ms-inventario', 'JUnit + MockMvc', '26', 'Ajustes de stock con tope 1–500, stock crítico, 409 por concurrencia, solo ADMIN escribe'],
-        ['ms-ventas', 'JUnit + MockMvc', '36', 'Precio por tipo de cliente del token, ítems agrupados, topes, dueño de la venta, bloqueo optimista'],
+        ['ms-ventas', 'JUnit + MockMvc', '37', 'Precio por tipo de cliente del token, ítems agrupados, topes, dueño de la venta, bloqueo optimista, 403 por rol'],
         ['Frontend React', 'Vitest + Testing Library', '92 (26 archivos)', 'Componentes, páginas, sesión, carrito, validaciones y llamadas a la API'],
       ],
       [22, 20, 14, 44]
     ),
     new Paragraph({ text: '', spacing: { after: 120 } }),
-    p('Total backend: 114 pruebas JUnit. Pruebas manuales contra Oracle Cloud con el sistema completo en ejecución:', { bold: true }),
+    p('Total backend: 115 pruebas JUnit. Pruebas manuales contra Oracle Cloud con el sistema completo en ejecución:', { bold: true }),
     table(
       ['Prueba', 'Resultado esperado', 'Resultado obtenido'],
       [
@@ -391,7 +391,8 @@ function anexo2() {
         ['Cliente Residencial envía "tipoCliente": "Comercial"', 'Se cobra el precio residencial', 'OK (6.500 en vez de 6.000)'],
         ['Dos confirmaciones simultáneas de la misma venta', 'Una 200 y otra 409; el stock baja una sola vez', 'OK (stock 80 → 79)'],
         ['Producto inexistente / id mal formado', '404 / 400', 'OK'],
-        ['VENDEDOR intenta modificar inventario o catálogo', '403', 'OK'],
+        ['VENDEDOR intenta crear una venta, confirmar un pago o modificar inventario o catálogo', '403', 'OK'],
+        ['CLIENTE intenta listar todas las ventas', '403', 'OK'],
         ['VENDEDOR lista las órdenes', '200', 'OK'],
         ['Flujo en el frontend', 'Catálogo, carrito, venta, confirmación, mis compras, paneles admin y vendedor', 'OK (capturas de la sección 10)'],
       ],
