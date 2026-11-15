@@ -1,9 +1,9 @@
 package cl.elvolcan.auth.service.notificacion;
 
 /**
- * Envío de avisos al usuario. Hoy la implementación de desarrollo escribe en el log
- * (NotificacionLogService); para producción se agrega una implementación con correo real
- * (spring-boot-starter-mail) sin cambiar RecuperacionService.
+ * Envío de avisos al usuario. La implementación se elige con app.notificacion.modo:
+ * "log" (por defecto, NotificacionLogService: escribe el enlace en el log de ms-auth) o
+ * "correo" (NotificacionCorreoService: SMTP con spring-boot-starter-mail). RecuperacionService no cambia.
  */
 public interface NotificacionService {
 
