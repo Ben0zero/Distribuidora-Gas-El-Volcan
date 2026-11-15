@@ -9,6 +9,8 @@ import {
   crearProducto,
   actualizarProducto,
   cambiarEstadoProducto,
+  eliminarProducto,
+  listarProductosVendidos,
   ajustarStock,
   ApiError,
 } from '../../utils/api'
@@ -25,6 +27,9 @@ const FORM_VACIO = {
 }
 
 const etiqueta = { fontSize: '0.75rem' }
+
+const AVISO_CON_VENTAS = 'Tiene ventas registradas; puedes desactivarlo'
+const AVISO_SIN_VERIFICAR = 'No se pudo verificar si tiene ventas'
 
 function mensaje(e) {
   return e instanceof ApiError ? e.message.replace(/^Error:\s*/, '') : 'No se pudo conectar con el servidor.'
@@ -51,6 +56,9 @@ function Inventario() {
   const [ok, setOk] = useState('')
   const [editando, setEditando] = useState(null)
   const [guardando, setGuardando] = useState(false)
+  // IDs con ventas (Set), cargados UNA vez al abrir el panel. null = no se pudo verificar
+  // (todos los Eliminar quedan deshabilitados). El backend vuelve a validarlo siempre (409).
+  const [vendidos, setVendidos] = useState(null)
 
   const aplicar = useCallback(({ filas: nuevas, error: errorCarga }) => {
     setFilas(nuevas)
@@ -62,6 +70,9 @@ function Inventario() {
   useEffect(() => {
     let activo = true
     cargarInventario().then((resultado) => activo && aplicar(resultado))
+    listarProductosVendidos()
+      .then((ids) => activo && setVendidos(new Set(ids)))
+      .catch(() => activo && setVendidos(null))
     return () => {
       activo = false
     }
@@ -146,6 +157,18 @@ function Inventario() {
     }
   }
 
+  // DELETE /api/v1/productos/{sku}: borrado definitivo (solo productos sin ventas)
+  const eliminar = (fila) => {
+    if (!window.confirm(`¿Eliminar "${fila.nombre}"? Esta acción no se puede deshacer.`)) return
+    ejecutar(() => eliminarProducto(fila.codigo), `"${fila.nombre}" se eliminó del catálogo y del inventario`)
+  }
+
+  // Motivo por el que no se puede eliminar (o '' si se puede)
+  const motivoSinEliminar = (fila) => {
+    if (vendidos === null) return AVISO_SIN_VERIFICAR
+    return vendidos.has(fila.id) ? AVISO_CON_VENTAS : ''
+  }
+
   return (
     <>
       <div className="d-flex justify-content-between align-items-center mb-4">
@@ -212,12 +235,25 @@ function Inventario() {
                         </Button>
                         <Button
                           size="sm"
-                          variant={f.activo ? 'outline-danger' : 'outline-success'}
+                          variant={f.activo ? 'outline-secondary' : 'outline-success'}
+                          className="me-1"
                           onClick={() => cambiarEstado(f)}
                           disabled={guardando}
                         >
                           {f.activo ? 'Desactivar' : 'Activar'}
                         </Button>
+                        {/* Un botón deshabilitado no recibe el mouse: el span muestra el motivo (title) */}
+                        <span className="d-inline-block" tabIndex={motivoSinEliminar(f) ? 0 : undefined} title={motivoSinEliminar(f) || undefined}>
+                          <Button
+                            size="sm"
+                            variant={motivoSinEliminar(f) ? 'secondary' : 'danger'}
+                            onClick={() => eliminar(f)}
+                            disabled={guardando || Boolean(motivoSinEliminar(f))}
+                            style={motivoSinEliminar(f) ? { pointerEvents: 'none' } : undefined}
+                          >
+                            Eliminar
+                          </Button>
+                        </span>
                       </td>
                     </tr>
                   ))}

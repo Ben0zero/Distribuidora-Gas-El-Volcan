@@ -77,6 +77,11 @@ public class VentaService {
                 .compact();
     }
 
+    /** IDs de los productos con al menos una venta (ms-catalogo los usa para no borrarlos). */
+    public List<Long> productosVendidos() {
+        return ventaRepository.findProductosVendidos();
+    }
+
     @Transactional
     public List<VentaResponseDTO> listarTodas() {
         return ventaRepository.findAll().stream().map(ventaModelAssembler::toModel).collect(Collectors.toList());

@@ -19,8 +19,9 @@ public interface ProductoService {
     // editar un producto existente (el SKU no se puede cambiar porque enlaza con inventario)
     ProductoResponseDTO actualizarProducto(Long id, ProductoRequestDTO request);
     
-    // soft delete, se desactiva en lugar de borrar
-    void desactivarProducto(String sku);
+    // borrado definitivo: solo si no tiene ventas (409) y borra también su inventario.
+    // Para ocultarlo de la tienda sin borrarlo se usa cambiarEstado (PATCH /{id}/estado)
+    void eliminarProducto(String sku);
 
     // panel admin: todos los productos, activos e inactivos
     List<ProductoResponseDTO> obtenerTodos();

@@ -446,4 +446,14 @@ class VentaServiceTest {
         assertThrows(ResourceNotFoundException.class, () -> ventaService.confirmarPago(99L));
         verify(inventarioClient, never()).disminuirStock(anyString(), any());
     }
+
+    @Test
+    @DisplayName("productosVendidos delega en la consulta DISTINCT del repositorio")
+    void productosVendidosUsaConsultaDistinct() {
+        when(ventaRepository.findProductosVendidos()).thenReturn(java.util.List.of(281L, 282L));
+
+        assertEquals(java.util.List.of(281L, 282L), ventaService.productosVendidos());
+        verify(ventaRepository).findProductosVendidos();
+        verify(ventaRepository, never()).findAll();
+    }
 }

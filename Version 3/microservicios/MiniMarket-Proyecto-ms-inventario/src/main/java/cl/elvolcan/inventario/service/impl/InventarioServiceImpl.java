@@ -106,6 +106,15 @@ public class InventarioServiceImpl implements InventarioService {
         return mapToResponse(inventario);
     }
 
+    // Eliminar el registro de un SKU: lo llama ms-catalogoProductos al eliminar un producto sin ventas
+    @Override
+    public void eliminarPorSku(String sku) {
+        Inventario inventario = repository.findBySku(sku)
+                .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado"));
+        repository.delete(inventario);
+        logger.info("Registro de inventario eliminado: sku={}", sku);
+    }
+
     // Obtener stock critico
     @Override
     public List<StockResponseDTO> obtenerStockCritico() {

@@ -5,7 +5,7 @@
 **Asignatura:** DSY1104 — Desarrollo Fullstack II
 **Evaluación:** Evaluación Parcial N° 3 (integración frontend React + microservicios Spring Boot)
 **Tecnología principal de esta entrega:** React (SPA) + microservicios Spring Boot + Oracle Cloud
-**Versión del documento:** 3.4
+**Versión del documento:** 3.5
 **Fecha:** Noviembre 2026
 
 ---
@@ -22,6 +22,7 @@
 | **3.2** | **EP3** | **Nuevas funciones: activar y desactivar productos, eliminar usuarios, cambiar la contraseña con sesión iniciada y recuperarla con un enlace de un solo uso (RF-48 a RF-51). Además: buscador con sugerencias de productos, precio destacado según el tipo de cliente, carrito que se vacía al cerrar sesión y RUT con formato y dígito verificador.** | **Equipo** |
 | **3.3** | **EP3** | **Límite de intentos de login (429 con mensaje genérico), envío del enlace de recuperación por correo activable por configuración, RUT válido en los usuarios semilla, el frontend deja de enviar el tipo de cliente en la venta y se agregan las pruebas correspondientes.** | **Equipo** |
 | **3.4** | **EP3** | **Un administrador no puede quitarse su propio rol ni dejar el sistema sin administradores (H-16); ms-auth maneja tokens inválidos o expirados respondiendo 401 en JSON (H-20); el correo de recuperación se envía en segundo plano.** | **Equipo** |
+| **3.5** | **EP3** | **Eliminación definitiva de productos sin ventas (RF-52): `DELETE /api/v1/productos/{sku}` pasa a ser un borrado real que consulta a ms-ventas y borra también el inventario; la baja lógica queda en `PATCH /{id}/estado`. Nuevos endpoints `GET /api/v1/ventas/productos-vendidos` y `DELETE /api/v1/inventario/{sku}`, y botón Eliminar en el panel.** | **Equipo** |
 
 ---
 
@@ -317,7 +318,7 @@ El catálogo vive en **ms-catalogoProductos**:
 | **RF-30** | El administrador debe poder **listar el inventario** (catálogo + stock por SKU), resaltando el **stock crítico**. | A | ✅ |
 | **RF-31** | El administrador debe poder **crear** productos con validación. El producto se crea en el catálogo, se crea su registro de inventario y se carga su stock inicial. | A | ✅ |
 | **RF-32** | El administrador debe poder **editar** productos (`PUT /api/v1/productos/{id}`), excepto el SKU, y **ajustar el stock**. | A | ✅ |
-| **RF-33** | El administrador debe poder **desactivar** productos (borrado lógico: dejan de mostrarse en la tienda). Ver también RF-48. | M | ✅ |
+| **RF-33** | El administrador debe poder **desactivar** productos (borrado lógico con `PATCH /api/v1/productos/{id}/estado`: dejan de mostrarse en la tienda). Ver también RF-48 y RF-52. | M | ✅ |
 | **RF-34** | El administrador debe poder **listar y filtrar usuarios** por rol (Administradores, Clientes y Vendedores). | A | ✅ |
 | **RF-35** | El administrador debe poder **crear usuarios** con rol (Admin, Vendedor o Cliente), región y comuna, con validaciones y control de duplicados (409). | A | ✅ |
 | **RF-36** | El SKU de un producto no debe poder modificarse, porque enlaza el catálogo con el inventario. | M | ✅ |
@@ -345,6 +346,7 @@ El catálogo vive en **ms-catalogoProductos**:
 | **RF-49** | El administrador debe poder **eliminar** usuarios con confirmación y **editar** sus datos. Un administrador no puede eliminar su propia cuenta ni cambiar su propio rol, y no se puede quitar el rol al último administrador (la interfaz lo impide y el backend responde 400 con el motivo). | A | ✅ |
 | **RF-50** | Todo usuario con sesión debe poder **cambiar su contraseña** indicando la actual y la nueva (8 a 64 caracteres, con letra y número), desde la tienda o desde su panel. | A | ✅ |
 | **RF-51** | El usuario debe poder **recuperar su contraseña** con un enlace de un solo uso que vence en 15 minutos. La solicitud no revela si la cuenta existe y se limita a 3 por usuario cada 15 minutos. Nunca se puede cambiar la contraseña conociendo solo el nombre de usuario. | A | ✅ |
+| **RF-52** | El administrador debe poder **eliminar definitivamente** un producto **sin ventas**, junto con su registro de inventario. El panel muestra Editar, Activar/Desactivar y Eliminar; Eliminar pide confirmación ("Esta acción no se puede deshacer") y queda deshabilitado, con el motivo, si el producto tiene ventas o si no se pudo verificar. El backend lo valida siempre: con ventas responde **409** ("desactívalo en lugar de eliminarlo") y, si ms-ventas o ms-inventario no responden, **502** sin borrar nada. | A | ✅ |
 
 ---
 
@@ -407,14 +409,17 @@ ms-ventas:    ventas 1───N detalles_venta ·· producto_id → productos.i
 | ms-auth | `GET`/`POST` | `/api/v1/usuarios` | Lista y crea usuarios con rol | ADMIN |
 | ms-auth | `GET`/`PUT`/`DELETE` | `/api/v1/usuarios/{id}` | Detalle, edición y eliminación | ADMIN |
 | ms-catalogoProductos | `GET` | `/api/v1/productos`, `/id/{id}`, `/{sku}` | Catálogo y detalle | Público |
-| ms-catalogoProductos | `POST` · `PUT` · `DELETE` | `/api/v1/productos` · `/{id}` · `/{sku}` | Crear, editar y desactivar | ADMIN |
+| ms-catalogoProductos | `POST` · `PUT` | `/api/v1/productos` · `/{id}` | Crear y editar | ADMIN |
+| ms-catalogoProductos | `DELETE` | `/api/v1/productos/{sku}` | Eliminar definitivamente un producto sin ventas y su inventario (409 si tiene ventas, 502 si falla otro servicio) | ADMIN |
 | ms-catalogoProductos | `GET` · `PATCH` | `/api/v1/productos/todos` · `/{id}/estado` | Listado con inactivos y activar/desactivar | ADMIN |
 | ms-inventario | `GET` | `/api/v1/inventario`, `/{sku}`, `/critico` | Stock | Autenticado |
 | ms-inventario | `POST` · `PUT` | `/crear` · `/aumentar` · `/disminuir` | Gestión de stock | ADMIN |
+| ms-inventario | `DELETE` | `/api/v1/inventario/{sku}` | Elimina el registro de stock (lo llama catálogo al eliminar un producto) | ADMIN |
 | ms-ventas | `POST` | `/api/v1/ventas` | Crea una venta | CLIENTE, ADMIN |
 | ms-ventas | `PUT` | `/api/v1/ventas/{id}/confirmar` | Confirma el pago (solo el dueño o ADMIN) | CLIENTE, ADMIN |
 | ms-ventas | `GET` | `/api/v1/ventas/mis-compras` | Historial propio | CLIENTE, ADMIN |
 | ms-ventas | `GET` | `/api/v1/ventas`, `/{id}` | Todas las órdenes y su detalle | ADMIN, VENDEDOR (el cliente solo el detalle de las suyas) |
+| ms-ventas | `GET` | `/api/v1/ventas/productos-vendidos` | IDs de productos con al menos una venta (`SELECT DISTINCT`) | ADMIN |
 
 El detalle completo (parámetros, body, respuestas y códigos de error) está en los **Anexos 2 y 3** y en el Swagger de cada servicio.
 
@@ -461,6 +466,7 @@ El detalle completo (parámetros, body, respuestas y códigos de error) está en
 | RF-48 | `pages/admin/Inventario.jsx` · ms-catalogoProductos `ProductoController.cambiarEstado`, `listarTodosAdmin` | `Inventario.test.jsx` · `ProductoServiceImplTest`, `ProductoSeguridadTest` |
 | RF-49 | `pages/admin/ListaUsuarios.jsx`, `NuevoUsuario.jsx` · ms-auth `UsuarioService.eliminar` / `actualizar` | `ListaUsuarios.test.jsx`, `NuevoUsuario.test.jsx` (rol propio bloqueado, 400 del último ADMIN) · `UsuarioServiceTest` |
 | RF-50 | `pages/CambiarContrasena.jsx` · ms-auth `CuentaController`, `CuentaService` | `CambiarContrasena.test.jsx` · `CuentaServiceTest`, `CuentaSeguridadTest` |
+| RF-52 | `pages/admin/Inventario.jsx` · ms-catalogoProductos `ProductoServiceImpl.eliminarProducto` (Feign a ms-ventas y ms-inventario) · ms-ventas `VentaRepository.findProductosVendidos` · ms-inventario `InventarioController.eliminar` | `InventarioEliminar.test.jsx` · `ProductoServiceImplTest`, `ProductoSeguridadTest` (204/409/404/502/403/401), `VentaSeguridadTest`, `VentaServiceTest`, `InventarioSeguridadTest`, `InventarioServiceTest` |
 | RF-51 | `pages/RecuperarContrasena.jsx`, `RestablecerContrasena.jsx` · ms-auth `RecuperacionController`, `RecuperacionService`, `NotificacionService` (`NotificacionLogService` / `NotificacionCorreoService`) | `RecuperacionContrasena.test.jsx` · `RecuperacionServiceTest`, `RecuperacionControllerTest`, `NotificacionCorreoServiceTest`, `NotificacionCorreoAsyncTest` |
 
 ---

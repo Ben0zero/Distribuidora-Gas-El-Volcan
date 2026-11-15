@@ -1,6 +1,11 @@
 package cl.elvolcan.catalogo.service.impl;
 
+import cl.elvolcan.catalogo.exception.ProductoConVentasException;
 import cl.elvolcan.catalogo.exception.ProductoNoEncontradoException;
+import feign.FeignException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -13,11 +18,14 @@ import cl.elvolcan.catalogo.model.Producto;
 import cl.elvolcan.catalogo.repository.ProductoRepository;
 import cl.elvolcan.catalogo.service.ProductoService;
 import cl.elvolcan.catalogo.client.InventarioClient;
+import cl.elvolcan.catalogo.client.VentasClient;
 import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
 public class ProductoServiceImpl implements ProductoService {
+
+    private static final Logger log = LoggerFactory.getLogger(ProductoServiceImpl.class);
 
     // Niveles con que se crea el inventario de un producto nuevo
     static final double NIVEL_CRITICO_INICIAL = 5.0;
@@ -25,6 +33,7 @@ public class ProductoServiceImpl implements ProductoService {
 
     private final ProductoRepository productoRepository;
     private final InventarioClient inventarioClient;
+    private final VentasClient ventasClient;
 
     @Override
     public ProductoResponseDTO crearProducto(ProductoRequestDTO request) {
@@ -81,12 +90,33 @@ public class ProductoServiceImpl implements ProductoService {
         return mapearADTO(producto);
     }
 
+    /**
+     * Borrado definitivo. Orden pensado para no dejar nada a medias:
+     * 1) el producto debe existir (404); 2) se pregunta a ms-ventas si tiene ventas (409 si las tiene);
+     * 3) se borra el producto (aún sin confirmar la transacción); 4) se borra su inventario en ms-inventario.
+     * Si ms-ventas o ms-inventario fallan, la FeignException hace rollback y no se borra nada (502).
+     * Un 404 de inventario se acepta: el producto no tenía registro de stock.
+     * Límite conocido: una venta creada justo entre el paso 2 y el 3 no se detecta (no hay transacción distribuida).
+     */
     @Override
-    public void desactivarProducto(String sku) {
+    @Transactional
+    public void eliminarProducto(String sku) {
         Producto producto = productoRepository.findBySku(sku)
-                .orElseThrow(() -> new ProductoNoEncontradoException("No se puede desactivar un SKU inexistente"));
-        producto.setActivo(false);
-        productoRepository.save(producto);
+                .orElseThrow(() -> new ProductoNoEncontradoException("Producto no encontrado con SKU: " + sku));
+
+        List<Long> vendidos = ventasClient.productosVendidos();
+        if (vendidos != null && vendidos.contains(producto.getId())) {
+            throw new ProductoConVentasException();
+        }
+
+        productoRepository.delete(producto);
+        productoRepository.flush();
+        try {
+            inventarioClient.eliminarInventario(sku);
+        } catch (FeignException.NotFound sinRegistro) {
+            log.info("El producto {} no tenía registro de inventario", sku);
+        }
+        log.info("Producto eliminado definitivamente: sku={} id={}", sku, producto.getId());
     }
 
     @Override

@@ -123,8 +123,9 @@ export async function cambiarEstadoProducto(id, activo) {
   return res.json()
 }
 
-// Borrado lógico: el producto deja de mostrarse en la tienda
-export async function desactivarProducto(sku) {
+// Eliminación definitiva (DELETE). ms-catalogoProductos responde 409 si el producto tiene ventas
+// (hay que desactivarlo) y 502 si ms-ventas o ms-inventario no responden; se muestra su mensaje.
+export async function eliminarProducto(sku) {
   const res = await fetch(`${API_CATALOGO}/${encodeURIComponent(sku)}`, { method: 'DELETE', headers: authHeaders() })
   if (!res.ok) await lanzarError(res, 'No se pudo eliminar el producto')
 }
@@ -188,6 +189,13 @@ export async function listarVentas() {
 }
 
 // Detalle de una venta: ADMIN y VENDEDOR ven cualquiera; un CLIENTE solo las suyas
+// IDs de los productos con al menos una venta (solo ADMIN): el panel deshabilita su botón Eliminar
+export async function listarProductosVendidos() {
+  const res = await fetch(`${API_VENTAS}/productos-vendidos`, { headers: authHeaders() })
+  if (!res.ok) await lanzarError(res, 'No se pudo verificar qué productos tienen ventas')
+  return res.json()
+}
+
 export async function obtenerVenta(id) {
   const res = await fetch(`${API_VENTAS}/${id}`, { headers: authHeaders() })
   if (!res.ok) await lanzarError(res, 'No se pudo obtener la orden')

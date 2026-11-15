@@ -93,13 +93,20 @@ public class ProductoController {
         return ResponseEntity.ok(productoService.cambiarEstado(id, request.getActivo()));
     }
 
-    @Operation(summary = "Desactivar producto (Borrado Lógico)", description = "Pausa las ventas de un producto sin eliminarlo de la base de datos. Requiere rol ADMIN.")
-    @ApiResponse(responseCode = "204", description = "Producto desactivado con éxito")
+    @Operation(summary = "Eliminar producto (definitivo)",
+            description = "Borra el producto y su registro de inventario. Solo si no tiene ventas registradas "
+                    + "(consulta a ms-ventas); para ocultarlo de la tienda sin borrarlo usa PATCH /{id}/estado. Requiere rol ADMIN.")
+    @ApiResponse(responseCode = "204", description = "Producto e inventario eliminados")
+    @ApiResponse(responseCode = "401", description = "Sin token")
+    @ApiResponse(responseCode = "403", description = "El usuario no es ADMIN")
+    @ApiResponse(responseCode = "404", description = "Producto no encontrado")
+    @ApiResponse(responseCode = "409", description = "El producto tiene ventas registradas")
+    @ApiResponse(responseCode = "502", description = "ms-ventas o ms-inventario no respondió; no se eliminó nada")
     @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN')")
     @DeleteMapping("/{sku}")
-    // DESACTIVAR (eliminar lógico): solo ADMIN
-    public ResponseEntity<Void> desactivar(@PathVariable String sku) {
-        productoService.desactivarProducto(sku);
+    // ELIMINAR (definitivo, sin ventas): solo ADMIN
+    public ResponseEntity<Void> eliminar(@PathVariable String sku) {
+        productoService.eliminarProducto(sku);
         return ResponseEntity.noContent().build();
     }
 }

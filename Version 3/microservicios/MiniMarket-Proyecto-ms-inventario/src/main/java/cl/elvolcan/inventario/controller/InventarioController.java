@@ -163,4 +163,24 @@ public class InventarioController {
     ) {
         return ResponseEntity.ok(service.sumarStock(sku, cantidad));
     }
+
+    // Eliminar el registro de stock de un SKU: solo ADMIN (lo usa ms-catalogoProductos al borrar un producto)
+
+    @Operation(
+    summary = "Eliminar el registro de inventario de un SKU",
+    description = "Borra el stock asociado al SKU. Lo llama ms-catalogoProductos al eliminar un producto sin ventas. Requiere rol ADMIN."
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "204", description = "Registro eliminado"),
+        @ApiResponse(responseCode = "401", description = "No autorizado"),
+        @ApiResponse(responseCode = "403", description = "El usuario no es ADMIN"),
+        @ApiResponse(responseCode = "404", description = "No hay registro de inventario para ese SKU")
+    })
+
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN')")
+    @DeleteMapping("/{sku}")
+    public ResponseEntity<Void> eliminar(@PathVariable String sku) {
+        service.eliminarPorSku(sku);
+        return ResponseEntity.noContent().build();
+    }
 }
