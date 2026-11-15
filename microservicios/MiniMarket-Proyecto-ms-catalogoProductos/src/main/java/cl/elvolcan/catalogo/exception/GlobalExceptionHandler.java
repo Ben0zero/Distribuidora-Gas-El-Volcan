@@ -41,13 +41,22 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }
 
-    // ms-inventario no respondió o rechazó la operación: 502 sin exponer URLs internas
+    // El producto tiene ventas registradas: no se puede eliminar (se puede desactivar): 409
+    @ExceptionHandler(ProductoConVentasException.class)
+    public ResponseEntity<Map<String, String>> handleProductoConVentas(ProductoConVentasException ex) {
+        Map<String, String> error = new HashMap<>();
+        error.put("error", "Conflicto (409)");
+        error.put("mensaje", ex.getMessage());
+        return new ResponseEntity<>(error, HttpStatus.CONFLICT);
+    }
+
+    // ms-inventario o ms-ventas no respondió o rechazó la operación: 502 sin exponer URLs internas
     @ExceptionHandler(FeignException.class)
     public ResponseEntity<Map<String, String>> handleFeign(FeignException ex, HttpServletRequest request) {
-        log.error("Fallo al llamar a ms-inventario desde {} {}", request.getMethod(), request.getRequestURI(), ex);
+        log.error("Fallo al llamar a otro microservicio desde {} {}", request.getMethod(), request.getRequestURI(), ex);
         Map<String, String> error = new HashMap<>();
         error.put("error", "Servicio no disponible (502)");
-        error.put("mensaje", "No se pudo completar la operación con el servicio de inventario. Intenta nuevamente.");
+        error.put("mensaje", "No se pudo completar la operación con otro servicio del sistema. Intenta nuevamente.");
         return new ResponseEntity<>(error, HttpStatus.BAD_GATEWAY);
     }
 
