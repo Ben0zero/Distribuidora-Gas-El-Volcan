@@ -71,6 +71,9 @@ function VendedorLayout() {
             <i className="bi bi-person-circle fs-4 me-2" />
             <strong>{sesion?.nombre || 'Vendedor'}</strong>
           </span>
+          <NavLink to="/vendedor/contrasena" className="small link-dark mt-2">
+            <i className="bi bi-key me-1" aria-hidden="true" /> Cambiar contraseña
+          </NavLink>
           <button className="btn btn-sm btn-outline-dark rounded-0 mt-2" type="button" onClick={salir}>
             Cerrar sesión
           </button>

@@ -66,6 +66,10 @@ function Navbar({ totalItems }) {
                   <i className="bi bi-bag-check me-2" aria-hidden="true" />
                   Mis compras
                 </NavDropdown.Item>
+                <NavDropdown.Item as={NavLink} to="/cuenta/contrasena">
+                  <i className="bi bi-key me-2" aria-hidden="true" />
+                  Cambiar contraseña
+                </NavDropdown.Item>
                 {esAdmin && (
                   <NavDropdown.Item as={NavLink} to="/admin">
                     <i className="bi bi-speedometer2 me-2" aria-hidden="true" />

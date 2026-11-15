@@ -9,6 +9,7 @@ import { defineConfig } from 'vite'
 const SERVICIOS = {
   '/api/v1/auth': 'http://localhost:8081',
   '/api/v1/usuarios': 'http://localhost:8081',
+  '/api/v1/cuenta': 'http://localhost:8081',
   '/api/v1/productos': 'http://localhost:8082',
   '/api/v1/inventario': 'http://localhost:8084',
   '/api/v1/ventas': 'http://localhost:8086',

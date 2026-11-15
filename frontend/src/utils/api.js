@@ -10,6 +10,7 @@ const API_CATALOGO = `${API_BASE}/api/v1/productos`
 const API_INVENTARIO = `${API_BASE}/api/v1/inventario`
 const API_VENTAS = `${API_BASE}/api/v1/ventas`
 const API_USUARIOS = `${API_BASE}/api/v1/usuarios`
+const API_CUENTA = `${API_BASE}/api/v1/cuenta`
 
 export function getToken() {
   try {
@@ -224,4 +225,16 @@ export async function actualizarUsuario(id, usuario) {
 export async function eliminarUsuario(id) {
   const res = await fetch(`${API_USUARIOS}/${id}`, { method: 'DELETE', headers: authHeaders() })
   if (!res.ok) await lanzarError(res, 'No se pudo eliminar el usuario')
+}
+
+// ---------- Mi cuenta (cualquier usuario con sesión) ----------
+
+// PUT /api/v1/cuenta/contrasena: el backend toma el usuario del token y exige la contraseña actual
+export async function cambiarContrasena(contrasenaActual, contrasenaNueva) {
+  const res = await fetch(`${API_CUENTA}/contrasena`, {
+    method: 'PUT',
+    headers: authHeaders(),
+    body: JSON.stringify({ contrasenaActual, contrasenaNueva }),
+  })
+  if (!res.ok) await lanzarError(res, 'No se pudo cambiar la contraseña')
 }

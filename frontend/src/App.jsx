@@ -13,6 +13,7 @@ import Tiendas from './pages/Tiendas'
 import Contacto from './pages/Contacto'
 import Ventas from './pages/Ventas'
 import MisCompras from './pages/MisCompras'
+import CambiarContrasena from './pages/CambiarContrasena'
 import AdminLayout from './pages/admin/AdminLayout'
 import Dashboard from './pages/admin/Dashboard'
 import Inventario from './pages/admin/Inventario'
@@ -95,6 +96,15 @@ function App() {
               />
             }
           />
+          {/* Cambio de contraseña desde la tienda (el Vendedor lo hace desde su panel) */}
+          <Route
+            path="/cuenta/contrasena"
+            element={
+              <RutaProtegida roles={ROLES_TIENDA}>
+                <CambiarContrasena />
+              </RutaProtegida>
+            }
+          />
           {/* Checkout e historial: requieren sesión de Cliente (o Administrador) */}
           <Route
             path="/mis-compras"
@@ -136,6 +146,7 @@ function App() {
           <Route path="ordenes" element={<Ordenes />} />
           <Route path="reportes" element={<Reportes />} />
           <Route path="clientes" element={<Clientes />} />
+          <Route path="contrasena" element={<CambiarContrasena />} />
         </Route>
 
         {/* Panel del Vendedor: SOLO lista y detalle de productos y de órdenes */}
@@ -152,6 +163,7 @@ function App() {
           <Route path="productos/:id" element={<DetalleProductoVendedor />} />
           <Route path="ordenes" element={<OrdenesVendedor />} />
           <Route path="ordenes/:id" element={<DetalleOrdenVendedor />} />
+          <Route path="contrasena" element={<CambiarContrasena />} />
         </Route>
       </Routes>
     </BrowserRouter>

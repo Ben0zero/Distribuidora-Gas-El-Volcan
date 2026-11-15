@@ -97,6 +97,7 @@ describe('Menú lateral del administrador', () => {
     expect(enlaces.indexOf('Ver tienda')).toBe(enlaces.indexOf('Clientes') + 1)
     expect(enlaces.indexOf('Ver tienda')).toBeLessThan(enlaces.indexOf('Nuevo usuario'))
     expect(screen.getByRole('link', { name: /Ver tienda/ })).toHaveAttribute('href', '/')
+    expect(screen.getByRole('link', { name: /Cambiar contraseña/ })).toHaveAttribute('href', '/admin/contrasena')
     for (const texto of ['Configuración', 'Buscar', 'Ayuda']) {
       expect(screen.getByText(texto)).toBeInTheDocument()
     }
