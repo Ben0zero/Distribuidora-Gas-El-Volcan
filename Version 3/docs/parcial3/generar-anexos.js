@@ -10,7 +10,7 @@ const capturasDir = path.join(__dirname, 'capturas');
 const VER = '3.0';
 const FECHA = '12-11-2026';
 // El Anexo 2 se actualizó tras la auditoría OWASP (docs/AUDITORIA_EP3.md)
-const VER_ANEXO2 = '3.2';
+const VER_ANEXO2 = '3.3';
 const FECHA_ANEXO2 = '15-11-2026';
 
 // ---------- helpers ----------
@@ -167,10 +167,18 @@ function anexo2() {
     bullet('El token dura 2 horas e incluye el rol y el tipo de cliente (Residencial o Comercial). ms-ventas toma el tipo ' +
       'de cliente del token, nunca del cuerpo de la petición, para que un cliente no pueda elegir el precio comercial.'),
     bullet('Las contraseñas se guardan con BCrypt y deben tener al menos 8 caracteres, con al menos una letra y un número.'),
+    bullet('Límite de intentos de login: 5 fallos del mismo usuario desde la misma IP, o 20 desde una IP con cualquier usuario, ' +
+      'en 15 minutos bloquean el login por 15 minutos. Durante el bloqueo se responde 429 con un mensaje genérico ' +
+      '("Demasiados intentos. Intenta nuevamente en unos minutos.") que no revela si el usuario existe; los usuarios ' +
+      'inexistentes se cuentan igual. Se cuenta por usuario + IP para que nadie pueda bloquear la cuenta de otro desde su IP. ' +
+      'Un login correcto reinicia el contador y cada bloqueo queda en el log con el usuario y la IP (sin contraseñas). ' +
+      'El contador está en memoria de ms-auth (ConcurrentHashMap con limpieza de entradas vencidas).'),
     bullet('Cambio de contraseña con sesión iniciada: exige el token y la contraseña actual; el usuario sale del token.'),
     bullet('Recuperación de contraseña: la solicitud responde siempre lo mismo (no revela si la cuenta existe). Se genera un token ' +
       'aleatorio de 32 bytes, se guarda solo su SHA-256, vence en 15 minutos, es de un solo uso e invalida los anteriores; máximo 3 ' +
-      'solicitudes por usuario cada 15 minutos. El enlace se envía por NotificacionService (en desarrollo, solo al log de ms-auth).'),
+      'solicitudes por usuario cada 15 minutos. El enlace se envía por NotificacionService y nunca viene en la respuesta. ' +
+      'Con app.notificacion.modo=log (por defecto) se escribe solo en el log de ms-auth; con app.notificacion.modo=correo se ' +
+      'envía un correo por SMTP (spring-boot-starter-mail). Si el envío falla, solo se registra en el log y la respuesta no cambia.'),
     bullet('Ante un error interno, la API responde 500 con un mensaje genérico; el detalle técnico queda solo en el log del servicio.'),
     p('Roles del sistema:'),
     table(
@@ -248,7 +256,7 @@ function anexo2() {
     table(
       ['Método', 'Endpoint', 'Auth', 'Roles', 'Descripción'],
       [
-        ['POST', '/api/v1/auth/login', 'No', 'Público', 'Valida credenciales y devuelve token, rol y datos del usuario'],
+        ['POST', '/api/v1/auth/login', 'No', 'Público', 'Valida credenciales y devuelve token, rol y datos del usuario (429 tras demasiados intentos fallidos)'],
         ['POST', '/api/v1/auth/register', 'No', 'Público', 'Registro público; asigna siempre el rol CLIENTE (409 si RUT o correo existe)'],
         ['GET', '/api/v1/usuarios', 'Sí', 'ADMIN', 'Lista todos los usuarios'],
         ['GET', '/api/v1/usuarios/{id}', 'Sí', 'ADMIN', 'Obtiene un usuario por ID'],
@@ -360,6 +368,9 @@ function anexo2() {
     bullet('Cada microservicio es dueño de sus tablas y no comparte entidades con otros; la comunicación es por API.'),
     bullet('Las columnas version de ventas e inventarios sostienen el bloqueo optimista. Al arrancar, ColumnaVersionInitializer ' +
       'rellena con 0 las filas antiguas y deja la columna como DEFAULT 0 NOT NULL.'),
+    bullet('Correo de recuperación (opcional): app.notificacion.modo=correo y las propiedades spring.mail.* (host, port, username, ' +
+      'password, smtp.auth y starttls) se definen en el archivo de secretos; secrets.example.properties trae un ejemplo para Gmail ' +
+      '(smtp.gmail.com, puerto 587, contraseña de aplicación). Sin esa configuración el enlace queda en el log, como en desarrollo.'),
     bullet('Hoy el Wallet y el archivo de secretos están excluidos del repositorio mediante .gitignore. ' + 'La contraseña de la base de datos y la clave JWT que quedaron en el historial de git (commit 1bec55c) ya se cambiaron; el Oracle Wallet, que también quedó en ese historial (se retiró en el commit 21e47ba), está pendiente de rotar.'),
     new Paragraph({ text: '', spacing: { after: 100 } }),
     p('Modelo entidad-relación:', { bold: true }),
@@ -385,21 +396,26 @@ function anexo2() {
     table(
       ['Componente', 'Herramienta', 'Pruebas', 'Qué cubren'],
       [
-        ['ms-auth', 'JUnit + MockMvc', '63', 'Login, registro, JWT, política de contraseñas, RUT, roles en usuarios, cambio y recuperación de contraseña, errores'],
+        ['ms-auth', 'JUnit + MockMvc', '90', 'Login, registro, JWT, política de contraseñas, RUT (incluida la semilla), roles en usuarios, cambio y recuperación de contraseña, límite de intentos (429), correo de recuperación con JavaMailSender simulado, errores'],
         ['ms-catalogoProductos', 'JUnit + MockMvc', '27', 'CRUD, SKU no modificable, catálogo público, activar/desactivar (solo ADMIN), 404/500'],
         ['ms-inventario', 'JUnit + MockMvc', '26', 'Ajustes de stock con tope 1–500, stock crítico, 409 por concurrencia, solo ADMIN escribe'],
         ['ms-ventas', 'JUnit + MockMvc', '37', 'Precio por tipo de cliente del token, ítems agrupados, topes, dueño de la venta, bloqueo optimista, 403 por rol'],
-        ['Frontend React', 'Vitest + Testing Library', '126 (29 archivos)', 'Componentes, páginas, sesión, carrito, buscador, RUT, contraseñas y llamadas a la API'],
+        ['Frontend React', 'Vitest + Testing Library', '127 (29 archivos)', 'Componentes, páginas, sesión, carrito, buscador, RUT, contraseñas, mensaje 429 del login y llamadas a la API'],
       ],
       [22, 20, 14, 44]
     ),
     new Paragraph({ text: '', spacing: { after: 120 } }),
-    p('Total backend: 153 pruebas JUnit. Pruebas manuales contra Oracle Cloud con el sistema completo en ejecución:', { bold: true }),
+    p('Total backend: 180 pruebas JUnit. Pruebas manuales contra Oracle Cloud con el sistema completo en ejecución:', { bold: true }),
     table(
       ['Prueba', 'Resultado esperado', 'Resultado obtenido'],
       [
         ['Login de ADMIN, VENDEDOR y CLIENTE', '200, token de 2 h con rol y tipo de cliente', 'OK'],
         ['Login con clave incorrecta / campos vacíos', '401 / 400', 'OK'],
+        ['Cinco logins fallidos del mismo usuario y luego la clave correcta', '401 ×5 y luego 429 con mensaje genérico; el bloqueo queda en el log', 'OK'],
+        ['Login correcto antes del quinto fallo', '200 y el contador se reinicia', 'OK'],
+        ['Mismo usuario bloqueado, desde otra IP', '200 (el bloqueo es por usuario + IP)', 'OK'],
+        ['Cinco fallos con un usuario inexistente', '401 ×5 y luego 429 (se cuenta igual)', 'OK'],
+        ['Login de los 3 usuarios semilla', '200; RUT con dígito verificador válido (19.011.022-2, 18.765.432-7, 17.234.567-0)', 'OK'],
         ['Cliente Residencial envía "tipoCliente": "Comercial"', 'Se cobra el precio residencial', 'OK (6.500 en vez de 6.000)'],
         ['Dos confirmaciones simultáneas de la misma venta', 'Una 200 y otra 409; el stock baja una sola vez', 'OK (stock 80 → 79)'],
         ['Producto inexistente / id mal formado', '404 / 400', 'OK'],
@@ -410,6 +426,7 @@ function anexo2() {
         ['Crear usuario con RUT de dígito verificador inválido', '400; editar un usuario existente sigue funcionando', 'OK'],
         ['Cambiar contraseña con la actual incorrecta / correcta', '400 / 204; la anterior deja de servir', 'OK'],
         ['Recuperar contraseña de cuenta existente e inexistente', 'Misma respuesta 200; el token no viene en la respuesta', 'OK'],
+        ['Recuperar contraseña con app.notificacion.modo=log (por defecto) y el starter de correo instalado', 'El enlace sigue solo en el log', 'OK'],
         ['Restablecer con el enlace del log; reusar el enlace', '200 y login con la nueva; reusar da 400', 'OK'],
         ['Cuarta solicitud de recuperación en 15 minutos', 'Misma respuesta, sin enlace nuevo', 'OK'],
         ['Flujo en el frontend', 'Catálogo, carrito, venta, confirmación, mis compras, paneles admin y vendedor', 'OK (capturas de la sección 10)'],
