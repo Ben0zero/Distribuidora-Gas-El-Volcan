@@ -45,6 +45,15 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.UNAUTHORIZED);
     }
 
+    // Límite de intentos de login (H-07): 429 con un mensaje genérico (no revela si el usuario existe)
+    @ExceptionHandler(DemasiadosIntentosException.class)
+    public ResponseEntity<Map<String, String>> handleDemasiadosIntentos(DemasiadosIntentosException ex) {
+        Map<String, String> error = new HashMap<>();
+        error.put("error", "Demasiados intentos (429)");
+        error.put("mensaje", ex.getMessage());
+        return new ResponseEntity<>(error, HttpStatus.TOO_MANY_REQUESTS);
+    }
+
     // Registro duplicado (RUT o usuario ya existe): 409 Conflict
     // Spring elige este handler antes que el de RuntimeException por ser más específico
     // Usuario inexistente: 404

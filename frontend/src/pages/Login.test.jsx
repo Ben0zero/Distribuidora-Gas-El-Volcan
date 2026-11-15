@@ -89,6 +89,22 @@ describe('Página <Login /> (formulario controlado + ms-auth)', () => {
     expect(localStorage.getItem(CLAVES.sesion)).toBeNull()
   })
 
+  test('con 429 (demasiados intentos) muestra el mensaje genérico del backend', async () => {
+    const user = userEvent.setup()
+    const { inputEmail, inputPassword, ingresar } = renderLogin()
+    await user.type(inputEmail, 'ana@duoc.cl')
+    await user.type(inputPassword, 'Clave1234')
+
+    fetchMock.mockReturnValueOnce(respuesta(429, {
+      error: 'Demasiados intentos (429)',
+      mensaje: 'Demasiados intentos. Intenta nuevamente en unos minutos.',
+    }))
+    await user.click(ingresar())
+
+    expect(await screen.findByText('Demasiados intentos. Intenta nuevamente en unos minutos.')).toBeInTheDocument()
+    expect(localStorage.getItem(CLAVES.sesion)).toBeNull()
+  })
+
   test('inicia sesión como cliente y como administrador con los datos de la API', async () => {
     const user = userEvent.setup()
     const { inputEmail, inputPassword, ingresar } = renderLogin()

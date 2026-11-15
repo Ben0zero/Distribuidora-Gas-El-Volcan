@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -31,13 +32,38 @@ public class AuthController {
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Login correcto: token + datos del usuario"),
         @ApiResponse(responseCode = "400", description = "Usuario o contraseña vacíos"),
-        @ApiResponse(responseCode = "401", description = "Usuario o contraseña incorrectos")
+        @ApiResponse(responseCode = "401", description = "Usuario o contraseña incorrectos"),
+        @ApiResponse(responseCode = "429", description = "Demasiados intentos fallidos: 5 por usuario + IP o 20 por IP "
+                + "en 15 minutos bloquean por 15 minutos (mensaje genérico)")
     })
     @SecurityRequirements() // Indica a Swagger que esta ruta es publica (sin candado)
     @PostMapping("/login")
-    public ResponseEntity<UsuarioResponseDTO> login(@Valid @RequestBody LoginRequestDTO loginRequest) {
-        // AuthService valida usuario y contraseña (BCrypt) y genera el token con el rol
-        return ResponseEntity.ok(authService.login(loginRequest));
+    public ResponseEntity<UsuarioResponseDTO> login(@Valid @RequestBody LoginRequestDTO loginRequest,
+                                                    HttpServletRequest peticion) {
+        // AuthService revisa el límite de intentos, valida usuario y contraseña (BCrypt) y genera el token con el rol
+        return ResponseEntity.ok(authService.login(loginRequest, ipCliente(peticion)));
+    }
+
+    /**
+     * IP del cliente para el límite de intentos. Solo se confía en X-Forwarded-For si la petición
+     * llega desde la misma máquina (el proxy de Vite, con xfwd). Se toma la ÚLTIMA entrada, que es
+     * la que agrega el proxy; las anteriores las puede inventar el cliente.
+     */
+    static String ipCliente(HttpServletRequest peticion) {
+        String remota = peticion.getRemoteAddr();
+        String reenviada = peticion.getHeader("X-Forwarded-For");
+        if (reenviada != null && !reenviada.isBlank() && esLocal(remota)) {
+            String[] partes = reenviada.split(",");
+            String ultima = partes[partes.length - 1].trim();
+            if (!ultima.isEmpty()) {
+                return ultima;
+            }
+        }
+        return remota;
+    }
+
+    private static boolean esLocal(String ip) {
+        return ip != null && (ip.startsWith("127.") || ip.equals("::1") || ip.equals("0:0:0:0:0:0:0:1"));
     }
 
     @Operation(summary = "Registrar nuevo usuario", description = "Registra un usuario CLIENTE para Distribuidora de Gas El Volcán.")
