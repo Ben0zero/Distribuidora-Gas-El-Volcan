@@ -191,7 +191,8 @@ function Ventas({ carrito, incrementar, decrementar, vaciar }) {
     // 1) POST /api/v1/ventas: ms-ventas valida productos (catálogo) y stock (inventario) vía Feign
     const detalles = items.map((item) => ({ productoId: item.producto.id, cantidad: item.cantidad }))
     try {
-      const venta = await crearVenta({ tipoCliente: sesion.tipoCliente || 'Residencial', direccion, comuna, metodoPago, detalles })
+      // El tipo de cliente (precio) lo toma ms-ventas del JWT: no se envía en el body
+      const venta = await crearVenta({ direccion, comuna, metodoPago, detalles })
       // La venta ya existe: el carrito se vacía aunque el pago falle (queda pendiente en "Mis compras")
       vaciar()
       await pagar(venta)
