@@ -1,22 +1,63 @@
 import { useState } from 'react'
-import { useLocation, Link } from 'react-router-dom'
+import { useLocation, useNavigate, Link } from 'react-router-dom'
 import { Container, Row, Col, Button, Spinner, Form, Alert } from 'react-bootstrap'
 import Producto from '../components/Producto'
 import AvisoSinConexion from '../components/AvisoSinConexion'
 import { CATEGORIAS } from '../utils/validaciones'
-import { filtrarProductos, sugerenciasProductos } from '../utils/busqueda'
+import { filtrarProductos, productosSugeridos } from '../utils/busqueda'
 import { useCatalogo } from '../utils/useCatalogo'
 
 function Productos({ onAgregar }) {
   const location = useLocation()
+  const navigate = useNavigate()
   const parametros = new URLSearchParams(location.search)
   const categoria = parametros.get('categoria')
   const { productos: todos, cargando, sinConexion } = useCatalogo()
 
   const [texto, setTexto] = useState('')
+  const [abierta, setAbierta] = useState(false) // lista de sugerencias visible
+  const [activa, setActiva] = useState(-1) // sugerencia marcada con el teclado
 
   const productos = filtrarProductos(todos, { categoria, texto })
-  const sugerencias = sugerenciasProductos(todos, texto)
+  const sugerencias = productosSugeridos(todos, texto)
+  const mostrarLista = abierta && sugerencias.length > 0
+
+  const escribir = (valor) => {
+    setTexto(valor)
+    setAbierta(true)
+    setActiva(-1)
+  }
+
+  const irAlDetalle = (producto) => {
+    setAbierta(false)
+    navigate(`/producto/${producto.id}`)
+  }
+
+  // Teclado: flechas recorren la lista, Enter abre el detalle marcado y Esc cierra la lista
+  const teclaBuscador = (e) => {
+    if (!mostrarLista) {
+      // Con la lista cerrada (por ejemplo tras Esc), la flecha abajo la vuelve a abrir
+      if (e.key === 'ArrowDown' && sugerencias.length > 0) {
+        e.preventDefault()
+        setAbierta(true)
+        setActiva(0)
+      }
+      return
+    }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setActiva((i) => (i + 1) % sugerencias.length)
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setActiva((i) => (i <= 0 ? sugerencias.length - 1 : i - 1))
+    } else if (e.key === 'Enter' && activa >= 0) {
+      e.preventDefault()
+      irAlDetalle(sugerencias[activa])
+    } else if (e.key === 'Escape') {
+      setAbierta(false)
+      setActiva(-1)
+    }
+  }
 
   return (
     <main className="fondo py-5">
@@ -31,8 +72,8 @@ function Productos({ onAgregar }) {
           </div>
         )}
 
-        {/* Buscador: filtra mientras se escribe y sugiere palabras clave */}
-        <div className="buscador-productos mx-auto mb-4">
+        {/* Buscador: filtra mientras se escribe y sugiere productos que llevan a su detalle */}
+        <div className="buscador-productos mx-auto mb-4 position-relative">
           <Form.Label htmlFor="buscar-producto" className="visually-hidden">
             Buscar productos
           </Form.Label>
@@ -43,31 +84,51 @@ function Productos({ onAgregar }) {
             <Form.Control
               id="buscar-producto"
               type="search"
+              role="combobox"
+              aria-autocomplete="list"
+              aria-expanded={mostrarLista}
+              aria-controls="sugerencias-productos"
+              aria-activedescendant={mostrarLista && activa >= 0 ? `sugerencia-${sugerencias[activa].id}` : undefined}
               value={texto}
-              onChange={(e) => setTexto(e.target.value)}
+              onChange={(e) => escribir(e.target.value)}
+              onKeyDown={teclaBuscador}
+              onFocus={() => setAbierta(true)}
+              onBlur={() => setAbierta(false)}
               placeholder="Buscar por nombre, categoría o código…"
               autoComplete="off"
             />
             {texto && (
-              <Button variant="outline-secondary" onClick={() => setTexto('')} aria-label="Borrar texto de búsqueda">
+              <Button variant="outline-secondary" onClick={() => escribir('')} aria-label="Borrar texto de búsqueda">
                 <i className="bi bi-x-lg" aria-hidden="true" />
               </Button>
             )}
           </div>
-          {sugerencias.length > 0 && (
-            <div className="mt-2" aria-live="polite">
-              <span className="text-muted small me-2">Sugerencias:</span>
-              {sugerencias.map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  className="btn btn-sm btn-outline-primary me-2 mb-1"
-                  onClick={() => setTexto(s)}
+          {mostrarLista && (
+            <ul id="sugerencias-productos" role="listbox" aria-label="Productos sugeridos" className="list-group sugerencias-productos shadow">
+              {sugerencias.map((p, i) => (
+                <li
+                  key={p.id}
+                  id={`sugerencia-${p.id}`}
+                  role="option"
+                  aria-selected={i === activa}
+                  className={`list-group-item list-group-item-action d-flex align-items-center gap-3 ${i === activa ? 'active' : ''}`}
+                  // onMouseDown (no onClick): se dispara antes del blur del campo, que cerraría la lista
+                  onMouseDown={(e) => {
+                    e.preventDefault()
+                    irAlDetalle(p)
+                  }}
+                  onMouseEnter={() => setActiva(i)}
                 >
-                  {s}
-                </button>
+                  <img src={p.imagen} alt="" width="40" height="40" className="object-fit-contain" />
+                  <span className="flex-grow-1 text-start">
+                    <span className="d-block fw-semibold">{p.nombre}</span>
+                    <small className={i === activa ? '' : 'text-muted'}>
+                      {p.categoria} · {p.codigo}
+                    </small>
+                  </span>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
         </div>
 
