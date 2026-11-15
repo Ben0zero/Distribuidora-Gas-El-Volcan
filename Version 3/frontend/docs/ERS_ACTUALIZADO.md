@@ -5,7 +5,7 @@
 **Asignatura:** DSY1104 — Desarrollo Fullstack II
 **Evaluación:** Evaluación Parcial N° 3 (integración frontend React + microservicios Spring Boot)
 **Tecnología principal de esta entrega:** React (SPA) + microservicios Spring Boot + Oracle Cloud
-**Versión del documento:** 3.0
+**Versión del documento:** 3.1
 **Fecha:** Noviembre 2026
 
 ---
@@ -18,6 +18,7 @@
 | 2.0 | EP2 | La solución se reespecifica como SPA en React; se agregan requisitos de testing y arquitectura de componentes | Equipo |
 | 2.1 | EP2 | Actualización de la interfaz (identidad visual, diseño responsive, CSS modular) y del catálogo unificado | Equipo |
 | **3.0** | **EP3** | **Backend de 4 microservicios Spring Boot + Eureka con JWT, roles ADMIN / VENDEDOR / CLIENTE, API versionada (v1 / v2 HATEOAS), base Oracle Cloud y frontend conectado a la API. Se reemplaza `localStorage` como base de datos; se redefinen los roles; se agregan los RF-38 a RF-47 y el modelo de datos real.** | **Equipo** |
+| **3.1** | **EP3** | **Correcciones de la auditoría OWASP (`docs/AUDITORIA_EP3.md`): tipo de cliente desde el JWT, topes de cantidades, bloqueo optimista al confirmar el pago, errores internos con mensaje genérico, JWT de 2 h, contraseñas de 8 a 64 caracteres con letra y número, y estado de los secretos.** | **Equipo** |
 
 ---
 
@@ -171,8 +172,8 @@ El sistema **digitaliza** el catálogo, los pedidos, el stock y la administraci�
 
 - Cada microservicio tiene su **propia configuración y sus tablas** en Oracle Cloud. El frontend **no accede a la base de datos**: solo a la API.
 - **Flujo de compra:**
-  1. `POST /api/v1/ventas`: ms-ventas consulta el **precio** en ms-catalogoProductos y el **stock** en ms-inventario. Si no alcanza, responde 409.
-  2. `PUT /api/v1/ventas/{id}/confirmar`: marca la venta PAGADA y **descuenta el stock** en ms-inventario, con un token interno de servicio.
+  1. `POST /api/v1/ventas`: ms-ventas consulta el **precio** en ms-catalogoProductos (según el tipo de cliente del **JWT**) y el **stock** en ms-inventario. Si no alcanza, responde 409. Rechaza productos inactivos y limita la venta a 50 ítems y 100 unidades por producto.
+  2. `PUT /api/v1/ventas/{id}/confirmar`: marca la venta PAGADA y **descuenta el stock** en ms-inventario, con un token interno de servicio. Un **bloqueo optimista** (`@Version`) hace que una segunda confirmación simultánea responda 409 sin volver a descontar.
 
 ### 3.3 Arquitectura del frontend (componentes)
 
@@ -199,17 +200,18 @@ main.jsx
 ### 3.4 Seguridad
 
 - **Autenticación:**
-  - `POST /api/v1/auth/login` valida con **BCrypt** y emite un **JWT** con el rol, válido por 10 horas.
+  - `POST /api/v1/auth/login` valida con **BCrypt** y emite un **JWT** con el rol y el tipo de cliente, válido por **2 horas**.
+  - Las contraseñas nuevas deben tener **8 a 64 caracteres** con al menos una letra y un número (el backend acepta hasta 72).
   - El frontend guarda el token en la sesión y lo envía en cada petición.
   - Si el token expiró, se pide volver a iniciar sesión.
 - **Autorización en el backend:**
   - `@PreAuthorize` y reglas por método HTTP en cada `SecurityConfig`.
   - El servicio de ventas verifica además que el cliente sea **dueño** de la venta.
-  - Respuestas: **401** sin token o con credenciales malas; **403** sin permiso.
+  - Respuestas: **401** sin token o con credenciales malas; **403** sin permiso; **500** con mensaje genérico ante un error interno (el detalle queda en el log).
 - **Autorización en el frontend:** `RutaProtegida` y el Navbar muestran solo las vistas del rol. Un Vendedor en la tienda es redirigido a su panel.
 - **Registro:** el body **no** decide el rol: siempre se crea un CLIENTE.
-- **Secretos:** la contraseña de la base, la ruta del Wallet y la clave JWT se leen de un archivo externo. El Wallet **no** se versiona.
-- **CORS:** solo para `/api/**` y los orígenes configurados (el frontend local).
+- **Secretos:** la contraseña de la base, la ruta del Wallet y la clave JWT se leen de un archivo externo. Hoy el Wallet **no** se versiona. La contraseña de la base de datos y la clave JWT que quedaron en el historial de git (commit 1bec55c) ya se cambiaron; el Oracle Wallet, que también quedó en ese historial (se retiró en el commit 21e47ba), está pendiente de rotar.
+- **CORS:** solo para `/api/**` y los orígenes configurados. En desarrollo el frontend llama por el **proxy de Vite**, que quita `Origin`, así que esas llamadas no dependen de CORS.
 
 ### 3.5 Versionado de la API
 
@@ -263,7 +265,7 @@ El catálogo vive en **ms-catalogoProductos**:
 | **RF-07** | El usuario debe poder **agregar** un producto al carrito desde el catálogo y desde el detalle. | A | ✅ |
 | **RF-08** | El usuario debe poder **aumentar** y **disminuir** la cantidad de cada ítem. | A | ✅ |
 | **RF-09** | Al disminuir a **cero**, el ítem debe **eliminarse** del carrito. | M | ✅ |
-| **RF-10** | El sistema debe **calcular el total** con tarifa **residencial** o **comercial** según el tipo de cliente. El backend recalcula el precio al crear la venta. | A | ✅ |
+| **RF-10** | El sistema debe **calcular el total** con tarifa **residencial** o **comercial** según el tipo de cliente. El backend recalcula el precio al crear la venta y toma el tipo de cliente del **JWT**, no del cuerpo de la petición. | A | ✅ |
 | **RF-11** | La barra de navegación debe mostrar el **contador de ítems** del carrito. | M | ✅ |
 | **RF-12** | El carrito debe **persistir** entre recargas (en el navegador, con los ids de la API). | M | ✅ |
 | **RF-13** | El sistema debe indicar cuando el carrito está **vacío**. | B | ✅ |
@@ -273,7 +275,7 @@ El catálogo vive en **ms-catalogoProductos**:
 | Cód. | Requerimiento | Prioridad | Estado |
 |------|---------------|:---------:|:------:|
 | **RF-14** | El usuario debe poder **registrarse** como cliente (Residencial o Comercial) en ms-auth (`POST /api/v1/auth/register`). | A | ✅ |
-| **RF-15** | El sistema debe **validar** RUN (7–9 dígitos), teléfono, formato y dominio de correo, contraseña (**6–10**) y términos. El backend vuelve a validar (`@Valid`). | A | ✅ |
+| **RF-15** | El sistema debe **validar** RUN (7–9 dígitos), teléfono, formato y dominio de correo, contraseña (**8–64**, con letra y número) y términos. El backend vuelve a validar (`@Valid`). | A | ✅ |
 | **RF-16** | El sistema debe **impedir correos o RUN duplicados** en el registro (409). | A | ✅ |
 | **RF-17** | El usuario debe poder **iniciar sesión** contra ms-auth y ser dirigido según su rol: Administrador a `/admin`, Vendedor a `/vendedor`, Cliente a la tienda. | A | ✅ |
 | **RF-18** | El sistema debe **cerrar sesión** eliminando el token y los datos de sesión. | A | ✅ |
@@ -337,7 +339,7 @@ El catálogo vive en **ms-catalogoProductos**:
 | **RNF-03** | **Compatibilidad** | Navegadores modernos (Chrome, Edge, Firefox) y teléfonos Android de gama media-baja. |
 | **RNF-04** | **Rendimiento** | Carga rápida; bundle de producción optimizado; los paneles cargan sus datos en paralelo. |
 | **RNF-05** | **Seguridad** | Toda operación que no sea pública (catálogo, login y registro) exige JWT. Contraseñas con BCrypt. Roles aplicados en el servidor. Secretos fuera del repositorio. CORS restringido. |
-| **RNF-06** | **Confiabilidad** | Errores controlados con códigos HTTP coherentes (400 / 401 / 403 / 404 / 409). Las fallas parciales de un servicio no bloquean todo el panel. |
+| **RNF-06** | **Confiabilidad** | Errores controlados con códigos HTTP coherentes (400 / 401 / 403 / 404 / 409); un error interno responde 500 sin detalles técnicos. Las fallas parciales de un servicio no bloquean todo el panel. |
 | **RNF-07** | **Mantenibilidad** | Capas controller / service / repository con DTOs; componentes y utilidades reutilizables; lint sin errores. |
 | **RNF-08** | **Testabilidad** | La lógica de negocio y las reglas de seguridad deben tener **pruebas automatizadas** con reporte de cobertura (frontend y backend). |
 | **RNF-09** | **Accesibilidad** | Etiquetas asociadas a los campos, `role` y `aria-label` en navegación, botones y alertas. |
@@ -357,8 +359,8 @@ Cada microservicio administra **sus propias tablas** en Oracle Cloud. Las relaci
 | ms-auth | **roles** (`Rol`) | `id` (PK), `nombre_rol` (único: ADMIN, VENDEDOR, CLIENTE) | 1 rol → N usuarios |
 | ms-auth | **usuarios** (`Usuario`) | `id` (PK), `nombre`, `rut` (único), `username` (único, correo), `password` (hash BCrypt), `rol_id` (FK → roles), `direccion`, `region`, `comuna`, `tipo_cliente`, `telefono` | N usuarios → 1 rol |
 | ms-catalogoProductos | **productos** (`Producto`) | `id` (PK), `sku` (único), `nombre`, `descripcion`, `precio_residencial`, `precio_comercial`, `precio`, `categoria`, `imagen`, `activo` (borrado lógico) | 1 producto ↔ 1 inventario (por `sku`) |
-| ms-inventario | **inventarios** (`Inventario`) | `id` (PK), `sku` (único), `stock_actual`, `nivel_critico`, `nivel_maximo`, `ultima_actualizacion` | por `sku` con productos |
-| ms-ventas | **ventas** (`Venta`) | `id` (PK), `usuario` (username del cliente), `total`, `estado` (PENDIENTE_PAGO, PAGADA, CANCELADA), `fecha_venta`, `direccion`, `comuna`, `metodo_pago` | 1 venta → N detalles |
+| ms-inventario | **inventarios** (`Inventario`) | `id` (PK), `sku` (único), `stock_actual`, `nivel_critico`, `nivel_maximo`, `ultima_actualizacion`, `version` (bloqueo optimista) | por `sku` con productos |
+| ms-ventas | **ventas** (`Venta`) | `id` (PK), `usuario` (username del cliente), `total`, `estado` (PENDIENTE_PAGO, PAGADA, CANCELADA), `fecha_venta`, `direccion`, `comuna`, `metodo_pago`, `version` (bloqueo optimista) | 1 venta → N detalles |
 | ms-ventas | **detalles_venta** (`DetalleVenta`) | `id` (PK), `venta_id` (FK → ventas), `producto_id` (id del catálogo), `cantidad`, `precio_unitario`, `subtotal` | N detalles → 1 venta |
 
 ```
@@ -408,7 +410,7 @@ El detalle completo (parámetros, body, respuestas y códigos de error) está en
 | Dispositivos | Teléfonos Android de gama media-baja. |
 | Nivel técnico | Usuarios sin experiencia en software de gestión: mínima cantidad de pasos. |
 | Base de datos | Oracle Autonomous Database (Oracle Cloud, plan gratuito: pool de conexiones limitado a 3 por servicio). |
-| Seguridad | Los secretos (contraseña de la BD, clave JWT, Wallet) no se versionan. |
+| Seguridad | Los secretos (contraseña de la BD, clave JWT, Wallet) no se versionan. La contraseña de la base de datos y la clave JWT que quedaron en el historial de git (commit 1bec55c) ya se cambiaron; el Oracle Wallet, que también quedó en ese historial (se retiró en el commit 21e47ba), está pendiente de rotar. |
 | Stack | React (SPA) · Spring Boot 4 / Java 21 · Spring Cloud (Eureka, OpenFeign) · API REST/JSON · Oracle Cloud. |
 
 ---

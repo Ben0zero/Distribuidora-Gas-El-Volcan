@@ -9,6 +9,9 @@ const outDir = path.join(__dirname);
 const capturasDir = path.join(__dirname, 'capturas');
 const VER = '3.0';
 const FECHA = '12-11-2026';
+// El Anexo 2 se actualizó tras la auditoría OWASP (docs/AUDITORIA_EP3.md)
+const VER_ANEXO2 = '3.1';
+const FECHA_ANEXO2 = '14-11-2026';
 
 // ---------- helpers ----------
 function h1(text) {
@@ -95,7 +98,7 @@ function table(headers, rows, widths) {
   });
 }
 
-function portada(titulo, subtitulo) {
+function portada(titulo, subtitulo, ver = VER, fecha = FECHA) {
   return [
     new Paragraph({ text: '', spacing: { after: 600 } }),
     new Paragraph({ text: 'DISTRIBUIDORA DE GAS EL VOLCÁN', heading: HeadingLevel.TITLE, alignment: AlignmentType.CENTER }),
@@ -108,8 +111,8 @@ function portada(titulo, subtitulo) {
         ['Proyecto', 'Distribuidora de Gas El Volcán'],
         ['Asignatura', 'DSY1104 — Desarrollo Full Stack II'],
         ['Evaluación', 'Evaluación Parcial 3 (EP3)'],
-        ['Versión del documento', VER],
-        ['Fecha', FECHA],
+        ['Versión del documento', ver],
+        ['Fecha', fecha],
         ['Arquitectura', 'Microservicios Spring Boot + Eureka + React'],
       ],
       [30, 70]
@@ -123,7 +126,8 @@ function portada(titulo, subtitulo) {
 // ============================================================
 function anexo2() {
   const children = [
-    ...portada('Documentación de APIs e Integración', 'Sistema de gestión de ventas, catálogo, inventario y usuarios'),
+    ...portada('Documentación de APIs e Integración', 'Sistema de gestión de ventas, catálogo, inventario y usuarios',
+      VER_ANEXO2, FECHA_ANEXO2),
 
     h1('1. Descripción general'),
     p('El presente documento describe las APIs REST expuestas por los microservicios de la Distribuidora de Gas El Volcán, ' +
@@ -151,14 +155,19 @@ function anexo2() {
     p('Flujo de una compra:'),
     bullet('El frontend obtiene el catálogo desde ms-catalogoProductos (consulta pública).'),
     bullet('Al confirmar el checkout, el frontend envía la venta a ms-ventas.'),
-    bullet('ms-ventas consulta el catálogo (precio según tipo de cliente) y el inventario (stock disponible) vía Feign.'),
-    bullet('Al confirmar el pago, ms-ventas descuenta el stock en ms-inventario y deja la venta en estado PAGADO.'),
+    bullet('ms-ventas consulta el catálogo (precio según el tipo de cliente que viene en el token) y el inventario (stock disponible) vía Feign.'),
+    bullet('Al confirmar el pago, ms-ventas deja la venta en estado PAGADA y descuenta el stock en ms-inventario. ' +
+      'Un bloqueo optimista (@Version) impide que dos confirmaciones simultáneas descuenten el stock dos veces.'),
     bullet('El cliente revisa el resultado en “Mis compras”, que consulta ms-ventas.'),
 
     h1('3. Seguridad y control de acceso'),
     p('La autenticación se basa en JWT firmado con una clave compartida (HS256). El login devuelve el token junto con los ' +
       'datos del usuario y su rol. Cada microservicio valida el token de forma independiente y aplica autorización por rol ' +
       'con @PreAuthorize y reglas en SecurityConfig.'),
+    bullet('El token dura 2 horas e incluye el rol y el tipo de cliente (Residencial o Comercial). ms-ventas toma el tipo ' +
+      'de cliente del token, nunca del cuerpo de la petición, para que un cliente no pueda elegir el precio comercial.'),
+    bullet('Las contraseñas se guardan con BCrypt y deben tener al menos 8 caracteres, con al menos una letra y un número.'),
+    bullet('Ante un error interno, la API responde 500 con un mensaje genérico; el detalle técnico queda solo en el log del servicio.'),
     p('Roles del sistema:'),
     table(
       ['Rol', 'Alcance'],
@@ -191,6 +200,7 @@ function anexo2() {
     p('Las credenciales sensibles no se versionan. Se cargan desde %USERPROFILE%\\.elvolcan\\secrets.properties ' +
       '(plantilla en microservicios/secrets.example.properties) con las claves DB_USER, DB_PASSWORD, ORACLE_WALLET_DIR, ' +
       'JWT_SECRET y, opcionalmente, CORS_ORIGINS.'),
+    p('La contraseña de la base de datos y la clave JWT que quedaron en el historial de git (commit 1bec55c) ya se cambiaron; el Oracle Wallet, que también quedó en ese historial (se retiró en el commit 21e47ba), está pendiente de rotar.'),
 
     h1('4. Información general de las APIs'),
     table(
@@ -210,8 +220,9 @@ function anexo2() {
     new Paragraph({ text: '', spacing: { after: 120 } }),
     p('En Swagger, usar el botón “Authorize” y pegar únicamente el token, sin la palabra Bearer.'),
     p('Códigos de respuesta utilizados: 200 (OK), 201 (creado), 204 (sin contenido), 400 (datos inválidos), ' +
-      '401 (sin token o token inválido), 403 (rol sin permiso), 404 (no encontrado), 409 (conflicto: RUT o correo duplicado), ' +
-      '500 (error interno).'),
+      '401 (sin token o token inválido), 403 (rol sin permiso), 404 (no encontrado), 409 (conflicto: RUT o correo duplicado, ' +
+      'stock insuficiente o confirmación de pago simultánea), 500 (error interno, con mensaje genérico) y 502 ' +
+      '(otro microservicio no respondió).'),
 
     h1('5. Versionado de la API'),
     p('Todos los recursos se exponen en dos versiones:'),
@@ -219,10 +230,13 @@ function anexo2() {
       ['Versión', 'Características'],
       [
         ['v1 (/api/v1/…)', 'API estable usada por el frontend. Respuestas con DTOs.'],
-        ['v2 (/api/v2/…)', 'Misma funcionalidad, con enlaces HATEOAS (self, ventas, mis-compras) en las respuestas.'],
+        ['v2 (/api/v2/…)', 'Mismas operaciones, con enlaces HATEOAS (self, ventas, mis-compras) en las respuestas.'],
       ],
       [24, 76]
     ),
+    new Paragraph({ text: '', spacing: { after: 100 } }),
+    p('Diferencia conocida: en ms-catalogoProductos la v2 no expone GET /id/{id}; ese endpoint existe solo en v1. ' +
+      'El proxy del frontend solo enruta /api/v1, porque la v2 se usa desde Swagger.'),
 
     h1('6. Documentación de endpoints'),
 
@@ -260,7 +274,8 @@ function anexo2() {
       [9, 27, 8, 10, 46]
     ),
     new Paragraph({ text: '', spacing: { after: 100 } }),
-    p('El catálogo incluye precio residencial y comercial; el precio aplicado se determina según el tipo de cliente de la venta.'),
+    p('El catálogo incluye precio residencial y comercial. ms-ventas aplica el precio según el tipo de cliente del token JWT ' +
+      '(si el token no lo trae, usa el residencial). Un producto desactivado no se puede comprar (400).'),
 
     h2('6.3 ms-inventario (http://localhost:8084)'),
     table(
@@ -279,6 +294,7 @@ function anexo2() {
     new Paragraph({ text: '', spacing: { after: 100 } }),
     p('Cuerpo de los ajustes:', { bold: true }),
     code('{ "sku": "GAS-15KG", "stockActual": 25 }'),
+    p('En aumentar, disminuir y sumar-stock la cantidad debe estar entre 1 y 500 (si no, 400). En crear se acepta 0 como stock inicial.'),
 
     h2('6.4 ms-ventas (http://localhost:8086)'),
     table(
@@ -294,8 +310,10 @@ function anexo2() {
     ),
     new Paragraph({ text: '', spacing: { after: 100 } }),
     p('Cuerpo de creación de venta:', { bold: true }),
-    code('{ "tipoCliente": "Residencial", "direccion": "Av. Argentina 455", "comuna": "Chillán", ' +
+    code('{ "direccion": "Av. Argentina 455", "comuna": "Chillán", ' +
       '"metodoPago": "Efectivo", "detalles": [ { "productoId": 1, "cantidad": 2 } ] }'),
+    p('Reglas: máximo 50 ítems por venta y 100 unidades por producto (los ítems repetidos se suman); el tipo de cliente ' +
+      'no se envía porque viene en el token. Si dos confirmaciones de la misma venta llegan a la vez, una responde 200 y la otra 409.'),
 
     h1('7. Integración con el frontend'),
     p('El frontend React (Vite) consume las APIs con fetch. El token se guarda en localStorage dentro del objeto “sesion” ' +
@@ -319,7 +337,9 @@ function anexo2() {
       [38, 62]
     ),
     new Paragraph({ text: '', spacing: { after: 120 } }),
-    p('CORS está habilitado en los microservicios para los orígenes del frontend (localhost y 127.0.0.1 en los puertos 5173 y 5174). ' +
+    p('En desarrollo, el frontend usa rutas relativas (/api/v1/…) y el proxy de Vite las reenvía a cada microservicio. ' +
+      'El proxy quita el header Origin, así que estas llamadas no dependen de CORS y funcionan desde localhost, la red local o un túnel. ' +
+      'CORS sigue configurado en los microservicios (CORS_ORIGINS) para clientes que llamen directo a los puertos. ' +
       'Si el backend no responde, la interfaz muestra un aviso de conexión en lugar de datos locales.'),
 
     h1('8. Base de datos y configuración'),
@@ -327,20 +347,55 @@ function anexo2() {
       'la carpeta del Wallet indicada en ORACLE_WALLET_DIR.'),
     bullet('ddl-auto=update: Hibernate crea y actualiza las tablas a partir de las entidades al iniciar cada servicio.'),
     bullet('Cada microservicio es dueño de sus tablas y no comparte entidades con otros; la comunicación es por API.'),
-    bullet('Tablas principales: usuarios y roles (ms-auth), productos (ms-catalogoProductos), inventario (ms-inventario), ' +
-      'ventas y detalle de venta (ms-ventas).'),
-    bullet('El Wallet y el archivo de secretos están excluidos del repositorio mediante .gitignore.'),
+    bullet('Las columnas version de ventas e inventarios sostienen el bloqueo optimista. Al arrancar, ColumnaVersionInitializer ' +
+      'rellena con 0 las filas antiguas y deja la columna como DEFAULT 0 NOT NULL.'),
+    bullet('Hoy el Wallet y el archivo de secretos están excluidos del repositorio mediante .gitignore. ' + 'La contraseña de la base de datos y la clave JWT que quedaron en el historial de git (commit 1bec55c) ya se cambiaron; el Oracle Wallet, que también quedó en ese historial (se retiró en el commit 21e47ba), está pendiente de rotar.'),
+    new Paragraph({ text: '', spacing: { after: 100 } }),
+    p('Modelo entidad-relación:', { bold: true }),
+    table(
+      ['Servicio', 'Tabla', 'Columnas principales', 'Relaciones'],
+      [
+        ['ms-auth', 'roles', 'id (PK), nombre_rol (único)', '1 rol → N usuarios'],
+        ['ms-auth', 'usuarios', 'id (PK), nombre, rut (único), username (único), password (BCrypt), rol_id (FK), dirección, región, comuna, tipo_cliente, teléfono', 'N usuarios → 1 rol'],
+        ['ms-catalogoProductos', 'productos', 'id (PK), sku (único), nombre, descripción, precio_residencial, precio_comercial, precio, categoría, imagen, activo', '1 producto ↔ 1 inventario (por sku, vía API)'],
+        ['ms-inventario', 'inventarios', 'id (PK), sku (único), stock_actual, nivel_critico, nivel_maximo, ultima_actualizacion, version', 'por sku con productos'],
+        ['ms-ventas', 'ventas', 'id (PK), usuario (username), total, estado, fecha_venta, dirección, comuna, metodo_pago, version', '1 venta → N detalles; usuario → usuarios.username (vía JWT)'],
+        ['ms-ventas', 'detalles_venta', 'id (PK), venta_id (FK), producto_id, cantidad, precio_unitario, subtotal', 'N detalles → 1 venta; producto_id → productos.id (vía API)'],
+      ],
+      [18, 14, 44, 24]
+    ),
+    code('roles 1───N usuarios      ventas 1───N detalles_venta'),
+    code('productos.sku ······ inventarios.sku      detalles_venta.producto_id ······ productos.id'),
+    code('ventas.usuario ······ usuarios.username      (───: clave foránea · ······: relación por API)'),
 
     h1('9. Pruebas y verificación'),
-    p('Se ejecutaron pruebas automatizadas en backend y frontend:'),
+    p('Pruebas automatizadas (ejecutadas el 14-11-2026, todas aprobadas):'),
     table(
-      ['Componente', 'Herramienta', 'Resultado'],
+      ['Componente', 'Herramienta', 'Pruebas', 'Qué cubren'],
       [
-        ['ms-auth, ms-catalogoProductos, ms-inventario, ms-ventas', 'JUnit + MockMvc + JaCoCo', 'Pruebas unitarias, de controlador y de seguridad aprobadas'],
-        ['Frontend React', 'Vitest + Testing Library', '26 archivos de prueba y 91 pruebas aprobadas'],
-        ['Integración end-to-end', 'Manual sobre el frontend', 'Login, catálogo, carrito, venta, confirmación, mis compras, paneles admin y vendedor'],
+        ['ms-auth', 'JUnit + MockMvc', '34', 'Login, registro, JWT (claims y expiración), política de contraseñas, roles en usuarios, errores'],
+        ['ms-catalogoProductos', 'JUnit + MockMvc', '18', 'CRUD, SKU no modificable, catálogo público, solo ADMIN escribe, 404/500'],
+        ['ms-inventario', 'JUnit + MockMvc', '26', 'Ajustes de stock con tope 1–500, stock crítico, 409 por concurrencia, solo ADMIN escribe'],
+        ['ms-ventas', 'JUnit + MockMvc', '36', 'Precio por tipo de cliente del token, ítems agrupados, topes, dueño de la venta, bloqueo optimista'],
+        ['Frontend React', 'Vitest + Testing Library', '92 (26 archivos)', 'Componentes, páginas, sesión, carrito, validaciones y llamadas a la API'],
       ],
-      [40, 26, 34]
+      [22, 20, 14, 44]
+    ),
+    new Paragraph({ text: '', spacing: { after: 120 } }),
+    p('Total backend: 114 pruebas JUnit. Pruebas manuales contra Oracle Cloud con el sistema completo en ejecución:', { bold: true }),
+    table(
+      ['Prueba', 'Resultado esperado', 'Resultado obtenido'],
+      [
+        ['Login de ADMIN, VENDEDOR y CLIENTE', '200, token de 2 h con rol y tipo de cliente', 'OK'],
+        ['Login con clave incorrecta / campos vacíos', '401 / 400', 'OK'],
+        ['Cliente Residencial envía "tipoCliente": "Comercial"', 'Se cobra el precio residencial', 'OK (6.500 en vez de 6.000)'],
+        ['Dos confirmaciones simultáneas de la misma venta', 'Una 200 y otra 409; el stock baja una sola vez', 'OK (stock 80 → 79)'],
+        ['Producto inexistente / id mal formado', '404 / 400', 'OK'],
+        ['VENDEDOR intenta modificar inventario o catálogo', '403', 'OK'],
+        ['VENDEDOR lista las órdenes', '200', 'OK'],
+        ['Flujo en el frontend', 'Catálogo, carrito, venta, confirmación, mis compras, paneles admin y vendedor', 'OK (capturas de la sección 10)'],
+      ],
+      [38, 36, 26]
     ),
     new Paragraph({ text: '', spacing: { after: 120 } }),
     p('Las pruebas de contexto completo (*ApplicationTests) requieren el archivo de secretos y la Wallet configurados, ' +
@@ -531,11 +586,14 @@ function anexo4() {
   return new Document({ sections: [{ properties: {}, children }] });
 }
 
+// Uso: node generar-anexos.js            -> genera los Anexos 2 y 4
+//      node generar-anexos.js anexo2     -> genera solo el Anexo 2 (o anexo4)
 async function main() {
+  const solo = process.argv[2];
   const docs = [
-    ['Anexo 2 - Documentación APIs e Integración (El Volcán).docx', anexo2()],
-    ['Anexo 4 - Manual de usuario (El Volcán).docx', anexo4()],
-  ];
+    ['anexo2', 'Anexo 2 - Documentación APIs e Integración (El Volcán).docx', anexo2],
+    ['anexo4', 'Anexo 4 - Manual de usuario (El Volcán).docx', anexo4],
+  ].filter(([clave]) => !solo || clave === solo).map(([, name, crear]) => [name, crear()]);
   for (const [name, doc] of docs) {
     const buf = await Packer.toBuffer(doc);
     fs.writeFileSync(path.join(outDir, name), buf);
