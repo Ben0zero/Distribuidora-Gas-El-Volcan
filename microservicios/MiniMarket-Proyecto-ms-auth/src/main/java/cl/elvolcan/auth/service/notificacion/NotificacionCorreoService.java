@@ -1,17 +1,20 @@
 package cl.elvolcan.auth.service.notificacion;
 
+import cl.elvolcan.auth.config.AsyncConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 /**
  * Envía el enlace de recuperación por correo (SMTP). Se activa con app.notificacion.modo=correo;
  * las credenciales (spring.mail.*) se leen de ~/.elvolcan/secrets.properties.
+ * El envío es asíncrono (@Async con el executor acotado de AsyncConfig): /recuperar responde sin
+ * esperar al SMTP, así que su tiempo no depende de si la cuenta existe y se manda un correo.
  * Si el envío falla, solo se registra en el log: el usuario recibe la misma respuesta de siempre
  * (no se revela si la cuenta existe ni si el correo salió).
  */
@@ -33,6 +36,7 @@ public class NotificacionCorreoService implements NotificacionService {
     }
 
     @Override
+    @Async(AsyncConfig.EXECUTOR_CORREO)
     public void enviarEnlaceRecuperacion(String destinatario, String enlace) {
         SimpleMailMessage mensaje = new SimpleMailMessage();
         if (remitente != null && !remitente.isBlank()) {
@@ -44,7 +48,7 @@ public class NotificacionCorreoService implements NotificacionService {
         try {
             mailSender.send(mensaje);
             log.info("Correo de recuperación enviado a {}", destinatario);
-        } catch (MailException e) {
+        } catch (RuntimeException e) { // MailException y cualquier otro error del envío
             // Sin el enlace ni el token en el log; el detalle técnico basta para diagnosticar el SMTP
             log.error("No se pudo enviar el correo de recuperación a {}: {}", destinatario, e.getMessage());
         }
