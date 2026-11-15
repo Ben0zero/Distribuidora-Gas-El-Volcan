@@ -27,6 +27,13 @@ public class Inventario {
     @NotNull(message = "El nivel máximo es obligatorio")
     private Double nivelMaximo;
 
+    // Bloqueo optimista (H-03): Hibernate incrementa esta versión en cada UPDATE y rechaza
+    // la escritura si otra transacción la cambió antes. Se declara con DEFAULT 0 NOT NULL para que
+    // ddl-auto=update agregue la columna en Oracle rellenando con 0 las filas que ya existen.
+    @Version
+    @Column(name = "version", nullable = false, columnDefinition = "NUMBER(19,0) DEFAULT 0 NOT NULL")
+    private Long version = 0L;
+
     @Column(name = "ultima_actualizacion")
     private LocalDateTime ultimaActualizacion;
 
@@ -54,4 +61,7 @@ public class Inventario {
     public void setNivelMaximo(Double nivelMaximo) { this.nivelMaximo = nivelMaximo; }
 
     public LocalDateTime getUltimaActualizacion() { return ultimaActualizacion; }
+
+    public Long getVersion() { return version; }
+    public void setVersion(Long version) { this.version = version; }
 }

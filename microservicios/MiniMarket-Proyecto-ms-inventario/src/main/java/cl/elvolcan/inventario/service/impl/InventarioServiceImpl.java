@@ -51,6 +51,7 @@ public class InventarioServiceImpl implements InventarioService {
     @Override
     public StockResponseDTO aumentarStock(StockRequestDTO request) {
 
+        validarCantidadAjuste(request.getStockActual());
         Inventario inventario = repository.findBySku(request.getSku())
                 .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado"));
 
@@ -74,6 +75,7 @@ public class InventarioServiceImpl implements InventarioService {
     @Override
     public StockResponseDTO disminuirStock(StockRequestDTO request) {
 
+        validarCantidadAjuste(request.getStockActual());
         Inventario inventario = repository.findBySku(request.getSku())
                 .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado"));
 
@@ -118,6 +120,7 @@ public class InventarioServiceImpl implements InventarioService {
     @Override
     public String sumarStock(String sku, int cantidad) {
 
+        validarCantidadAjuste((double) cantidad);
         Inventario inventario = repository.findBySku(sku)
                 .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado"));
 
@@ -140,6 +143,17 @@ public class InventarioServiceImpl implements InventarioService {
                 .stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
+    }
+
+    /** Tope de unidades por ajuste de stock (igual al @Max del DTO y al stock máximo del frontend). */
+    static final double MAX_AJUSTE = 500;
+
+    // Un ajuste de stock (aumentar, disminuir, sumar) debe mover entre 1 y 500 unidades:
+    // una cantidad negativa invertiría la operación y saltaría el control de stock máximo o insuficiente.
+    private void validarCantidadAjuste(Double cantidad) {
+        if (cantidad == null || cantidad <= 0 || cantidad > MAX_AJUSTE) {
+            throw new IllegalArgumentException("La cantidad a ajustar debe ser mayor que 0 y como máximo " + (int) MAX_AJUSTE);
+        }
     }
 
     // Mapper

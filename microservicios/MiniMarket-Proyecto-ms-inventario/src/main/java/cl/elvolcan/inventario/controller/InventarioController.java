@@ -1,5 +1,7 @@
 package cl.elvolcan.inventario.controller;
 
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Positive;
 import cl.elvolcan.inventario.dto.request.StockRequestDTO;
 import cl.elvolcan.inventario.dto.response.StockResponseDTO;
 import cl.elvolcan.inventario.service.InventarioService;
@@ -156,7 +158,8 @@ public class InventarioController {
     @PutMapping("/sumar-stock/{sku}/{cantidad}")
     public ResponseEntity<String> sumarStock(
             @PathVariable String sku,
-            @PathVariable int cantidad
+            @PathVariable @Positive(message = "La cantidad debe ser mayor que 0")
+            @Max(value = 500, message = "La cantidad no puede superar 500 unidades") int cantidad
     ) {
         return ResponseEntity.ok(service.sumarStock(sku, cantidad));
     }

@@ -78,4 +78,32 @@ class InventarioSeguridadTest {
     void sinTokenResponde401() throws Exception {
         mockMvc.perform(get("/api/v1/inventario")).andExpect(status().isUnauthorized());
     }
+
+    @Test
+    @WithMockUser(username = "admin@duoc.cl", roles = "ADMIN")
+    @DisplayName("H-04: un ajuste negativo o sobre 500 responde 400 y no llega al servicio")
+    void ajusteInvalidoResponde400() throws Exception {
+        mockMvc.perform(put("/api/v1/inventario/aumentar").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"sku\":\"CL002\",\"stockActual\":-50}"))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(put("/api/v1/inventario/disminuir").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"sku\":\"CL002\",\"stockActual\":501}"))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(put("/api/v1/inventario/sumar-stock/CL002/-999"))
+                .andExpect(status().isBadRequest());
+        verify(service, never()).aumentarStock(any());
+        verify(service, never()).disminuirStock(any());
+        verify(service, never()).sumarStock(any(), anyInt());
+    }
+
+    @Test
+    @WithMockUser(username = "admin@duoc.cl", roles = "ADMIN")
+    @DisplayName("H-03: dos ajustes simultáneos del mismo SKU (@Version) responden 409")
+    void ajusteConcurrenteResponde409() throws Exception {
+        when(service.disminuirStock(any()))
+                .thenThrow(new org.springframework.orm.ObjectOptimisticLockingFailureException("Inventario", 1L));
+
+        mockMvc.perform(put("/api/v1/inventario/disminuir").contentType(MediaType.APPLICATION_JSON).content(AUMENTO))
+                .andExpect(status().isConflict());
+    }
 }
