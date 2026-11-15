@@ -28,7 +28,7 @@ import OrdenesVendedor from './pages/vendedor/OrdenesVendedor'
 import DetalleOrdenVendedor from './pages/vendedor/DetalleOrdenVendedor'
 import { CLAVES } from './utils/validaciones'
 import RutaProtegida from './components/RutaProtegida'
-import { ROLES } from './utils/sesion'
+import { ROLES, EVENTO_SESION_CERRADA } from './utils/sesion'
 import {
   agregarItem,
   incrementarItem,
@@ -53,6 +53,14 @@ function App() {
   useEffect(() => {
     localStorage.setItem(CLAVES.carrito, JSON.stringify(carrito))
   }, [carrito])
+
+  // Al cerrar sesión (o si el token venció) el carrito se vacía. El carrito de un
+  // visitante sin sesión NO se toca al iniciar sesión: se conserva para su compra.
+  useEffect(() => {
+    const vaciarAlCerrarSesion = () => setCarrito([])
+    window.addEventListener(EVENTO_SESION_CERRADA, vaciarAlCerrarSesion)
+    return () => window.removeEventListener(EVENTO_SESION_CERRADA, vaciarAlCerrarSesion)
+  }, [])
 
   const agregar = (id) => setCarrito((anterior) => agregarItem(anterior, id))
   const incrementar = (id) => setCarrito((anterior) => incrementarItem(anterior, id))

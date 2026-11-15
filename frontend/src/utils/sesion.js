@@ -42,7 +42,18 @@ export function tokenExpirado(token, ahoraMs = Date.now()) {
   return typeof payload.exp === 'number' && payload.exp * 1000 <= ahoraMs
 }
 
-// Sesión vigente (con token no expirado) o null. Si el token expiró, borra la sesión guardada.
+// Evento que avisa a App (dueño del estado del carrito) que la sesión terminó.
+export const EVENTO_SESION_CERRADA = 'elvolcan:sesion-cerrada'
+
+// Borra la sesión y el carrito guardados: el carrito de un usuario no debe quedar
+// a la vista del siguiente que use el mismo navegador (ni siquiera de un admin).
+function borrarSesionYCarrito() {
+  localStorage.removeItem('sesion')
+  localStorage.removeItem('carrito')
+}
+
+// Sesión vigente (con token no expirado) o null. Si el token expiró, borra la sesión
+// guardada y el carrito, igual que al cerrar sesión.
 export function sesionActiva() {
   let sesion = null
   try {
@@ -52,7 +63,10 @@ export function sesionActiva() {
   }
   if (!sesion?.token) return null
   if (tokenExpirado(sesion.token)) {
-    localStorage.removeItem('sesion')
+    borrarSesionYCarrito()
+    // Diferido: sesionActiva() se llama mientras React dibuja, y App no puede
+    // actualizar su estado en medio del render de otro componente.
+    setTimeout(() => window.dispatchEvent(new Event(EVENTO_SESION_CERRADA)), 0)
     return null
   }
   return sesion
@@ -65,8 +79,11 @@ export function tipoPrecioSesion(sesion = sesionActiva()) {
   return String(sesion.tipoCliente || '').toLowerCase() === 'comercial' ? 'comercial' : 'residencial'
 }
 
+// Único cierre de sesión (tienda, Login, panel admin y panel vendedor): borra la sesión
+// y el carrito, y avisa a App para que vacíe también el estado en memoria.
 export function cerrarSesion() {
-  localStorage.removeItem('sesion')
+  borrarSesionYCarrito()
+  window.dispatchEvent(new Event(EVENTO_SESION_CERRADA))
 }
 
 export function sesionDesdeLogin(res) {
