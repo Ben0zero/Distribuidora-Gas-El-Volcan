@@ -2,12 +2,16 @@ package cl.elvolcan.ventas.security;
 
 import feign.RequestInterceptor;
 import feign.RequestTemplate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 @Configuration
 public class FeignInterceptor implements RequestInterceptor {
+
+    private static final Logger log = LoggerFactory.getLogger(FeignInterceptor.class);
 
     @Override
     public void apply(RequestTemplate template) {
@@ -16,14 +20,13 @@ public class FeignInterceptor implements RequestInterceptor {
         if (attributes != null) {
             String authHeader = attributes.getRequest().getHeader("Authorization");
             if (authHeader != null) {
-                // Si lo encuentra, lo imprime en amarillo en la consola y lo inyecta
-                System.out.println("✅ [FEIGN] Enviando Token a otro microservicio: " + authHeader.substring(0, 20) + "...");
+                // Reenvía el token del usuario al otro microservicio (nunca se escribe en el log, H-14)
                 template.header("Authorization", authHeader);
             } else {
-                System.out.println("❌ [FEIGN] ADVERTENCIA: La petición llegó a Ventas sin Token.");
+                log.warn("Llamada Feign a {} sin token: la petición llegó a ventas sin Authorization", template.path());
             }
         } else {
-            System.out.println("❌ [FEIGN] ADVERTENCIA: No se pudo leer el contexto de la petición.");
+            log.debug("Llamada Feign a {} fuera de una petición HTTP", template.path());
         }
     }
 }

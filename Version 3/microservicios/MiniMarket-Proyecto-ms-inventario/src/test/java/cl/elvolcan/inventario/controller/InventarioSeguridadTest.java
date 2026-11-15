@@ -1,5 +1,7 @@
 package cl.elvolcan.inventario.controller;
 
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import cl.elvolcan.inventario.exception.GlobalExceptionHandler;
 import cl.elvolcan.inventario.config.CorsConfig;
 import cl.elvolcan.inventario.security.CustomAuthenticationEntryPoint;
 import cl.elvolcan.inventario.security.JwtUtil;
@@ -105,5 +107,16 @@ class InventarioSeguridadTest {
 
         mockMvc.perform(put("/api/v1/inventario/disminuir").contentType(MediaType.APPLICATION_JSON).content(AUMENTO))
                 .andExpect(status().isConflict());
+    }
+
+    @Test
+    @WithMockUser(username = "admin@duoc.cl", roles = "ADMIN")
+    @DisplayName("H-10: un error interno responde 500 con mensaje neutro (antes era 400 con el mensaje técnico)")
+    void errorInternoResponde500SinDetalles() throws Exception {
+        when(service.obtenerTodos()).thenThrow(new RuntimeException("ORA-00942: table or view does not exist"));
+
+        mockMvc.perform(get("/api/v1/inventario"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.mensaje").value(GlobalExceptionHandler.MENSAJE_INTERNO));
     }
 }

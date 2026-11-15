@@ -1,5 +1,6 @@
 package cl.elvolcan.catalogo.service.impl;
 
+import cl.elvolcan.catalogo.exception.ProductoNoEncontradoException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -29,7 +30,7 @@ public class ProductoServiceImpl implements ProductoService {
 
         // 1. Validar si el SKU ya existe en CatÃ¡logo
         if (productoRepository.existsBySku(request.getSku())) {
-            throw new RuntimeException("Error: Ya existe un producto con el SKU: " + request.getSku());
+            throw new IllegalArgumentException("Error: Ya existe un producto con el SKU: " + request.getSku());
         }
 
         // 2. Mapear de DTO a entidad Producto
@@ -75,14 +76,14 @@ public class ProductoServiceImpl implements ProductoService {
     @Override
     public ProductoResponseDTO obtenerPorSku(String sku) {
         Producto producto = productoRepository.findBySku(sku)
-                .orElseThrow(() -> new RuntimeException("Producto no encontrado con SKU: " + sku));
+                .orElseThrow(() -> new ProductoNoEncontradoException("Producto no encontrado con SKU: " + sku));
         return mapearADTO(producto);
     }
 
     @Override
     public void desactivarProducto(String sku) {
         Producto producto = productoRepository.findBySku(sku)
-                .orElseThrow(() -> new RuntimeException("No se puede desactivar un SKU inexistente"));
+                .orElseThrow(() -> new ProductoNoEncontradoException("No se puede desactivar un SKU inexistente"));
         producto.setActivo(false);
         productoRepository.save(producto);
     }
@@ -90,11 +91,11 @@ public class ProductoServiceImpl implements ProductoService {
     @Override
     public ProductoResponseDTO actualizarProducto(Long id, ProductoRequestDTO request) {
         Producto producto = productoRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Producto no encontrado con ID: " + id));
+            .orElseThrow(() -> new ProductoNoEncontradoException("Producto no encontrado con ID: " + id));
 
         // El SKU identifica el producto en ms-inventario: cambiarlo dejaría el stock huérfano
         if (request.getSku() != null && !request.getSku().equalsIgnoreCase(producto.getSku())) {
-            throw new RuntimeException("El SKU no se puede modificar (actual: " + producto.getSku() + ")");
+            throw new IllegalArgumentException("El SKU no se puede modificar (actual: " + producto.getSku() + ")");
         }
 
         producto.setNombre(request.getNombre());
@@ -120,7 +121,7 @@ public class ProductoServiceImpl implements ProductoService {
     @Override
     public ProductoResponseDTO obtenerPorId(Long id) {
         Producto producto = productoRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Producto no encontrado con ID: " + id));
+            .orElseThrow(() -> new ProductoNoEncontradoException("Producto no encontrado con ID: " + id));
         return mapearADTO(producto);
     }
 

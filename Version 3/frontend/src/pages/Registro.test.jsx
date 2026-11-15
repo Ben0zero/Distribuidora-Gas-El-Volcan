@@ -17,8 +17,8 @@ async function completarFormulario(user) {
   await user.type(screen.getByLabelText('Dirección de despacho'), 'Calle Nueva 789')
   await user.selectOptions(screen.getByLabelText('Región'), 'Región de Ñuble')
   await user.selectOptions(screen.getByLabelText('Comuna'), 'Chillán')
-  await user.type(screen.getByLabelText('Contraseña'), 'abc123')
-  await user.type(screen.getByLabelText('Confirmar contraseña'), 'abc123')
+  await user.type(screen.getByLabelText('Contraseña'), 'Clave123')
+  await user.type(screen.getByLabelText('Confirmar contraseña'), 'Clave123')
   await user.click(screen.getByLabelText('Acepto los términos y condiciones'))
   await user.click(screen.getByRole('button', { name: 'Registrarse' }))
 }
@@ -51,7 +51,7 @@ describe('Página <Registro /> (ms-auth)', () => {
     const [url, opciones] = fetchMock.mock.calls[0]
     expect(url).toMatch(/\/api\/v1\/auth\/register$/)
     expect(JSON.parse(opciones.body)).toEqual({
-      nombre: 'Ana Pérez', rut: '17234567', username: 'ana@duoc.cl', password: 'abc123',
+      nombre: 'Ana Pérez', rut: '17234567', username: 'ana@duoc.cl', password: 'Clave123',
       direccion: 'Calle Nueva 789', region: 'Región de Ñuble', comuna: 'Chillán',
       tipoCliente: 'Residencial', telefono: '+56912345678',
     })

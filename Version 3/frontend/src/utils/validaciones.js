@@ -46,6 +46,15 @@ export function formatearPrecio(n) {
   return '$' + Number(n).toLocaleString('es-CL')
 }
 
+// Política de contraseñas (H-07): 8 a 10 caracteres, con al menos una letra y un número.
+// ms-auth exige lo mismo (mín. 8 + letra y número); el máximo de 10 es la regla del formulario.
+export function validarContrasena(password) {
+  const texto = String(password ?? '')
+  if (texto.length < 8 || texto.length > 10 || !/[A-Za-z]/.test(texto) || !/\d/.test(texto))
+    return 'La contraseña debe tener entre 8 y 10 caracteres, con al menos una letra y un número'
+  return ''
+}
+
 // Valida todo el formulario de Registro y devuelve el primer mensaje de error
 // encontrado, o '' si todo está correcto.
 export function validarFormularioRegistro(datos) {
@@ -59,9 +68,8 @@ export function validarFormularioRegistro(datos) {
   if (!direccion) return 'Ingresa tu dirección de despacho'
   if (!region) return 'Selecciona tu región'
   if (!comuna) return 'Selecciona tu comuna de despacho'
-  // mínimo 6: es la regla de ms-auth (RegistroRequestDTO @Size(min = 6))
-  if (String(password).length < 6 || String(password).length > 10)
-    return 'La contraseña debe tener entre 6 y 10 caracteres'
+  const errorContrasena = validarContrasena(password)
+  if (errorContrasena) return errorContrasena
   if (password !== confirmar) return 'Las contraseñas no coinciden'
   if (!terminos) return 'Debes aceptar los términos y condiciones'
 
@@ -77,9 +85,8 @@ export function validarNuevoUsuario(form, { requerirContrasena = true } = {}) {
   if (!validarRun(form.run)) return 'El RUN debe tener entre 7 y 9 dígitos, sin puntos y sin guion'
   const escribioContrasena = String(form.contrasena || '').length > 0 || String(form.confirmar || '').length > 0
   if (requerirContrasena || escribioContrasena) {
-    // mínimo 6: regla de ms-auth (UsuarioAdminRequestDTO @Size(min = 6))
-    if (String(form.contrasena).length < 6 || String(form.contrasena).length > 10)
-      return 'La contraseña debe tener entre 6 y 10 caracteres'
+    const errorContrasena = validarContrasena(form.contrasena)
+    if (errorContrasena) return errorContrasena
     if (form.contrasena !== form.confirmar) return 'Las contraseñas no coinciden'
   }
   if (form.telefono && !validarTelefono(form.telefono)) return 'Ingresa un teléfono válido'

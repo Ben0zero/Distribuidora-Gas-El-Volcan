@@ -27,4 +27,16 @@ class JwtUtilTest {
 
         assertNull(jwtUtil.extractClaim(token, c -> c.get("tipoCliente")));
     }
+
+    @Test
+    @DisplayName("H-09: el token vence en 2 horas (antes 10)")
+    void tokenVenceEnDosHoras() {
+        long antes = System.currentTimeMillis();
+        String token = jwtUtil.generateToken("cliente", "CLIENTE", "Residencial");
+
+        long vence = jwtUtil.extractClaim(token, c -> c.getExpiration().getTime());
+        long dosHoras = 2L * 60 * 60 * 1000;
+        // la fecha del JWT se guarda en segundos: se tolera 1 s de redondeo
+        assertTrue(vence <= antes + dosHoras + 1000 && vence >= antes + dosHoras - 1000);
+    }
 }

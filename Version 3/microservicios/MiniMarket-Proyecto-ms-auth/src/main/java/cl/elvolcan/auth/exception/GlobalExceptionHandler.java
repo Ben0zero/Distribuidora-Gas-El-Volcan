@@ -1,5 +1,11 @@
 package cl.elvolcan.auth.exception;
 
+import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatusCode;
+import org.springframework.web.ErrorResponse;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -14,21 +20,9 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice  //intercepta las excepciones que ocurran en cualquier RestController
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
     
-    //1er flujo: aca atrapa el error por si sale RuntimeException por credenciales e inicios de sesion incorrectos, se ejecuta el metodo de abajo
-    @ExceptionHandler(RuntimeException.class)
-    //el responseEntity permite controlar tanto el cuerpo del msje y el codigo de estado HTTP
-    // se usa un mapa para que Sprin lo convierta en JSON
-    // el hashMap es una estruc de datos para guardar info en pared de llave y valor (aca serie la llave el msje y el valor "usuario incorrecto")
-    public ResponseEntity<Map<String, String>> handleRuntimeException(RuntimeException ex) {
-        Map<String, String> error = new HashMap<>();
-        error.put("mensaje", ex.getMessage());
-
-        //aca se devuelve un 401 (no autorizado) en vez de un 403 o 500
-        return new ResponseEntity<>(error, HttpStatus.UNAUTHORIZED);
-    }
-
-
     //2do flujo: usuarios logeados pero NO tienen permisos
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<Map<String, String>> handleAccessDeniedException(AccessDeniedException ex) {
@@ -104,4 +98,34 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }
 
+
+    // --- Errores internos (H-10): el cliente recibe un mensaje neutro y el detalle queda en el log ---
+    public static final String MENSAJE_INTERNO = "Ocurrió un error interno. Intenta nuevamente o contacta al administrador.";
+
+    // Parámetro con formato inválido (ej. /id/abc): 400
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<Map<String, String>> handleTipoInvalido(MethodArgumentTypeMismatchException ex) {
+        Map<String, String> error = new HashMap<>();
+        error.put("error", "Petición incorrecta (400)");
+        error.put("mensaje", "El parámetro '" + ex.getName() + "' tiene un formato inválido");
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
+    // Cualquier otro error: si es un error HTTP estándar de Spring (ruta inexistente, método no permitido...)
+    // se respeta su código; si no, es un fallo interno (BD, red, bug) y se responde 500 sin detalles técnicos.
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<Map<String, String>> handleErrorInterno(Exception ex, HttpServletRequest request) {
+        Map<String, String> error = new HashMap<>();
+        if (ex instanceof ErrorResponse errorHttp) {
+            HttpStatusCode status = errorHttp.getStatusCode();
+            error.put("error", "Error HTTP (" + status.value() + ")");
+            String detalle = errorHttp.getBody().getDetail();
+            error.put("mensaje", detalle != null ? detalle : "Petición no válida");
+            return new ResponseEntity<>(error, status);
+        }
+        log.error("Error no controlado en {} {}", request.getMethod(), request.getRequestURI(), ex);
+        error.put("error", "Error interno (500)");
+        error.put("mensaje", MENSAJE_INTERNO);
+        return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
 }

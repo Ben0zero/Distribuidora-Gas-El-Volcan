@@ -1,5 +1,6 @@
 package cl.elvolcan.catalogo.controller;
 
+import cl.elvolcan.catalogo.exception.ProductoNoEncontradoException;
 import cl.elvolcan.catalogo.assemblers.ProductoModelAssembler;
 import cl.elvolcan.catalogo.dto.ProductoRequestDTO;
 import cl.elvolcan.catalogo.dto.ProductoResponseDTO;
@@ -60,7 +61,7 @@ public class ProductoControllerV2 {
     @GetMapping("/{sku}")
     public ResponseEntity<EntityModel<ProductoResponseDTO>> obtenerPorSku(@PathVariable String sku) {
         Producto producto = productoRepository.findBySku(sku)
-                .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
+                .orElseThrow(() -> new ProductoNoEncontradoException("Producto no encontrado"));
                 
         return ResponseEntity.ok(assembler.toModel(producto));
     }
