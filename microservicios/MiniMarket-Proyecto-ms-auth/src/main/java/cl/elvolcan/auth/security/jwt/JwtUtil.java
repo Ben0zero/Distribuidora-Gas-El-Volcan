@@ -20,6 +20,10 @@ public class JwtUtil {
     
     private final SecretKey SECRET_KEY;
 
+    // Vigencia del token: 2 horas (H-09). Si se roba un token, sirve por menos tiempo;
+    // el frontend ya revisa la expiración y pide iniciar sesión de nuevo.
+    static final long EXPIRACION_MS = 1000L * 60 * 60 * 2;
+
     // La clave se lee de la propiedad jwt.secret (archivo externo de secretos), nunca del código.
     // Debe ser la misma en todos los microservicios para validar los tokens emitidos por ms-auth.
     public JwtUtil(@Value("${jwt.secret}") String secret) {
@@ -49,7 +53,7 @@ public class JwtUtil {
                 .setClaims(claims)
                 .setSubject(username)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10))
+                .setExpiration(new Date(System.currentTimeMillis() + EXPIRACION_MS))
                 .signWith(SECRET_KEY, SignatureAlgorithm.HS256)
                 .compact();
     }
