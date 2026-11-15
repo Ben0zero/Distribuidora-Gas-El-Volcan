@@ -30,11 +30,12 @@ public class AuthController {
                     + "(nombre, nombreRol, tipoCliente, dirección...), para que el frontend sepa su rol.")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Login correcto: token + datos del usuario"),
+        @ApiResponse(responseCode = "400", description = "Usuario o contraseña vacíos"),
         @ApiResponse(responseCode = "401", description = "Usuario o contraseña incorrectos")
     })
     @SecurityRequirements() // Indica a Swagger que esta ruta es publica (sin candado)
     @PostMapping("/login")
-    public ResponseEntity<UsuarioResponseDTO> login(@RequestBody LoginRequestDTO loginRequest) {
+    public ResponseEntity<UsuarioResponseDTO> login(@Valid @RequestBody LoginRequestDTO loginRequest) {
         // AuthService valida usuario y contraseña (BCrypt) y genera el token con el rol
         return ResponseEntity.ok(authService.login(loginRequest));
     }

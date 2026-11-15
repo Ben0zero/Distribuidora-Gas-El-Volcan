@@ -7,6 +7,7 @@ import {
   correoDominioPermitido,
   formatearPrecio,
   validarFormularioRegistro,
+  validarContrasena,
   validarFormularioContacto,
   leerLista,
   leerObjeto,
@@ -55,8 +56,8 @@ describe('validaciones (lógica de formularios)', () => {
       direccion: 'Av. Siempre Viva 123',
       region: 'Región de Ñuble',
       comuna: 'Chillán',
-      password: 'abc123',
-      confirmar: 'abc123',
+      password: 'Clave123',
+      confirmar: 'Clave123',
       terminos: true,
     }
 
@@ -79,7 +80,7 @@ describe('validaciones (lógica de formularios)', () => {
     expect(validarFormularioRegistro({ ...validoRegistro, region: '' })).toBe('Selecciona tu región')
     expect(validarFormularioRegistro({ ...validoRegistro, comuna: '' })).toBe('Selecciona tu comuna de despacho')
     expect(validarFormularioRegistro({ ...validoRegistro, password: 'abc12', confirmar: 'abc12' })).toBe(
-      'La contraseña debe tener entre 6 y 10 caracteres',
+      'La contraseña debe tener entre 8 y 10 caracteres, con al menos una letra y un número',
     )
     expect(validarFormularioRegistro({ ...validoRegistro, confirmar: 'otra' })).toBe('Las contraseñas no coinciden')
     expect(validarFormularioRegistro({ ...validoRegistro, terminos: false })).toBe(
@@ -123,5 +124,18 @@ describe('validaciones (lógica de formularios)', () => {
     expect(leerObjeto('obj')).toBeNull()
     localStorage.setItem('obj', '{json roto')
     expect(leerObjeto('obj')).toBeNull()
+  })
+})
+
+describe('validarContrasena (H-07)', () => {
+  test('exige 8 a 10 caracteres con al menos una letra y un número', () => {
+    const error = 'La contraseña debe tener entre 8 y 10 caracteres, con al menos una letra y un número'
+    expect(validarContrasena('Clave123')).toBe('')
+    expect(validarContrasena('abc12345')).toBe('')
+    expect(validarContrasena('abc123')).toBe(error) // corta
+    expect(validarContrasena('abcdefghi')).toBe(error) // sin número
+    expect(validarContrasena('123456789')).toBe(error) // sin letra
+    expect(validarContrasena('Clave123456')).toBe(error) // más de 10
+    expect(validarContrasena(undefined)).toBe(error)
   })
 })

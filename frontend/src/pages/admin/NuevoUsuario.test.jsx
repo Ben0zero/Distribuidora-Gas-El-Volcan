@@ -15,7 +15,7 @@ async function completar(user, { rol = 'VENDEDOR', contrasena = 'Vende123' } = {
   await user.type(screen.getByLabelText('Nombre Completo'), 'Carla Muñoz')
   await user.type(screen.getByLabelText('Correo (será su usuario)'), 'Carla@ElVolcan.cl')
   await user.type(screen.getByLabelText(/RUN/), '16543210')
-  await user.type(screen.getByLabelText('Contraseña (6 a 10)'), contrasena)
+  await user.type(screen.getByLabelText('Contraseña (8 a 10)'), contrasena)
   await user.type(screen.getByLabelText('Confirmar Contraseña'), contrasena)
   await user.selectOptions(screen.getByLabelText('Rol'), rol)
   await user.selectOptions(screen.getByLabelText('Región'), 'Región de Ñuble')
@@ -69,18 +69,18 @@ describe('Página admin <NuevoUsuario /> (POST /api/v1/usuarios)', () => {
     expect(await screen.findByText('Ya existe un usuario con ese correo o RUN.')).toBeInTheDocument()
   })
 
-  test('valida antes de llamar a la API (contraseña mínima de 6)', async () => {
+  test('valida antes de llamar a la API (contraseña mínima de 8 con letra y número)', async () => {
     const user = userEvent.setup()
     await completar(user, { contrasena: 'abc12' })
 
-    expect(screen.getByText('La contraseña debe tener entre 6 y 10 caracteres')).toBeInTheDocument()
+    expect(screen.getByText('La contraseña debe tener entre 8 y 10 caracteres, con al menos una letra y un número')).toBeInTheDocument()
     expect(fetchMock).not.toHaveBeenCalled()
   })
 })
 
 describe('validarNuevoUsuario', () => {
   const valido = {
-    nombre: 'Ana', correo: 'ana@elvolcan.cl', run: '17234567', contrasena: 'abc123', confirmar: 'abc123',
+    nombre: 'Ana', correo: 'ana@elvolcan.cl', run: '17234567', contrasena: 'Clave123', confirmar: 'Clave123',
     telefono: '', rol: 'CLIENTE', region: 'Región de Ñuble', comuna: 'Chillán',
   }
 
@@ -96,8 +96,8 @@ describe('validarNuevoUsuario', () => {
     const sinPassword = { ...valido, contrasena: '', confirmar: '' }
     expect(validarNuevoUsuario(sinPassword, { requerirContrasena: false })).toBe('')
     expect(validarNuevoUsuario({ ...sinPassword, contrasena: 'abc12' }, { requerirContrasena: false }))
-      .toBe('La contraseña debe tener entre 6 y 10 caracteres')
-    expect(validarNuevoUsuario({ ...sinPassword, contrasena: 'abc123' }, { requerirContrasena: false }))
+      .toBe('La contraseña debe tener entre 8 y 10 caracteres, con al menos una letra y un número')
+    expect(validarNuevoUsuario({ ...sinPassword, contrasena: 'Clave123' }, { requerirContrasena: false }))
       .toBe('Las contraseñas no coinciden')
   })
 })
