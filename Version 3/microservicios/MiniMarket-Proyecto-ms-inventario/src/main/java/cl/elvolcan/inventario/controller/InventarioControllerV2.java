@@ -1,5 +1,7 @@
 package cl.elvolcan.inventario.controller;
 
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Positive;
 import cl.elvolcan.inventario.assembler.InventarioModelAssembler;
 import cl.elvolcan.inventario.dto.request.StockRequestDTO;
 import cl.elvolcan.inventario.dto.response.StockResponseDTO;
@@ -85,7 +87,8 @@ public class InventarioControllerV2 {
     @Operation(summary = "Sumar stock desde producción (V2)")
     @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN')")
     @PutMapping("/sumar-stock/{sku}/{cantidad}")
-    public ResponseEntity<String> sumarStock(@PathVariable String sku, @PathVariable int cantidad) {
+    public ResponseEntity<String> sumarStock(@PathVariable String sku,
+            @PathVariable @Positive(message = "La cantidad debe ser mayor que 0") @Max(value = 500, message = "La cantidad no puede superar 500 unidades") int cantidad) {
         // Al ser una simple cadena de texto de confirmación, se mantiene la respuesta estándar
         return ResponseEntity.ok(service.sumarStock(sku, cantidad));
     }

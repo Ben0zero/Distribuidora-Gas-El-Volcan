@@ -155,4 +155,14 @@ class VentaSeguridadTest {
         // El servicio ve el tipo del token ("Residencial"), no el "Comercial" del body
         assertEquals("Residencial", tipoVistoPorElServicio.get());
     }
+
+    @Test
+    @WithMockUser(username = "cliente@elvolcan.cl", roles = "CLIENTE")
+    @DisplayName("H-03: una confirmación de pago concurrente responde 409")
+    void confirmacionConcurrenteResponde409() throws Exception {
+        when(ventaService.confirmarPago(5L))
+                .thenThrow(new org.springframework.orm.ObjectOptimisticLockingFailureException("Venta", 5L));
+
+        mockMvc.perform(put("/api/v1/ventas/5/confirmar")).andExpect(status().isConflict());
+    }
 }

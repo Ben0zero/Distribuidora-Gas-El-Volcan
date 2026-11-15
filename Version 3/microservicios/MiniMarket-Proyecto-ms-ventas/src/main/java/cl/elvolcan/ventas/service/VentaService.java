@@ -233,6 +233,13 @@ public class VentaService {
         verificarPropietarioOAdmin(venta);
         if (venta.getEstado() == Venta.EstadoVenta.PAGADA) return ventaModelAssembler.toModel(venta);
 
+        // Se marca PAGADA y se escribe en la BD ANTES de descontar stock: si otra petición confirmó
+        // la misma venta al mismo tiempo, el @Version hace fallar este flush
+        // (ObjectOptimisticLockingFailureException → 409) y no se descuenta el stock dos veces.
+        // Si después falla el descuento, la transacción revierte el estado a PENDIENTE_PAGO.
+        venta.setEstado(Venta.EstadoVenta.PAGADA);
+        Venta ventaPagada = ventaRepository.saveAndFlush(venta);
+
         for (DetalleVenta detalle : venta.getDetalles()) {
             ProductoDTO producto = catalogoClient.obtenerProductoPorId(token, detalle.getProductoId());
             StockRequestDTO request = new StockRequestDTO();
@@ -240,7 +247,6 @@ public class VentaService {
             request.setStockActual(detalle.getCantidad().doubleValue());
             inventarioClient.disminuirStock(internalToken, request);
         }
-        venta.setEstado(Venta.EstadoVenta.PAGADA);
-        return ventaModelAssembler.toModel(ventaRepository.save(venta));
+        return ventaModelAssembler.toModel(ventaPagada);
     }
 }

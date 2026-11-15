@@ -3,6 +3,7 @@ package cl.elvolcan.ventas.exception;
 import feign.FeignException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -43,6 +44,18 @@ public class GlobalExceptionHandler {
         errorResponse.setPath(request.getRequestURI());
 
         return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+    }
+
+    // 2c. Bloqueo optimista (@Version): dos peticiones modificaron la misma venta a la vez
+    @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+    public ResponseEntity<ErrorResponse> handleOptimisticLock(ObjectOptimisticLockingFailureException ex, HttpServletRequest request) {
+        ErrorResponse errorResponse = new ErrorResponse();
+        errorResponse.setStatus(HttpStatus.CONFLICT.value()); // 409
+        errorResponse.setError(HttpStatus.CONFLICT.getReasonPhrase());
+        errorResponse.setMessage("La operación entró en conflicto con otra que se hizo al mismo tiempo. Vuelve a intentarlo.");
+        errorResponse.setPath(request.getRequestURI());
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
     }
 
     // 2b. Datos de la venta inválidos para el negocio (producto inactivo, cantidad sobre el tope, ítem sin datos)

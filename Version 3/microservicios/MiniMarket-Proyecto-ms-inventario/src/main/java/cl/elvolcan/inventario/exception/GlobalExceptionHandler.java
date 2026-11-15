@@ -1,6 +1,11 @@
 package cl.elvolcan.inventario.exception;
 
+import org.springframework.context.MessageSourceResolvable;
 import org.springframework.http.HttpStatus;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
+import java.util.stream.Collectors;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -60,6 +65,46 @@ public class GlobalExceptionHandler {
         Map<String, String> error = new HashMap<>();
         error.put("error", "Petición incorrecta (400)");
         error.put("mensaje", "El formato del JSON es incorrecto o faltan datos esenciales. Verifique la información enviada.");
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
+    // Error 409: bloqueo optimista (@Version), dos ajustes del mismo SKU al mismo tiempo
+    @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+    public ResponseEntity<Map<String, String>> handleOptimisticLock(ObjectOptimisticLockingFailureException ex) {
+        Map<String, String> error = new HashMap<>();
+        error.put("error", "Conflicto (409)");
+        error.put("mensaje", "La operación entró en conflicto con otra que se hizo al mismo tiempo. Vuelve a intentarlo.");
+        return new ResponseEntity<>(error, HttpStatus.CONFLICT);
+    }
+
+    // Error 400: cantidad de ajuste inválida (negativa, cero o sobre el tope)
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, String>> handleIllegalArgument(IllegalArgumentException ex) {
+        Map<String, String> error = new HashMap<>();
+        error.put("error", "Petición incorrecta (400)");
+        error.put("mensaje", ex.getMessage());
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
+    // Error 400: falla de @Valid en el body (ej. stockActual negativo o sobre 500)
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<Map<String, String>> handleBodyInvalido(MethodArgumentNotValidException ex) {
+        Map<String, String> error = new HashMap<>();
+        error.put("error", "Petición incorrecta (400)");
+        error.put("mensaje", ex.getBindingResult().getFieldErrors().stream()
+                .map(f -> f.getField() + ": " + f.getDefaultMessage())
+                .collect(Collectors.joining("; ")));
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
+    // Error 400: falla de validación en parámetros de la ruta (ej. /sumar-stock/{sku}/-999)
+    @ExceptionHandler(HandlerMethodValidationException.class)
+    public ResponseEntity<Map<String, String>> handleParametroInvalido(HandlerMethodValidationException ex) {
+        Map<String, String> error = new HashMap<>();
+        error.put("error", "Petición incorrecta (400)");
+        error.put("mensaje", ex.getAllErrors().stream()
+                .map(MessageSourceResolvable::getDefaultMessage)
+                .collect(Collectors.joining("; ")));
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }
 
