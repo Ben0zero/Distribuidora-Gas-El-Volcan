@@ -12,6 +12,9 @@ const FECHA = '12-11-2026';
 // El Anexo 2 se actualizó tras la auditoría OWASP (docs/AUDITORIA_EP3.md)
 const VER_ANEXO2 = '3.6';
 const FECHA_ANEXO2 = '15-11-2026';
+// El Anexo 4 se rehízo con capturas reales (PNG 1366x768) tomadas con Docker
+const VER_ANEXO4 = '4.0';
+const FECHA_ANEXO4 = '15-11-2026';
 
 // ---------- helpers ----------
 function h1(text) {
@@ -59,6 +62,75 @@ function captura(archivo, leyenda) {
       alignment: AlignmentType.CENTER,
       spacing: { after: 220 },
     }),
+  ];
+}
+
+// Figura numerada del Anexo 4 (requisito de la plantilla: número, título, nota y borde negro de 1 px).
+// La imagen va en una tabla de una celda con borde negro; si el archivo no existe, se deja un
+// recuadro "Captura pendiente" del mismo tamaño para que el documento se genere igual.
+let numeroFigura = 0;
+const ANCHO_FIG = 600; // px; las capturas son de 1366x768
+const ALTO_FIG = Math.round((ANCHO_FIG * 768) / 1366);
+const BORDE_NEGRO = { style: BorderStyle.SINGLE, size: 6, color: '000000' }; // 6/8 pt = 1 px
+const SIN_BORDE = { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' };
+
+function figura(archivo, titulo, explicacion, pasos = []) {
+  numeroFigura += 1;
+  const ruta = path.join(capturasDir, archivo);
+  const existe = fs.existsSync(ruta);
+  let contenido;
+  if (existe) {
+    contenido = new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { before: 0, after: 0 },
+      children: [new ImageRun({
+        data: fs.readFileSync(ruta),
+        type: path.extname(archivo).slice(1).toLowerCase() === 'png' ? 'png' : 'jpg',
+        transformation: { width: ANCHO_FIG, height: ALTO_FIG },
+      })],
+    });
+  } else {
+    console.warn(`  Aviso: falta capturas/${archivo}; se inserta "Captura pendiente"`);
+    contenido = new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { before: 2200, after: 2200 },
+      children: [new TextRun({ text: 'Captura pendiente', bold: true, size: 28, color: '7F7F7F' })],
+    });
+  }
+  const marco = new Table({
+    alignment: AlignmentType.CENTER,
+    width: { size: ANCHO_FIG * 15, type: WidthType.DXA }, // 1 px = 15 twips
+    borders: { top: BORDE_NEGRO, bottom: BORDE_NEGRO, left: BORDE_NEGRO, right: BORDE_NEGRO,
+      insideHorizontal: SIN_BORDE, insideVertical: SIN_BORDE },
+    rows: [new TableRow({
+      cantSplit: true,
+      children: [new TableCell({
+        width: { size: ANCHO_FIG * 15, type: WidthType.DXA },
+        margins: { top: 0, bottom: 0, left: 0, right: 0 },
+        children: [contenido],
+      })],
+    })],
+  });
+  return [
+    new Paragraph({
+      children: [new TextRun({ text: `Figura ${numeroFigura}. ${titulo}`, bold: true, size: 20 })],
+      alignment: AlignmentType.CENTER,
+      keepNext: true,
+      spacing: { before: 240, after: 80 },
+    }),
+    marco,
+    new Paragraph({
+      children: [
+        new TextRun({ text: 'Nota: ', bold: true, italics: true, size: 18, color: '404040' }),
+        new TextRun({ text: explicacion, italics: true, size: 18, color: '404040' }),
+      ],
+      spacing: { before: 80, after: pasos.length ? 60 : 220 },
+    }),
+    ...pasos.map((t, i) => new Paragraph({
+      children: [new TextRun({ text: `${i + 1}. ${t}`, size: 20 })],
+      indent: { left: 360 },
+      spacing: { after: i === pasos.length - 1 ? 220 : 40 },
+    })),
   ];
 }
 
@@ -517,107 +589,249 @@ function anexo2() {
 // ANEXO 4 — Manual de usuario
 // ============================================================
 function anexo4() {
+  numeroFigura = 0;
+  // Títulos que no quedan solos al pie de una página (solo en este anexo; el Anexo 2 no cambia)
+  const h1 = (text) => new Paragraph({ text, heading: HeadingLevel.HEADING_1, keepNext: true, spacing: { before: 320, after: 160 } });
+  const h2 = (text) => new Paragraph({ text, heading: HeadingLevel.HEADING_2, keepNext: true, spacing: { before: 240, after: 120 } });
   const children = [
-    ...portada('Manual de Usuario', 'Uso del sistema web por rol: Cliente, Vendedor y Administrador'),
+    ...portada('Manual de Usuario', 'Uso del sistema web por rol: Cliente, Vendedor y Administrador', VER_ANEXO4, FECHA_ANEXO4),
 
-    h1('1. Objetivo'),
-    p('Este manual describe cómo usar el sistema web de la Distribuidora de Gas El Volcán: navegar el catálogo, ' +
-      'realizar una compra, consultar el historial y operar los paneles de vendedor y administrador.'),
+    // ---------------------------------------------------------------- 1
+    h1('1. Introducción'),
+    h2('1.1 Propósito'),
+    p('Este manual explica, paso a paso y con capturas reales, cómo usar el sistema web de la Distribuidora de Gas El Volcán: ' +
+      'buscar productos, comprar, revisar las compras, administrar la cuenta y operar los paneles de vendedor y administrador.'),
+    h2('1.2 Descripción del sistema'),
+    p('El Volcán es una tienda en línea de cilindros de gas licuado y accesorios. El sistema está formado por un frontend web (React) ' +
+      'y cuatro microservicios (autenticación, catálogo, inventario y ventas) registrados en Eureka. Todo se ejecuta en contenedores ' +
+      'Docker y se usa desde el navegador en http://localhost.'),
+    p('Hay tres roles:'),
+    bullet('Cliente: se registra solo, compra y ve el precio que le corresponde según su tipo (Residencial o Comercial).'),
+    bullet('Vendedor: consulta productos y órdenes en modo solo lectura.'),
+    bullet('Administrador: gestiona productos, inventario, usuarios y órdenes, y revisa clientes y reportes.'),
+    h2('1.3 Cómo usar este manual'),
+    bullet('Las secciones 2 y 3 son para quien instala el sistema. Desde la sección 4 en adelante, el manual es para quien lo usa.'),
+    bullet('Cada pantalla se muestra como una figura numerada con su título y una nota que explica para qué sirve. Debajo se detallan los pasos numerados.'),
+    bullet('Los nombres de botones y menús se escriben entre comillas, tal como aparecen en pantalla (por ejemplo, “Ir a pagar”).'),
+    bullet('Los datos que aparecen difuminados en algunas capturas corresponden a otras personas y se ocultaron a propósito. ' +
+      'La cuenta “Cliente Demo” es ficticia y se creó solo para este manual.'),
 
-    h1('2. Alcance'),
-    p('El sistema permite:'),
-    bullet('Cliente: registrarse, iniciar sesión, ver catálogo y detalle de productos, agregar al carrito, finalizar la compra, ' +
-      'confirmar el pago y revisar “Mis compras”.'),
-    bullet('Vendedor: consultar productos y órdenes en modo solo lectura.'),
-    bullet('Administrador: gestionar productos, inventario, usuarios, órdenes, clientes y reportes.'),
+    // ---------------------------------------------------------------- 2
+    h1('2. Requisitos de hardware y software'),
+    table(
+      ['Elemento', 'Requisito'],
+      [
+        ['Procesador', 'x64 de 4 núcleos o más (recomendado)'],
+        ['Memoria RAM', '8 GB en el equipo; los contenedores usan cerca de 2,5 a 3 GB'],
+        ['Disco', '5 GB libres para las imágenes de Docker'],
+        ['Sistema operativo', 'Windows 10/11 (con WSL 2), macOS o Linux'],
+        ['Software', 'Docker Desktop (o Docker Engine con el plugin compose)'],
+        ['Base de datos', 'Oracle Autonomous Database en la nube y su Wallet de conexión'],
+        ['Navegador', 'Chrome, Edge o Firefox actualizados'],
+        ['Red', 'Conexión a Internet (la base de datos está en Oracle Cloud). Puertos 80 y 8761 libres'],
+      ],
+      [30, 70]
+    ),
 
-    h1('3. Requisitos previos'),
-    p('Antes de usar el sistema, el equipo debe tener los servicios levantados:'),
-    bullet('Eureka Server en http://localhost:8761 con los cinco servicios en estado UP.'),
-    bullet('Archivo %USERPROFILE%\\.elvolcan\\secrets.properties con DB_PASSWORD, ORACLE_WALLET_DIR y JWT_SECRET.'),
-    bullet('Wallet de Oracle descomprimido en la carpeta indicada por ORACLE_WALLET_DIR.'),
-    bullet('Frontend disponible en http://localhost:5173 (Vite; si el puerto está ocupado puede usar 5174).'),
-    p('Para levantar todo desde la carpeta microservicios:'),
-    code('.\\levantar-servicios.ps1            # levanta Eureka y los microservicios'),
-    code('.\\levantar-servicios.ps1 -Verificar  # solo revisa requisitos'),
-    code('.\\detener-servicios.ps1             # detiene todo'),
-    p('Para el frontend, desde la carpeta frontend:'),
-    code('npm install'),
-    code('npm run dev'),
+    // ---------------------------------------------------------------- 3
+    h1('3. Instalación y configuración'),
+    p('El sistema completo se levanta con Docker Compose desde la raíz del repositorio. El detalle está en docs/DOCKER.md.'),
+    h2('3.1 Configuración (una sola vez)'),
+    bullet('Descomprimir el Wallet de Oracle en una carpeta del equipo, por ejemplo C:\\Users\\<usuario>\\.elvolcan\\OracleWallet.'),
+    bullet('Copiar la plantilla de variables y completarla con los datos entregados por el equipo (no se versionan):'),
+    code('Copy-Item .env.example .env'),
+    code('notepad .env     # WALLET_HOST_DIR (con /), DB_PASSWORD, JWT_SECRET'),
+    h2('3.2 Levantar el sistema'),
+    code('docker compose up -d --build   # la primera vez tarda varios minutos'),
+    code('docker compose ps              # esperar a que todos queden "healthy"'),
+    bullet('Abrir http://localhost en el navegador. Eureka se puede revisar en http://127.0.0.1:8761 (cuatro servicios en estado UP).'),
+    h2('3.3 Detener el sistema'),
+    code('docker compose down            # detiene y borra los contenedores; las imágenes quedan'),
 
-    h1('4. Acceso al sistema'),
-    h2('4.1 Iniciar sesión'),
-    bullet('Ingresar a http://localhost:5173 y seleccionar “Iniciar sesión”.'),
-    bullet('Escribir el correo (username) y la contraseña.'),
-    bullet('Presionar “Ingresar”. El sistema valida las credenciales contra ms-auth y guarda la sesión.'),
-    bullet('Según el rol, se muestra el menú de cliente, el panel de vendedor o el panel de administración.'),
-    p('Si las credenciales son incorrectas se muestra “Credenciales incorrectas”. Si el backend no responde, ' +
-      'se muestra un aviso de conexión.'),
+    // ---------------------------------------------------------------- 4
+    h1('4. Comenzando'),
+    p('Esta sección muestra la pantalla inicial y cómo crear una cuenta e iniciar sesión.'),
+    h2('4.1 Pantalla de inicio'),
+    ...figura('01-inicio.png', 'Pantalla de inicio',
+      'Es la portada pública del sitio. En la barra superior están el catálogo, el carrito y los accesos a “Login” y “Registro”.',
+      ['Abrir http://localhost en el navegador.',
+        'Usar el menú superior para ir a “Productos”, “Carrito”, “Login” o “Registro”.',
+        'Presionar “Ver productos” para ir directo al catálogo.']),
+    h2('4.2 Crear una cuenta (registro)'),
+    ...figura('06-registro.png', 'Formulario de registro',
+      'Aquí la persona crea su propia cuenta. Siempre queda con el rol CLIENTE, y el tipo de cliente que elija define qué precio verá destacado.',
+      ['Presionar “Registro” en el menú superior.',
+        'Completar el nombre, el RUN (se formatea solo al salir del campo), el correo, el teléfono y el tipo de cliente.',
+        'Indicar la dirección de despacho, la región y la comuna.',
+        'Escribir la contraseña dos veces (8 a 64 caracteres, con al menos una letra y un número).',
+        'Marcar “Acepto los términos y condiciones” y presionar “Registrarse”.']),
+    ...figura('07-registro-error-validacion.png', 'Error de validación en el registro',
+      'Si un dato no es válido, el formulario lo indica en un recuadro rojo y no crea la cuenta. En el ejemplo, el dígito verificador del RUT no corresponde.',
+      ['Leer el mensaje que aparece sobre el botón “Registrarse”.',
+        'Corregir el campo indicado (en el ejemplo, el RUN).',
+        'Presionar “Registrarse” de nuevo. Si el correo o el RUN ya existen, el sistema avisa y pide iniciar sesión.']),
+    h2('4.3 Iniciar sesión'),
+    ...figura('08-login.png', 'Inicio de sesión',
+      'Pantalla para entrar con correo y contraseña. Según el rol, el sistema lleva a la tienda (cliente), al panel de vendedor o al panel de administración.',
+      ['Presionar “Login” en el menú superior.',
+        'Escribir el correo y la contraseña.',
+        'Presionar “Ingresar”.',
+        'Si olvidó la contraseña, usar el enlace “¿Olvidaste tu contraseña?” (ver la sección 8.2).']),
 
-    h2('4.2 Registrarse'),
-    bullet('Desde el login, seleccionar “Registrarse”.'),
-    bullet('Completar nombre, RUT, correo, contraseña, teléfono, dirección y comuna.'),
-    bullet('Presionar “Registrar”. La cuenta se crea con rol CLIENTE.'),
-    bullet('Si el RUT o el correo ya existen, el sistema informa el conflicto y no crea la cuenta.'),
-
-    h1('5. Manual del Cliente'),
+    // ---------------------------------------------------------------- 5
+    h1('5. Uso del sistema: Cliente'),
     h2('5.1 Explorar el catálogo'),
-    bullet('En el menú superior, seleccionar “Productos”.'),
-    bullet('Se listan los cilindros y accesorios con imagen, nombre y precio.'),
-    bullet('Usar la búsqueda y los filtros para encontrar un producto.'),
-    bullet('Seleccionar un producto para ver su detalle y disponibilidad.'),
-    h2('5.2 Agregar productos al carrito'),
-    bullet('En la tarjeta o en el detalle del producto, presionar “Agregar al carrito”.'),
-    bullet('Ajustar la cantidad con los controles del carrito.'),
-    bullet('El contador del carrito en el menú muestra el total de unidades.'),
-    h2('5.3 Finalizar la compra'),
-    bullet('Ir a “Carrito” y revisar los productos y cantidades.'),
-    bullet('Presionar “Finalizar compra”.'),
-    bullet('Completar tipo de cliente (Residencial o Comercial), dirección, comuna y método de pago (Efectivo o Tarjeta).'),
-    bullet('Confirmar. El sistema crea la venta en ms-ventas, valida el stock en ms-inventario y consulta el precio en el catálogo.'),
-    bullet('Si no hay stock suficiente, se muestra el mensaje de error correspondiente y la venta no se registra.'),
-    h2('5.4 Confirmar el pago'),
-    bullet('Al finalizar la compra, confirmar el pago de la venta generada.'),
-    bullet('El sistema cambia el estado a PAGADO y descuenta el stock automáticamente.'),
-    h2('5.5 Consultar “Mis compras”'),
-    bullet('En el menú, seleccionar “Mis compras”.'),
-    bullet('Se listan las compras del usuario con fecha, total y estado.'),
-    bullet('Seleccionar una compra para ver su detalle.'),
+    ...figura('02-catalogo.png', 'Catálogo de productos',
+      'Muestra los productos activos con su imagen y sus precios residencial y comercial. Los botones naranjos filtran por categoría.',
+      ['Presionar “Productos” en el menú superior.',
+        'Elegir una categoría (“Cilindros de Gas”, “Reguladores”, “Mangueras y Conexiones” o “Accesorios”), o “Todos”.',
+        'Presionar “Agregar” para sumar el producto al carrito o “Ver detalles” para abrir su ficha.']),
+    h2('5.2 Buscar un producto'),
+    ...figura('03-buscador-sugerencias.png', 'Buscador con sugerencias',
+      'El buscador filtra el catálogo mientras se escribe y muestra una lista de productos sugeridos con su categoría y código.',
+      ['Escribir en “Buscar por nombre, categoría o código…” (por ejemplo, “cil”).',
+        'Elegir una sugerencia con el mouse, o recorrer la lista con las flechas ↑/↓ y presionar Enter para abrir su detalle (Esc cierra la lista).',
+        'Presionar la X para borrar el texto y volver a ver todo el catálogo.']),
+    h2('5.3 Ver el detalle de un producto'),
+    ...figura('04-detalle-producto.png', 'Detalle de producto',
+      'Ficha con la descripción, la categoría, el código y los dos precios del producto.',
+      ['En el catálogo, presionar “Ver detalles”.',
+        'Revisar la información del producto.',
+        'Presionar “Agregar al carrito”, o “Volver” para regresar al catálogo.']),
+    h2('5.4 Precio según el tipo de cliente (“Tu precio”)'),
+    ...figura('12-catalogo-tu-precio.png', 'Catálogo con “Tu precio” destacado',
+      'Con la sesión iniciada, el catálogo destaca en negrita y con la etiqueta “Tu precio” el valor que corresponde al tipo de cliente. ' +
+      'El otro precio queda en gris. En el ejemplo, el cliente es Comercial.',
+      ['Iniciar sesión como cliente.',
+        'Abrir “Productos”.',
+        'Ubicar la etiqueta amarilla “Tu precio”: ese es el valor que se cobrará en la compra.']),
+    h2('5.5 Revisar el carrito'),
+    ...figura('05-carrito.png', 'Carrito de compras',
+      'Lista los productos agregados con su precio unitario y subtotal. El contador del menú muestra el total de unidades.',
+      ['Presionar “Carrito” en el menú superior.',
+        'Usar “+” y “-” para cambiar la cantidad, o “Quitar” para sacar un producto.',
+        'Presionar “Ir a pagar” (si no hay sesión iniciada, el sistema pide iniciarla).']),
+    h2('5.6 Finalizar la compra'),
+    ...figura('13-checkout.png', 'Finalizar la compra',
+      'Resume el pedido con la tarifa del cliente y pide confirmar los datos de entrega y el método de pago.',
+      ['Revisar los productos y el “Total a pagar”.',
+        'Confirmar o corregir la dirección de despacho y la comuna.',
+        'Elegir el método de pago: “Efectivo” o “Tarjeta de débito / crédito”.',
+        'Presionar “Confirmar pedido”. El sistema valida el stock, registra la venta y confirma el pago.']),
+    ...figura('14-compra-confirmada.png', 'Compra confirmada',
+      'Aparece cuando el pedido quedó registrado y pagado. Muestra el número de orden, el total y la dirección de despacho.',
+      ['Anotar el número de orden (por ejemplo, ORD-121).',
+        'Presionar “Ver mis compras” para revisar el historial, o “Seguir comprando”.']),
+    p('Si no hay stock suficiente, la compra no se registra y se muestra el aviso correspondiente. Si el pago no se confirma, ' +
+      'la orden queda “Pendiente de pago” y se puede reintentar.'),
+    h2('5.7 Mis compras'),
+    ...figura('15-mis-compras.png', 'Mis compras',
+      'Historial de compras del cliente que inició sesión, con los productos, el despacho, el método de pago, el total y el estado.',
+      ['Abrir el menú de la cuenta (“Hola, <nombre>”) en la esquina superior derecha.',
+        'Elegir “Mis compras”.',
+        'Revisar el estado de cada orden (“Pagada” o “Pendiente de pago”).']),
+    h2('5.8 Cambiar la contraseña'),
+    ...figura('16-cambiar-contrasena.png', 'Cambiar contraseña',
+      'Permite cambiar la contraseña con la sesión iniciada. Está disponible para los tres roles: los clientes la abren desde el menú de la cuenta, ' +
+      'y el vendedor y el administrador desde el enlace de su panel.',
+      ['Abrir el menú de la cuenta y elegir “Cambiar contraseña”.',
+        'Escribir la contraseña actual.',
+        'Escribir la nueva contraseña dos veces (8 a 64 caracteres, con al menos una letra y un número). El ícono del ojo permite verla.',
+        'Presionar “Cambiar contraseña”. Desde ese momento la contraseña anterior deja de funcionar.']),
 
-    h1('6. Manual del Vendedor'),
-    p('El rol VENDEDOR tiene acceso de solo lectura. No puede crear ni modificar productos, inventario ni ventas.'),
-    h2('6.1 Panel de vendedor'),
-    bullet('Al iniciar sesión, se abre el panel de vendedor.'),
-    bullet('“Productos”: lista el catálogo con precio y stock disponible.'),
-    bullet('Seleccionar un producto para ver su detalle.'),
-    h2('6.2 Consultar órdenes'),
-    bullet('Seleccionar “Órdenes” para ver todas las ventas registradas.'),
-    bullet('Seleccionar una orden para ver su detalle: cliente, dirección, comuna, método de pago, productos y total.'),
+    // ---------------------------------------------------------------- 6
+    h1('6. Uso del sistema: Vendedor'),
+    p('El rol VENDEDOR es de solo lectura: puede consultar, pero no crear ni modificar productos, inventario, usuarios ni ventas.'),
+    ...figura('17-vendedor-productos.png', 'Panel de vendedor: productos',
+      'Al iniciar sesión, el vendedor entra a su panel. La etiqueta “Vendedor - solo lectura” recuerda que no puede editar.',
+      ['Iniciar sesión con una cuenta de vendedor.',
+        'Revisar el listado con el código, la categoría y los precios.',
+        'Presionar “Ver detalle” para ver la ficha de un producto.']),
+    ...figura('18-vendedor-ordenes.png', 'Panel de vendedor: órdenes',
+      'Lista todas las órdenes con la fecha, el cliente, la comuna, el total y el estado.',
+      ['Presionar “Órdenes” en el menú lateral.',
+        'Ubicar la orden por su número o su fecha.',
+        'Presionar “Ver detalle”.']),
+    ...figura('19-vendedor-detalle-orden.png', 'Detalle de una orden (solo lectura)',
+      'Muestra el cliente, la fecha, el despacho, el método de pago y los productos con sus subtotales. No tiene botones para modificar.',
+      ['Revisar los datos de la orden.',
+        'Presionar “← Volver a órdenes” para regresar al listado.']),
 
-    h1('7. Manual del Administrador'),
+    // ---------------------------------------------------------------- 7
+    h1('7. Uso del sistema: Administrador'),
     h2('7.1 Dashboard'),
-    bullet('Al iniciar sesión se muestra el panel de administración con indicadores del sistema.'),
-    h2('7.2 Gestión de productos'),
-    bullet('Ingresar a “Inventario” y usar la sección de productos.'),
-    bullet('Crear un producto indicando nombre, SKU, descripción, precios y stock inicial.'),
-    bullet('Editar un producto existente o desactivarlo (deja de mostrarse en la tienda).'),
-    h2('7.3 Gestión de inventario'),
-    bullet('En “Inventario”, revisar el stock por SKU y los productos en estado crítico.'),
-    bullet('Usar “Aumentar” o “Disminuir” para ajustar el stock, indicando el SKU y la cantidad.'),
-    h2('7.4 Gestión de usuarios'),
-    bullet('Ingresar a “Usuarios” para ver el listado completo.'),
-    bullet('Presionar “Nuevo usuario” y completar los datos, seleccionando el rol (ADMIN, VENDEDOR o CLIENTE).'),
-    bullet('Editar o eliminar un usuario desde la lista.'),
-    bullet('El sistema no permite eliminar la cuenta con la que se está conectado; el botón queda deshabilitado.'),
-    h2('7.5 Órdenes'),
-    bullet('Ingresar a “Órdenes” para ver todas las ventas.'),
-    bullet('Abrir una orden para revisar el detalle completo.'),
-    h2('7.6 Clientes y reportes'),
-    bullet('“Clientes” muestra los clientes registrados con sus datos de contacto y compras.'),
-    bullet('“Reportes” presenta los indicadores calculados con datos reales de la API (ventas, productos más vendidos, ' +
-      'ingresos y stock crítico).'),
+    ...figura('20-admin-dashboard.png', 'Dashboard de administración',
+      'Resume los ingresos de las órdenes pagadas, el total de órdenes, las pendientes de pago y el stock crítico. También muestra las últimas órdenes y el nivel de los cilindros.',
+      ['Iniciar sesión con una cuenta de administrador.',
+        'Revisar los indicadores de la parte superior.',
+        'Presionar “Ver todas” para abrir el listado completo de órdenes.']),
+    h2('7.2 Productos e inventario: editar, activar, desactivar y eliminar'),
+    ...figura('21-admin-inventario.png', 'Inventario con las acciones por producto',
+      'Cada producto tiene tres acciones. “Editar” abre el formulario de edición. “Desactivar” oculta el producto de la tienda sin borrarlo, y “Activar” lo vuelve a mostrar. ' +
+      '“Eliminar” lo borra de forma definitiva y solo está disponible si el producto no tiene ventas: si las tiene, el botón queda gris ' +
+      '(por ejemplo, CL001 o RG001), y al pasar el mouse se lee “Tiene ventas registradas; puedes desactivarlo”. ' +
+      'Los productos inactivos se ven atenuados y con la etiqueta “Inactivo” (en el ejemplo, AC003).',
+      ['Presionar “Inventario” en el menú lateral.',
+        'Para ocultar un producto de la tienda, presionar “Desactivar” y confirmar. Para volver a mostrarlo, presionar “Activar”.',
+        'Para borrar un producto sin ventas, presionar “Eliminar” y confirmar (esta acción no se puede deshacer).',
+        'Para agregar un producto, completar el formulario “Nuevo producto” que está bajo la tabla.']),
+    ...figura('22-admin-editar-producto.png', 'Edición de un producto',
+      'Permite cambiar el nombre, los precios residencial y comercial, el stock, la categoría, la descripción y la imagen. El código no se puede editar.',
+      ['En el inventario, presionar “Editar” en la fila del producto.',
+        'Modificar los campos necesarios.',
+        'Presionar “Guardar cambios”, o la X para cerrar sin guardar.']),
+    h2('7.3 Usuarios'),
+    ...figura('23-admin-usuarios.png', 'Gestión de usuarios',
+      'Lista las cuentas con el RUN, el nombre, el correo, el rol y la comuna. El administrador no puede eliminar su propia cuenta ni quitarse el rol de administrador: ' +
+      'el botón de eliminar de su fila queda deshabilitado.',
+      ['Presionar “Usuarios” en el menú lateral.',
+        'Usar el ícono del lápiz para editar un usuario, o el del basurero para eliminarlo (pide confirmación).',
+        'Presionar “Nuevo usuario” para crear una cuenta.']),
+    ...figura('24-admin-nuevo-usuario-rut.png', 'Nuevo usuario con el RUT formateado',
+      'Formulario para crear cuentas de cualquier rol. El RUN se puede escribir con o sin puntos y guion: al salir del campo se formatea solo ' +
+      '(por ejemplo, 333333333 queda como 33.333.333-3), y se valida su dígito verificador.',
+      ['Presionar “Nuevo usuario”.',
+        'Completar el nombre, el correo (que será su usuario) y el RUN.',
+        'Escribir la contraseña dos veces y elegir el rol (ADMIN, VENDEDOR o CLIENTE).',
+        'Completar los datos opcionales (teléfono, dirección, región y comuna) y guardar.']),
+    h2('7.4 Órdenes'),
+    ...figura('25-admin-ordenes.png', 'Listado de órdenes',
+      'Muestra el total de órdenes, las pendientes de pago, las pagadas y los ingresos, junto con el listado completo y la distribución por comuna.',
+      ['Presionar “Órdenes” en el menú lateral.',
+        'Presionar el número de una orden para ver su detalle.']),
+    p('En el menú lateral también están “Clientes” (los clientes registrados y sus compras) y “Reportes” (las ventas, los productos más vendidos, ' +
+      'los ingresos y el stock crítico, calculados con los datos reales de las APIs).'),
+    h2('7.5 Ver tienda'),
+    ...figura('26-admin-ver-tienda.png', 'Ver tienda desde el panel',
+      'El enlace “Ver tienda” abre el sitio público sin cerrar la sesión. Desde el menú de la cuenta se puede volver al “Panel Admin”.',
+      ['Presionar “Ver tienda” en el menú lateral.',
+        'Navegar por la tienda como lo haría un cliente.',
+        'Abrir el menú “Hola, <nombre>” y elegir “Panel Admin” para volver.']),
 
-    h1('8. Credenciales de prueba'),
+    // ---------------------------------------------------------------- 8
+    h1('8. Seguridad de la cuenta'),
+    h2('8.1 Límite de intentos de inicio de sesión'),
+    ...figura('09-login-demasiados-intentos.png', 'Aviso “Demasiados intentos”',
+      'Para proteger las cuentas, después de 5 intentos fallidos con el mismo correo desde el mismo equipo (o 20 desde la misma red) en 15 minutos, ' +
+      'el sistema bloquea nuevos intentos durante 15 minutos. El mensaje es igual aunque el correo no exista, para no revelar qué cuentas hay.',
+      ['Esperar 15 minutos antes de volver a intentar.',
+        'Verificar que el correo y la contraseña estén bien escritos.',
+        'Si no recuerda la contraseña, usar “¿Olvidaste tu contraseña?”.']),
+    h2('8.2 Recuperar la contraseña'),
+    ...figura('10-recuperar-contrasena.png', '¿Olvidaste tu contraseña?',
+      'Permite pedir un enlace para crear una nueva contraseña. La respuesta es la misma exista o no la cuenta, para no revelar qué correos están registrados.',
+      ['En la pantalla de inicio de sesión, presionar “¿Olvidaste tu contraseña?”.',
+        'Escribir el correo de la cuenta y presionar “Enviar enlace”.',
+        'Revisar el correo: el enlace es de un solo uso y vence en 15 minutos. Se aceptan hasta 3 solicitudes cada 15 minutos.']),
+    ...figura('11-restablecer-contrasena.png', 'Restablecer la contraseña',
+      'Pantalla que se abre desde el enlace recibido. Si el enlace ya se usó o venció, el sistema lo indica y hay que pedir uno nuevo.',
+      ['Abrir el enlace recibido por correo.',
+        'Escribir la nueva contraseña dos veces (8 a 64 caracteres, con al menos una letra y un número).',
+        'Confirmar e iniciar sesión con la nueva contraseña.']),
+
+    // ---------------------------------------------------------------- 9
+    h1('9. Credenciales de prueba'),
+    p('Cuentas semilla para revisar cada rol en el entorno de evaluación:'),
     table(
       ['Rol', 'Usuario', 'Contraseña'],
       [
@@ -628,51 +842,24 @@ function anexo4() {
       [26, 42, 32]
     ),
 
-    h1('9. Mensajes y solución de problemas'),
+    // ---------------------------------------------------------------- 10
+    h1('10. Mensajes y solución de problemas'),
     table(
       ['Situación', 'Causa probable', 'Solución'],
       [
         ['“Credenciales incorrectas”', 'Usuario o contraseña inválidos', 'Verificar los datos e intentar nuevamente'],
-        ['Aviso de conexión', 'Microservicio detenido o Eureka sin el servicio', 'Revisar Eureka y levantar el servicio faltante'],
-        ['Error de stock insuficiente', 'Cantidad solicitada mayor al stock', 'Ajustar la cantidad o reponer stock'],
-        ['Error al iniciar el backend', 'Falta secrets.properties o la Wallet', 'Crear el archivo de secretos y verificar ORACLE_WALLET_DIR'],
-        ['“ORA-17957 / SSO not found”', 'El sqlnet.ora del Wallet apunta a ?/network/admin', 'Ejecutar levantar-servicios.ps1 (corrige la ruta del Wallet automáticamente)'],
+        ['“Demasiados intentos. Intenta nuevamente en unos minutos.”', '5 o más intentos fallidos en 15 minutos', 'Esperar 15 minutos o recuperar la contraseña'],
+        ['Recuadro rojo en el registro (por ejemplo, “El dígito verificador del RUT no es válido”)', 'Un dato no cumple la validación', 'Corregir el campo indicado y volver a enviar'],
+        ['“Ya existe una cuenta con ese correo o RUN”', 'La cuenta ya fue creada', 'Iniciar sesión o recuperar la contraseña'],
+        ['El enlace de recuperación no funciona', 'Ya se usó o pasaron más de 15 minutos', 'Pedir un enlace nuevo'],
+        ['Error de stock insuficiente', 'Cantidad mayor al stock disponible', 'Ajustar la cantidad o reponer stock'],
+        ['“Eliminar” en gris en el inventario', 'El producto tiene ventas registradas', 'Usar “Desactivar” para ocultarlo de la tienda'],
+        ['Aviso de conexión o página sin datos', 'Un contenedor no está “healthy”', 'Revisar docker compose ps y docker compose logs <servicio>'],
+        ['El sitio no abre en http://localhost', 'El puerto 80 está ocupado o Docker está detenido', 'Iniciar Docker Desktop y liberar el puerto 80'],
         ['403 al operar', 'El rol no tiene permiso', 'Usar una cuenta con el rol adecuado'],
       ],
-      [30, 32, 38]
+      [34, 30, 36]
     ),
-
-    h1('10. Capturas del sistema'),
-    p('Las siguientes capturas corresponden al sistema en funcionamiento, con los servicios levantados y el catálogo cargado.'),
-
-    h2('10.1 Acceso'),
-    ...captura('05-login.jpg', 'Pantalla de inicio de sesión'),
-    ...captura('06-registro.jpg', 'Formulario de registro: la cuenta se crea con rol CLIENTE'),
-    ...captura('07a-menu-usuario.jpg', 'Menú de cuenta: Mis compras, Panel Admin y Cerrar sesión'),
-
-    h2('10.2 Cliente'),
-    ...captura('02-catalogo.jpg', 'Catálogo de productos'),
-    ...captura('02b-catalogo-busqueda.jpg', 'Buscador del catálogo con sugerencias y filtrado en vivo'),
-    ...captura('03-detalle-producto.jpg', 'Detalle de un producto'),
-    ...captura('04-carrito.jpg', 'Carrito con los productos agregados'),
-    ...captura('07-checkout.jpg', 'Finalizar la compra: dirección, comuna y método de pago'),
-    ...captura('08-mis-compras.jpg', 'Mis compras: historial del cliente autenticado'),
-
-    h2('10.3 Vendedor'),
-    ...captura('09-vendedor-productos.jpg', 'Panel de vendedor: catálogo en modo solo lectura'),
-    ...captura('10-vendedor-ordenes.jpg', 'Panel de vendedor: listado de órdenes'),
-
-    h2('10.4 Administrador'),
-    ...captura('11-admin-dashboard.jpg', 'Dashboard con los indicadores del sistema'),
-    ...captura('12-admin-inventario.jpg', 'Gestión de inventario y productos'),
-    ...captura('13-admin-usuarios.jpg', 'Gestión de usuarios'),
-    ...captura('13b-admin-usuarios-editar.jpg', 'Edición de un usuario existente (PUT /api/v1/usuarios/{id})'),
-    ...captura('14-admin-ordenes.jpg', 'Listado de órdenes'),
-    ...captura('15-admin-clientes.jpg', 'Listado de clientes'),
-    ...captura('16-admin-reportes.jpg', 'Reportes calculados con datos reales de la API'),
-
-    h2('10.5 Infraestructura'),
-    ...captura('17-eureka.jpg', 'Eureka con los cuatro microservicios registrados en estado UP'),
   ];
 
   return new Document({ sections: [{ properties: {}, children }] });
