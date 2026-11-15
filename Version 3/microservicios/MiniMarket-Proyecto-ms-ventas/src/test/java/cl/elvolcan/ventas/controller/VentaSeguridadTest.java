@@ -1,5 +1,6 @@
 package cl.elvolcan.ventas.controller;
 
+import jakarta.servlet.RequestDispatcher;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import cl.elvolcan.ventas.exception.GlobalExceptionHandler;
 import cl.elvolcan.ventas.client.CatalogoClient;
@@ -177,5 +178,13 @@ class VentaSeguridadTest {
         mockMvc.perform(get("/api/v1/ventas"))
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.message").value(GlobalExceptionHandler.MENSAJE_INTERNO));
+    }
+
+    @Test
+    @DisplayName("/error es público: el 403 de una regla de rol no se convierte en 401 al reenviarse a /error")
+    void errorConservaElCodigo403() throws Exception {
+        // Simula el reenvío del contenedor tras un 403 (MockMvc no hace el reenvío por sí solo)
+        mockMvc.perform(get("/error").requestAttr(RequestDispatcher.ERROR_STATUS_CODE, 403))
+                .andExpect(status().isForbidden());
     }
 }
