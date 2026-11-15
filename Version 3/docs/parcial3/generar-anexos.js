@@ -10,8 +10,8 @@ const capturasDir = path.join(__dirname, 'capturas');
 const VER = '3.0';
 const FECHA = '12-11-2026';
 // El Anexo 2 se actualizó tras la auditoría OWASP (docs/AUDITORIA_EP3.md)
-const VER_ANEXO2 = '3.1';
-const FECHA_ANEXO2 = '14-11-2026';
+const VER_ANEXO2 = '3.2';
+const FECHA_ANEXO2 = '15-11-2026';
 
 // ---------- helpers ----------
 function h1(text) {
@@ -167,6 +167,10 @@ function anexo2() {
     bullet('El token dura 2 horas e incluye el rol y el tipo de cliente (Residencial o Comercial). ms-ventas toma el tipo ' +
       'de cliente del token, nunca del cuerpo de la petición, para que un cliente no pueda elegir el precio comercial.'),
     bullet('Las contraseñas se guardan con BCrypt y deben tener al menos 8 caracteres, con al menos una letra y un número.'),
+    bullet('Cambio de contraseña con sesión iniciada: exige el token y la contraseña actual; el usuario sale del token.'),
+    bullet('Recuperación de contraseña: la solicitud responde siempre lo mismo (no revela si la cuenta existe). Se genera un token ' +
+      'aleatorio de 32 bytes, se guarda solo su SHA-256, vence en 15 minutos, es de un solo uso e invalida los anteriores; máximo 3 ' +
+      'solicitudes por usuario cada 15 minutos. El enlace se envía por NotificacionService (en desarrollo, solo al log de ms-auth).'),
     bullet('Ante un error interno, la API responde 500 con un mensaje genérico; el detalle técnico queda solo en el log del servicio.'),
     p('Roles del sistema:'),
     table(
@@ -251,6 +255,9 @@ function anexo2() {
         ['POST', '/api/v1/usuarios', 'Sí', 'ADMIN', 'Crea un usuario con el rol indicado'],
         ['PUT', '/api/v1/usuarios/{id}', 'Sí', 'ADMIN', 'Actualiza datos del usuario'],
         ['DELETE', '/api/v1/usuarios/{id}', 'Sí', 'ADMIN', 'Elimina un usuario; un ADMIN no puede borrar su propia cuenta (400)'],
+        ['PUT', '/api/v1/cuenta/contrasena', 'Sí', 'Autenticado', 'Cambia la contraseña del usuario del token (pide la actual)'],
+        ['POST', '/api/v1/auth/recuperar', 'No', 'Público', 'Pide un enlace de recuperación; responde siempre el mismo mensaje'],
+        ['POST', '/api/v1/auth/restablecer', 'No', 'Público', 'Nueva contraseña con el token del enlace (vence en 15 min, un solo uso)'],
       ],
       [9, 27, 8, 10, 46]
     ),
@@ -270,6 +277,8 @@ function anexo2() {
         ['POST', '/api/v1/productos', 'Sí', 'ADMIN', 'Crea un producto y lo sincroniza con inventario'],
         ['PUT', '/api/v1/productos/{id}', 'Sí', 'ADMIN', 'Actualiza un producto existente'],
         ['DELETE', '/api/v1/productos/{sku}', 'Sí', 'ADMIN', 'Desactiva el producto (borrado lógico)'],
+        ['GET', '/api/v1/productos/todos', 'Sí', 'ADMIN', 'Lista todos los productos, incluidos los inactivos (panel admin)'],
+        ['PATCH', '/api/v1/productos/{id}/estado', 'Sí', 'ADMIN', 'Activa o desactiva un producto: { "activo": true | false }'],
       ],
       [9, 27, 8, 10, 46]
     ),
@@ -324,13 +333,15 @@ function anexo2() {
       [
         ['Login', 'POST /api/v1/auth/login'],
         ['Registro', 'POST /api/v1/auth/register'],
+        ['Recuperar y restablecer contraseña', 'POST /api/v1/auth/recuperar · POST /api/v1/auth/restablecer'],
+        ['Cambiar contraseña (tienda y paneles)', 'PUT /api/v1/cuenta/contrasena'],
         ['Catálogo y detalle de producto', 'GET /api/v1/productos · GET /api/v1/productos/id/{id}'],
         ['Carrito y checkout', 'POST /api/v1/ventas'],
         ['Confirmación de pago', 'PUT /api/v1/ventas/{id}/confirmar'],
         ['Mis compras', 'GET /api/v1/ventas/mis-compras'],
         ['Panel vendedor (productos y órdenes)', 'GET /api/v1/productos · GET /api/v1/ventas · GET /api/v1/ventas/{id}'],
         ['Admin — productos', 'GET/POST /api/v1/productos · PUT /api/v1/productos/{id} · DELETE /api/v1/productos/{sku}'],
-        ['Admin — inventario', 'GET /api/v1/inventario · PUT /api/v1/inventario/{aumentar|disminuir}'],
+        ['Admin — inventario', 'GET /api/v1/productos/todos · PATCH /api/v1/productos/{id}/estado · GET /api/v1/inventario · PUT /api/v1/inventario/{aumentar|disminuir}'],
         ['Admin — usuarios', 'GET/POST /api/v1/usuarios · PUT/DELETE /api/v1/usuarios/{id}'],
         ['Admin — órdenes, clientes y reportes', 'GET /api/v1/ventas · GET /api/v1/ventas/{id} · GET /api/v1/usuarios'],
       ],
@@ -356,7 +367,8 @@ function anexo2() {
       ['Servicio', 'Tabla', 'Columnas principales', 'Relaciones'],
       [
         ['ms-auth', 'roles', 'id (PK), nombre_rol (único)', '1 rol → N usuarios'],
-        ['ms-auth', 'usuarios', 'id (PK), nombre, rut (único), username (único), password (BCrypt), rol_id (FK), dirección, región, comuna, tipo_cliente, teléfono', 'N usuarios → 1 rol'],
+        ['ms-auth', 'tokens_recuperacion', 'id (PK), usuario_id (sin FK), token_hash (SHA-256, único), creado_en, expira_en, usado_en', 'N tokens → 1 usuario (solo uno vigente)'],
+        ['ms-auth', 'usuarios', 'id (PK), nombre, rut (único, sin puntos ni guion), username (único), password (BCrypt), rol_id (FK), dirección, región, comuna, tipo_cliente, teléfono', 'N usuarios → 1 rol'],
         ['ms-catalogoProductos', 'productos', 'id (PK), sku (único), nombre, descripción, precio_residencial, precio_comercial, precio, categoría, imagen, activo', '1 producto ↔ 1 inventario (por sku, vía API)'],
         ['ms-inventario', 'inventarios', 'id (PK), sku (único), stock_actual, nivel_critico, nivel_maximo, ultima_actualizacion, version', 'por sku con productos'],
         ['ms-ventas', 'ventas', 'id (PK), usuario (username), total, estado, fecha_venta, dirección, comuna, metodo_pago, version', '1 venta → N detalles; usuario → usuarios.username (vía JWT)'],
@@ -369,20 +381,20 @@ function anexo2() {
     code('ventas.usuario ······ usuarios.username      (───: clave foránea · ······: relación por API)'),
 
     h1('9. Pruebas y verificación'),
-    p('Pruebas automatizadas (ejecutadas el 14-11-2026, todas aprobadas):'),
+    p('Pruebas automatizadas (ejecutadas el 15-11-2026, todas aprobadas):'),
     table(
       ['Componente', 'Herramienta', 'Pruebas', 'Qué cubren'],
       [
-        ['ms-auth', 'JUnit + MockMvc', '34', 'Login, registro, JWT (claims y expiración), política de contraseñas, roles en usuarios, errores'],
-        ['ms-catalogoProductos', 'JUnit + MockMvc', '18', 'CRUD, SKU no modificable, catálogo público, solo ADMIN escribe, 404/500'],
+        ['ms-auth', 'JUnit + MockMvc', '63', 'Login, registro, JWT, política de contraseñas, RUT, roles en usuarios, cambio y recuperación de contraseña, errores'],
+        ['ms-catalogoProductos', 'JUnit + MockMvc', '27', 'CRUD, SKU no modificable, catálogo público, activar/desactivar (solo ADMIN), 404/500'],
         ['ms-inventario', 'JUnit + MockMvc', '26', 'Ajustes de stock con tope 1–500, stock crítico, 409 por concurrencia, solo ADMIN escribe'],
         ['ms-ventas', 'JUnit + MockMvc', '37', 'Precio por tipo de cliente del token, ítems agrupados, topes, dueño de la venta, bloqueo optimista, 403 por rol'],
-        ['Frontend React', 'Vitest + Testing Library', '92 (26 archivos)', 'Componentes, páginas, sesión, carrito, validaciones y llamadas a la API'],
+        ['Frontend React', 'Vitest + Testing Library', '126 (29 archivos)', 'Componentes, páginas, sesión, carrito, buscador, RUT, contraseñas y llamadas a la API'],
       ],
       [22, 20, 14, 44]
     ),
     new Paragraph({ text: '', spacing: { after: 120 } }),
-    p('Total backend: 115 pruebas JUnit. Pruebas manuales contra Oracle Cloud con el sistema completo en ejecución:', { bold: true }),
+    p('Total backend: 153 pruebas JUnit. Pruebas manuales contra Oracle Cloud con el sistema completo en ejecución:', { bold: true }),
     table(
       ['Prueba', 'Resultado esperado', 'Resultado obtenido'],
       [
@@ -394,6 +406,12 @@ function anexo2() {
         ['VENDEDOR intenta crear una venta, confirmar un pago o modificar inventario o catálogo', '403', 'OK'],
         ['CLIENTE intenta listar todas las ventas', '403', 'OK'],
         ['VENDEDOR lista las órdenes', '200', 'OK'],
+        ['ADMIN desactiva y reactiva un producto', 'Sale de la tienda y vuelve; VENDEDOR y CLIENTE reciben 403', 'OK'],
+        ['Crear usuario con RUT de dígito verificador inválido', '400; editar un usuario existente sigue funcionando', 'OK'],
+        ['Cambiar contraseña con la actual incorrecta / correcta', '400 / 204; la anterior deja de servir', 'OK'],
+        ['Recuperar contraseña de cuenta existente e inexistente', 'Misma respuesta 200; el token no viene en la respuesta', 'OK'],
+        ['Restablecer con el enlace del log; reusar el enlace', '200 y login con la nueva; reusar da 400', 'OK'],
+        ['Cuarta solicitud de recuperación en 15 minutos', 'Misma respuesta, sin enlace nuevo', 'OK'],
         ['Flujo en el frontend', 'Catálogo, carrito, venta, confirmación, mis compras, paneles admin y vendedor', 'OK (capturas de la sección 10)'],
       ],
       [38, 36, 26]

@@ -5,7 +5,7 @@
 **Asignatura:** DSY1104 — Desarrollo Fullstack II
 **Evaluación:** Evaluación Parcial N° 3 (integración frontend React + microservicios Spring Boot)
 **Tecnología principal de esta entrega:** React (SPA) + microservicios Spring Boot + Oracle Cloud
-**Versión del documento:** 3.1
+**Versión del documento:** 3.2
 **Fecha:** Noviembre 2026
 
 ---
@@ -19,6 +19,7 @@
 | 2.1 | EP2 | Actualización de la interfaz (identidad visual, diseño responsive, CSS modular) y del catálogo unificado | Equipo |
 | **3.0** | **EP3** | **Backend de 4 microservicios Spring Boot + Eureka con JWT, roles ADMIN / VENDEDOR / CLIENTE, API versionada (v1 / v2 HATEOAS), base Oracle Cloud y frontend conectado a la API. Se reemplaza `localStorage` como base de datos; se redefinen los roles; se agregan los RF-38 a RF-47 y el modelo de datos real.** | **Equipo** |
 | **3.1** | **EP3** | **Correcciones de la auditoría OWASP (`docs/AUDITORIA_EP3.md`): tipo de cliente desde el JWT, topes de cantidades, bloqueo optimista al confirmar el pago, errores internos con mensaje genérico, JWT de 2 h, contraseñas de 8 a 64 caracteres con letra y número, y estado de los secretos.** | **Equipo** |
+| **3.2** | **EP3** | **Nuevas funciones: activar y desactivar productos, eliminar usuarios, cambiar la contraseña con sesión iniciada y recuperarla con un enlace de un solo uso (RF-48 a RF-51). Además: buscador con sugerencias de productos, precio destacado según el tipo de cliente, carrito que se vacía al cerrar sesión y RUT con formato y dígito verificador.** | **Equipo** |
 
 ---
 
@@ -203,7 +204,10 @@ main.jsx
   - `POST /api/v1/auth/login` valida con **BCrypt** y emite un **JWT** con el rol y el tipo de cliente, válido por **2 horas**.
   - Las contraseñas nuevas deben tener **8 a 64 caracteres** con al menos una letra y un número (el backend acepta hasta 72).
   - El frontend guarda el token en la sesión y lo envía en cada petición.
-  - Si el token expiró, se pide volver a iniciar sesión.
+  - Si el token expiró, se pide volver a iniciar sesión. Al cerrar sesión (o si el token vence) también se **vacía el carrito**, para que el siguiente usuario del navegador no lo vea.
+- **Contraseñas:**
+  - **Cambio con sesión iniciada** (`PUT /api/v1/cuenta/contrasena`): exige el token y la **contraseña actual**; el usuario sale del token, nunca del cuerpo de la petición.
+  - **Recuperación** (`POST /api/v1/auth/recuperar` y `/restablecer`): responde **siempre el mismo mensaje**, exista o no la cuenta (anti-enumeración). Se crea un token aleatorio de 32 bytes (`SecureRandom`) y se guarda **solo su SHA-256**. El token vence en **15 minutos**, es de **un solo uso** e invalida los enlaces anteriores. Hay un máximo de **3 solicitudes por usuario cada 15 minutos**. El enlace se envía por la interfaz `NotificacionService`: en desarrollo solo se escribe en el log de ms-auth y nunca en la respuesta de la API.
 - **Autorización en el backend:**
   - `@PreAuthorize` y reglas por método HTTP en cada `SecurityConfig`.
   - El servicio de ventas verifica además que el cliente sea **dueño** de la venta.
@@ -252,7 +256,7 @@ El catálogo vive en **ms-catalogoProductos**:
 |------|---------------|:---------:|:------:|
 | **RF-01** | El sistema debe mostrar una página de **inicio** con bienvenida, imagen de cilindros, beneficios del servicio y acceso al catálogo. | A | ✅ |
 | **RF-02** | El sistema debe mostrar el **catálogo público** obtenido de ms-catalogoProductos (`GET /api/v1/productos`, sin autenticación), en tarjetas con imagen, nombre, descripción y precio. | A | ✅ |
-| **RF-03** | El usuario debe poder **filtrar** los productos por **categoría** (Cilindros de Gas, Reguladores, Mangueras y Conexiones, Accesorios) y ver “Todos”. | A | ✅ |
+| **RF-03** | El usuario debe poder **buscar** productos por nombre, categoría o código (sin distinguir mayúsculas ni tildes), con **sugerencias de productos** que llevan a su detalle, y **filtrar** los productos por **categoría** (Cilindros de Gas, Reguladores, Mangueras y Conexiones, Accesorios) y ver “Todos”. | A | ✅ |
 | **RF-04** | El usuario debe poder abrir el **detalle** de un producto (código, categoría, precios residencial y comercial) desde la API. | A | ✅ |
 | **RF-05** | El sistema debe indicar claramente cuando un producto **no existe** (404). | M | ✅ |
 | **RF-06** | El sistema debe mostrar los precios en **pesos chilenos** (separador de miles). | M | ✅ |
@@ -265,7 +269,7 @@ El catálogo vive en **ms-catalogoProductos**:
 | **RF-07** | El usuario debe poder **agregar** un producto al carrito desde el catálogo y desde el detalle. | A | ✅ |
 | **RF-08** | El usuario debe poder **aumentar** y **disminuir** la cantidad de cada ítem. | A | ✅ |
 | **RF-09** | Al disminuir a **cero**, el ítem debe **eliminarse** del carrito. | M | ✅ |
-| **RF-10** | El sistema debe **calcular el total** con tarifa **residencial** o **comercial** según el tipo de cliente. El backend recalcula el precio al crear la venta y toma el tipo de cliente del **JWT**, no del cuerpo de la petición. | A | ✅ |
+| **RF-10** | El sistema debe **calcular el total** con tarifa **residencial** o **comercial** según el tipo de cliente. El backend recalcula el precio al crear la venta y toma el tipo de cliente del **JWT**, no del cuerpo de la petición. Con sesión, las tarjetas **destacan el precio** del tipo de cliente. | A | ✅ |
 | **RF-11** | La barra de navegación debe mostrar el **contador de ítems** del carrito. | M | ✅ |
 | **RF-12** | El carrito debe **persistir** entre recargas (en el navegador, con los ids de la API). | M | ✅ |
 | **RF-13** | El sistema debe indicar cuando el carrito está **vacío**. | B | ✅ |
@@ -275,10 +279,10 @@ El catálogo vive en **ms-catalogoProductos**:
 | Cód. | Requerimiento | Prioridad | Estado |
 |------|---------------|:---------:|:------:|
 | **RF-14** | El usuario debe poder **registrarse** como cliente (Residencial o Comercial) en ms-auth (`POST /api/v1/auth/register`). | A | ✅ |
-| **RF-15** | El sistema debe **validar** RUN (7–9 dígitos), teléfono, formato y dominio de correo, contraseña (**8–64**, con letra y número) y términos. El backend vuelve a validar (`@Valid`). | A | ✅ |
+| **RF-15** | El sistema debe **validar** el RUT (con o sin puntos y guion; al **crear** un usuario se exige el **dígito verificador** por módulo 11) y mostrarlo como `12.345.678-5`, teléfono, formato y dominio de correo, contraseña (**8–64**, con letra y número) y términos. El backend vuelve a validar (`@Valid`). | A | ✅ |
 | **RF-16** | El sistema debe **impedir correos o RUN duplicados** en el registro (409). | A | ✅ |
 | **RF-17** | El usuario debe poder **iniciar sesión** contra ms-auth y ser dirigido según su rol: Administrador a `/admin`, Vendedor a `/vendedor`, Cliente a la tienda. | A | ✅ |
-| **RF-18** | El sistema debe **cerrar sesión** eliminando el token y los datos de sesión. | A | ✅ |
+| **RF-18** | El sistema debe **cerrar sesión** eliminando el token, los datos de sesión y el **carrito**. | A | ✅ |
 | **RF-19** | El sistema debe usar **selectores dependientes** Región → Comuna. | M | ✅ |
 
 ### 4.4 Módulo de pedido / checkout
@@ -308,7 +312,7 @@ El catálogo vive en **ms-catalogoProductos**:
 | **RF-30** | El administrador debe poder **listar el inventario** (catálogo + stock por SKU), resaltando el **stock crítico**. | A | ✅ |
 | **RF-31** | El administrador debe poder **crear** productos con validación. El producto se crea en el catálogo, se crea su registro de inventario y se carga su stock inicial. | A | ✅ |
 | **RF-32** | El administrador debe poder **editar** productos (`PUT /api/v1/productos/{id}`), excepto el SKU, y **ajustar el stock**. | A | ✅ |
-| **RF-33** | El administrador debe poder **eliminar** productos (borrado lógico: dejan de mostrarse en la tienda). | M | ✅ |
+| **RF-33** | El administrador debe poder **desactivar** productos (borrado lógico: dejan de mostrarse en la tienda). Ver también RF-48. | M | ✅ |
 | **RF-34** | El administrador debe poder **listar y filtrar usuarios** por rol (Administradores, Clientes y Vendedores). | A | ✅ |
 | **RF-35** | El administrador debe poder **crear usuarios** con rol (Admin, Vendedor o Cliente), región y comuna, con validaciones y control de duplicados (409). | A | ✅ |
 | **RF-36** | El SKU de un producto no debe poder modificarse, porque enlaza el catálogo con el inventario. | M | ✅ |
@@ -327,6 +331,15 @@ El catálogo vive en **ms-catalogoProductos**:
 | **RF-45** | Todas las rutas de la API deben estar **versionadas** (`/api/v1`, `/api/v2` con HATEOAS) y documentadas en **Swagger**. | A | ✅ |
 | **RF-46** | Si un microservicio no responde, el frontend debe **avisarlo** y deshabilitar la compra (sin fallar en silencio). | M | ✅ |
 | **RF-47** | La sesión debe expirar con el token: con un JWT vencido, el sistema debe pedir iniciar sesión de nuevo. | M | ✅ |
+
+### 4.8 Gestión de productos, usuarios y contraseñas (nuevos en la versión 3.2)
+
+| Cód. | Requerimiento | Prioridad | Estado |
+|------|---------------|:---------:|:------:|
+| **RF-48** | El administrador debe poder **activar y desactivar** productos. El panel lista también los inactivos con la etiqueta "Inactivo" y un botón Activar/Desactivar (`GET /api/v1/productos/todos`, `PATCH /api/v1/productos/{id}/estado`, solo ADMIN). La tienda sigue mostrando solo los activos. | A | ✅ |
+| **RF-49** | El administrador debe poder **eliminar** usuarios con confirmación y **editar** sus datos. Un administrador no puede eliminar su propia cuenta (la interfaz lo impide y el backend responde 400 con el motivo). | A | ✅ |
+| **RF-50** | Todo usuario con sesión debe poder **cambiar su contraseña** indicando la actual y la nueva (8 a 64 caracteres, con letra y número), desde la tienda o desde su panel. | A | ✅ |
+| **RF-51** | El usuario debe poder **recuperar su contraseña** con un enlace de un solo uso que vence en 15 minutos. La solicitud no revela si la cuenta existe y se limita a 3 por usuario cada 15 minutos. Nunca se puede cambiar la contraseña conociendo solo el nombre de usuario. | A | ✅ |
 
 ---
 
@@ -357,7 +370,8 @@ Cada microservicio administra **sus propias tablas** en Oracle Cloud. Las relaci
 | Microservicio | Tabla (entidad JPA) | Atributos | Relaciones |
 |---|---|---|---|
 | ms-auth | **roles** (`Rol`) | `id` (PK), `nombre_rol` (único: ADMIN, VENDEDOR, CLIENTE) | 1 rol → N usuarios |
-| ms-auth | **usuarios** (`Usuario`) | `id` (PK), `nombre`, `rut` (único), `username` (único, correo), `password` (hash BCrypt), `rol_id` (FK → roles), `direccion`, `region`, `comuna`, `tipo_cliente`, `telefono` | N usuarios → 1 rol |
+| ms-auth | **tokens_recuperacion** (`TokenRecuperacion`) | `id` (PK), `usuario_id` (id del usuario, sin FK), `token_hash` (SHA-256, único), `creado_en`, `expira_en`, `usado_en` | N tokens → 1 usuario (solo uno vigente) |
+| ms-auth | **usuarios** (`Usuario`) | `id` (PK), `nombre`, `rut` (único, sin puntos ni guion), `username` (único, correo), `password` (hash BCrypt), `rol_id` (FK → roles), `direccion`, `region`, `comuna`, `tipo_cliente`, `telefono` | N usuarios → 1 rol |
 | ms-catalogoProductos | **productos** (`Producto`) | `id` (PK), `sku` (único), `nombre`, `descripcion`, `precio_residencial`, `precio_comercial`, `precio`, `categoria`, `imagen`, `activo` (borrado lógico) | 1 producto ↔ 1 inventario (por `sku`) |
 | ms-inventario | **inventarios** (`Inventario`) | `id` (PK), `sku` (único), `stock_actual`, `nivel_critico`, `nivel_maximo`, `ultima_actualizacion`, `version` (bloqueo optimista) | por `sku` con productos |
 | ms-ventas | **ventas** (`Venta`) | `id` (PK), `usuario` (username del cliente), `total`, `estado` (PENDIENTE_PAGO, PAGADA, CANCELADA), `fecha_venta`, `direccion`, `comuna`, `metodo_pago`, `version` (bloqueo optimista) | 1 venta → N detalles |
@@ -382,10 +396,14 @@ ms-ventas:    ventas 1───N detalles_venta ·· producto_id → productos.i
 |---|---|---|---|---|
 | ms-auth | `POST` | `/api/v1/auth/login` | Inicia sesión y devuelve el JWT y los datos del usuario | Público |
 | ms-auth | `POST` | `/api/v1/auth/register` | Registra un cliente | Público |
+| ms-auth | `POST` | `/api/v1/auth/recuperar` | Pide un enlace de recuperación (respuesta siempre igual) | Público |
+| ms-auth | `POST` | `/api/v1/auth/restablecer` | Nueva contraseña con el token del enlace | Público |
+| ms-auth | `PUT` | `/api/v1/cuenta/contrasena` | Cambia la contraseña del usuario del token | Autenticado |
 | ms-auth | `GET`/`POST` | `/api/v1/usuarios` | Lista y crea usuarios con rol | ADMIN |
 | ms-auth | `GET`/`PUT`/`DELETE` | `/api/v1/usuarios/{id}` | Detalle, edición y eliminación | ADMIN |
 | ms-catalogoProductos | `GET` | `/api/v1/productos`, `/id/{id}`, `/{sku}` | Catálogo y detalle | Público |
 | ms-catalogoProductos | `POST` · `PUT` · `DELETE` | `/api/v1/productos` · `/{id}` · `/{sku}` | Crear, editar y desactivar | ADMIN |
+| ms-catalogoProductos | `GET` · `PATCH` | `/api/v1/productos/todos` · `/{id}/estado` | Listado con inactivos y activar/desactivar | ADMIN |
 | ms-inventario | `GET` | `/api/v1/inventario`, `/{sku}`, `/critico` | Stock | Autenticado |
 | ms-inventario | `POST` · `PUT` | `/crear` · `/aumentar` · `/disminuir` | Gestión de stock | ADMIN |
 | ms-ventas | `POST` | `/api/v1/ventas` | Crea una venta | CLIENTE, ADMIN |
@@ -435,6 +453,10 @@ El detalle completo (parámetros, body, respuestas y códigos de error) está en
 | RF-41 | `App.jsx` (`RutaProtegida`) · `@PreAuthorize` ADMIN | `RutaProtegida.test.jsx`, `UsuarioSeguridadTest` |
 | RF-44 | `pages/admin/Clientes.jsx`, `Reportes.jsx`, `utils/reportes.js` | `reportes.test.js`, `ClientesReportes.test.jsx` |
 | RF-45 | Controladores V1 y V2, `SwaggerConfig` (grupos v1/v2) | Prueba manual en Swagger (Anexo 2) |
+| RF-48 | `pages/admin/Inventario.jsx` · ms-catalogoProductos `ProductoController.cambiarEstado`, `listarTodosAdmin` | `Inventario.test.jsx` · `ProductoServiceImplTest`, `ProductoSeguridadTest` |
+| RF-49 | `pages/admin/ListaUsuarios.jsx`, `NuevoUsuario.jsx` · ms-auth `UsuarioService.eliminar` / `actualizar` | `ListaUsuarios.test.jsx`, `NuevoUsuario.test.jsx` · `UsuarioServiceTest` |
+| RF-50 | `pages/CambiarContrasena.jsx` · ms-auth `CuentaController`, `CuentaService` | `CambiarContrasena.test.jsx` · `CuentaServiceTest`, `CuentaSeguridadTest` |
+| RF-51 | `pages/RecuperarContrasena.jsx`, `RestablecerContrasena.jsx` · ms-auth `RecuperacionController`, `RecuperacionService`, `NotificacionService` | `RecuperacionContrasena.test.jsx` · `RecuperacionServiceTest`, `RecuperacionControllerTest` |
 
 ---
 
@@ -443,10 +465,11 @@ El detalle completo (parámetros, body, respuestas y códigos de error) está en
 1. Los 4 microservicios y Eureka se levantan (`levantar-servicios.ps1`) y aparecen **UP** en Eureka. Cada uno publica su Swagger con los grupos **v1** y **v2**.
 2. Un **cliente** puede registrarse, iniciar sesión, comprar (la venta queda PAGADA y el **stock baja**) y ver la orden en "Mis compras".
 3. Un **vendedor** solo ve lista y detalle de productos y de órdenes. Cualquier escritura en la API devuelve **403**.
-4. El **administrador** puede crear, editar y eliminar productos, ajustar stock, crear usuarios con rol y ver órdenes, clientes y reportes con datos reales.
-5. Sin token, las operaciones protegidas responden **401**; un cliente no puede ver ni pagar ventas ajenas (**403**); un registro duplicado responde **409**.
-6. Las pruebas automatizadas del frontend y del backend pasan y generan **reporte de cobertura**.
-7. `npm run build` y `npm run lint` terminan **sin errores**, y ningún secreto queda en el repositorio.
+4. El **administrador** puede crear, editar, activar y desactivar productos, ajustar stock, crear, editar y eliminar usuarios con rol y ver órdenes, clientes y reportes con datos reales.
+5. Un usuario puede **cambiar su contraseña** con la actual y **recuperarla** con un enlace de un solo uso; la solicitud de recuperación responde igual exista o no la cuenta.
+6. Sin token, las operaciones protegidas responden **401**; un cliente no puede ver ni pagar ventas ajenas (**403**); un registro duplicado responde **409**.
+7. Las pruebas automatizadas del frontend y del backend pasan y generan **reporte de cobertura**.
+8. `npm run build` y `npm run lint` terminan **sin errores**, y ningún secreto queda en el repositorio.
 
 ---
 
