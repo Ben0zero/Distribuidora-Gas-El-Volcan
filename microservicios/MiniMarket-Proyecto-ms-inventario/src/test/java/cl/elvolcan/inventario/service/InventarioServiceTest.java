@@ -253,4 +253,28 @@ class InventarioServiceTest {
         assertThrows(IllegalArgumentException.class, () -> service.sumarStock("CL015", 501));
         verifyNoInteractions(repository);
     }
+
+    // --- Eliminar el registro de un SKU ---
+
+    @Test
+    @DisplayName("eliminarPorSku borra el registro existente")
+    void eliminarPorSkuBorraElRegistro() {
+        Inventario inventario = new Inventario();
+        inventario.setSku("TEST-01");
+        when(repository.findBySku("TEST-01")).thenReturn(Optional.of(inventario));
+
+        service.eliminarPorSku("TEST-01");
+
+        verify(repository).delete(inventario);
+    }
+
+    @Test
+    @DisplayName("eliminarPorSku de un SKU sin registro lanza ResourceNotFoundException (404)")
+    void eliminarPorSkuInexistente() {
+        when(repository.findBySku("NO-EXISTE")).thenReturn(Optional.empty());
+
+        assertThrows(cl.elvolcan.inventario.exception.ResourceNotFoundException.class,
+                () -> service.eliminarPorSku("NO-EXISTE"));
+        verify(repository, never()).delete(any(Inventario.class));
+    }
 }

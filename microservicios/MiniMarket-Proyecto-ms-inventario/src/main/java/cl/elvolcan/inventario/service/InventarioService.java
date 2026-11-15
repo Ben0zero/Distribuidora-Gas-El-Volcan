@@ -27,4 +27,7 @@ public interface InventarioService {
 
     // Obtener todo el inventario
     List<StockResponseDTO> obtenerTodos();
+
+    // Eliminar el registro de stock de un SKU (cuando catálogo elimina el producto)
+    void eliminarPorSku(String sku);
 }

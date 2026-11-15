@@ -22,6 +22,7 @@ import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -118,5 +119,39 @@ class InventarioSeguridadTest {
         mockMvc.perform(get("/api/v1/inventario"))
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.mensaje").value(GlobalExceptionHandler.MENSAJE_INTERNO));
+    }
+
+    // --- DELETE /api/v1/inventario/{sku}: solo ADMIN ---
+
+    @Test
+    @WithMockUser(username = "admin@duoc.cl", roles = "ADMIN")
+    @DisplayName("ADMIN elimina el registro de un SKU (204)")
+    void adminEliminaRegistro() throws Exception {
+        mockMvc.perform(delete("/api/v1/inventario/TEST-01")).andExpect(status().isNoContent());
+        verify(service).eliminarPorSku("TEST-01");
+    }
+
+    @Test
+    @WithMockUser(username = "admin@duoc.cl", roles = "ADMIN")
+    @DisplayName("Eliminar un SKU sin registro responde 404")
+    void eliminarInexistente404() throws Exception {
+        doThrow(new cl.elvolcan.inventario.exception.ResourceNotFoundException("Producto no encontrado"))
+                .when(service).eliminarPorSku("NO-EXISTE");
+        mockMvc.perform(delete("/api/v1/inventario/NO-EXISTE")).andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser(username = "vendedor@elvolcan.cl", roles = "VENDEDOR")
+    @DisplayName("VENDEDOR no puede eliminar registros de inventario (403)")
+    void vendedorNoElimina() throws Exception {
+        mockMvc.perform(delete("/api/v1/inventario/TEST-01")).andExpect(status().isForbidden());
+        verify(service, never()).eliminarPorSku(any());
+    }
+
+    @Test
+    @DisplayName("Sin token, eliminar un registro de inventario responde 401")
+    void sinTokenNoElimina() throws Exception {
+        mockMvc.perform(delete("/api/v1/inventario/TEST-01")).andExpect(status().isUnauthorized());
+        verify(service, never()).eliminarPorSku(any());
     }
 }
