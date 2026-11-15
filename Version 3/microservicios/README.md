@@ -83,13 +83,13 @@ Devuelve `token`, `nombre`, `nombreRol`, `tipoCliente`, `direccion`, etc.
 
 **Registro público** (siempre queda CLIENTE): `POST /api/v1/auth/register`
 ```json
-{ "nombre": "Ana Pérez", "rut": "17234567", "username": "ana@duoc.cl", "password": "abc123",
+{ "nombre": "Ana Pérez", "rut": "20.123.456-5", "username": "ana@duoc.cl", "password": "Clave1234",
   "direccion": "Calle Nueva 789", "region": "Región de Ñuble", "comuna": "Chillán", "tipoCliente": "Residencial" }
 ```
 
 **Crear un Vendedor (token ADMIN)**: `POST /api/v1/usuarios`
 ```json
-{ "nombre": "Carla Muñoz", "rut": "16543210", "username": "carla@elvolcan.cl",
+{ "nombre": "Carla Muñoz", "rut": "16.543.210-K", "username": "carla@elvolcan.cl",
   "password": "Vende123", "nombreRol": "VENDEDOR", "comuna": "Chillán" }
 ```
 Las respuestas usan `UsuarioResponseDTO` y nunca incluyen la contraseña. En `GET /api/v2/usuarios`, cada usuario trae enlaces HATEOAS (`self`, `actualizar`, `eliminar`).

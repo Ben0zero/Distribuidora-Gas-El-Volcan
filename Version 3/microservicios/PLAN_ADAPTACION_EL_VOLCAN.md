@@ -26,7 +26,7 @@ Reutilizar el template de microservicios "MiniMarket" (Spring Boot) para el domi
 ### 2.1 ms-auth (LoginAuth)
 - **Renombrar rol** `PANADERO` → `VENDEDOR`; mantener `ADMIN`; agregar `CLIENTE`.
 - **Registro** (`RegistroRequestDTO`): agregar campos del frontend → `direccion`, `region`, `comuna`, `tipoCliente` (residencial/comercial), `telefono` (opcional).
-- **Usuario base** (DataInitializer): `admin@duoc.cl / Admin123`, RUN `19011022`, nombre "Juan Pérez", rol **Administrador** (igual que `ADMIN_DEFAULT` del frontend, `java.js:28`).
+- **Usuario base** (DataInitializer): `admin@duoc.cl / Admin123`, RUN `19.011.022-2`, nombre "Juan Pérez", rol **Administrador** (igual que `ADMIN_DEFAULT` del frontend, `java.js:28`).
 - **Endpoints**: `POST /api/auth/login`, `GET /api/v2/usuarios` (HATEOAS) — se mantienen.
 
 ### 2.2 ms-catalogo (productos de gas)
@@ -156,7 +156,7 @@ por `fetch()` a los endpoints de arriba. Los **modelos JSON ya están iguales**
       - `Usuario` + `RegistroRequestDTO` + `UsuarioResponseDTO`: campos nuevos `direccion`, `region`, `comuna`,
         `tipoCliente` (valores del frontend: `Residencial`/`Comercial`), `telefono` (opcional).
       - `spring.application.name=ms-auth` (regla del negocio: "ms-<servicio>").
-      - Semilla (`DataInitializer`): `admin@duoc.cl/Admin123` (ADMIN, Juan Pérez, RUN 19011022),
+      - Semilla (`DataInitializer`): `admin@duoc.cl/Admin123` (ADMIN, Juan Pérez, RUN 19.011.022-2),
         `vendedor@elvolcan.cl/Vendedor123` (VENDEDOR), `cliente@elvolcan.cl/Cliente123` (CLIENTE).
       - Limpieza de BD heredada: `ResetAuthDataConfig` (perfil `reset-auth`) borra `ROLES`+`USUARIOS` del template.
         Nota: la BD Oracle compartida corta el socket en escrituras desde jshell → la limpieza se hace desde la app.

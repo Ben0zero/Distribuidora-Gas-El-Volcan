@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { Card, Form, Button, Alert, Row, Col, Spinner } from 'react-bootstrap'
 import { REGIONES, validarNuevoUsuario, normalizarRut, formatearRut } from '../../utils/validaciones'
 import { crearUsuario, actualizarUsuario, obtenerUsuario, ApiError } from '../../utils/api'
-import { ROLES } from '../../utils/sesion'
+import { ROLES, sesionActiva } from '../../utils/sesion'
 
 // Etiqueta de la interfaz -> nombreRol de ms-auth
 const OPCIONES_ROL = [
@@ -40,11 +40,16 @@ function NuevoUsuario() {
   const [error, setError] = useState('')
   const [ok, setOk] = useState('')
   const [enviando, setEnviando] = useState(false)
+  // Correo con el que se cargó el usuario (antes de editarlo), para saber si es la propia cuenta
+  const [usernameOriginal, setUsernameOriginal] = useState('')
 
   const cambiar = (campo) => (e) => setForm({ ...form, [campo]: e.target.value })
   const comunasRegion = REGIONES.find((r) => r.nombre === form.region)
   const regionDesconocida = form.region && !REGIONES.some((r) => r.nombre === form.region)
   const comunaDesconocida = form.comuna && !(comunasRegion?.comunas || []).includes(form.comuna)
+  // H-16: el ADMIN no puede cambiar su propio rol (el backend también lo rechaza con 400)
+  const esMiCuenta = editando && Boolean(usernameOriginal) &&
+    String(sesionActiva()?.correo || '').toLowerCase() === usernameOriginal.toLowerCase()
 
   // En modo edición se precargan los datos actuales del usuario.
   useEffect(() => {
@@ -53,6 +58,7 @@ function NuevoUsuario() {
     obtenerUsuario(id)
       .then((u) => {
         if (!activo) return
+        setUsernameOriginal(u.username || '')
         setForm({
           nombre: u.nombre || '',
           correo: u.username || '',
@@ -202,12 +208,18 @@ function NuevoUsuario() {
                 <Col md={6} className="mb-3 mb-md-0">
                   <Form.Group controlId="usuario-rol">
                     <Form.Label className="text-uppercase fw-bold text-secondary" style={etiqueta}>Rol</Form.Label>
-                    <Form.Select className="rounded-0 border-dark" value={form.rol} onChange={cambiar('rol')}>
+                    <Form.Select className="rounded-0 border-dark" value={form.rol} onChange={cambiar('rol')}
+                      disabled={esMiCuenta} aria-describedby={esMiCuenta ? 'usuario-rol-ayuda' : undefined}>
                       <option value="">Elige un rol...</option>
                       {OPCIONES_ROL.map((r) => (
                         <option key={r.valor} value={r.valor}>{r.etiqueta}</option>
                       ))}
                     </Form.Select>
+                    {esMiCuenta && (
+                      <Form.Text id="usuario-rol-ayuda" className="text-muted">
+                        No puedes cambiar tu propio rol de administrador.
+                      </Form.Text>
+                    )}
                   </Form.Group>
                 </Col>
                 <Col md={6}>

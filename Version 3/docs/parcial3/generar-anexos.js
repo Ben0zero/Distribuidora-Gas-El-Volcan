@@ -10,7 +10,7 @@ const capturasDir = path.join(__dirname, 'capturas');
 const VER = '3.0';
 const FECHA = '12-11-2026';
 // El Anexo 2 se actualizó tras la auditoría OWASP (docs/AUDITORIA_EP3.md)
-const VER_ANEXO2 = '3.3';
+const VER_ANEXO2 = '3.4';
 const FECHA_ANEXO2 = '15-11-2026';
 
 // ---------- helpers ----------
@@ -178,7 +178,12 @@ function anexo2() {
       'aleatorio de 32 bytes, se guarda solo su SHA-256, vence en 15 minutos, es de un solo uso e invalida los anteriores; máximo 3 ' +
       'solicitudes por usuario cada 15 minutos. El enlace se envía por NotificacionService y nunca viene en la respuesta. ' +
       'Con app.notificacion.modo=log (por defecto) se escribe solo en el log de ms-auth; con app.notificacion.modo=correo se ' +
-      'envía un correo por SMTP (spring-boot-starter-mail). Si el envío falla, solo se registra en el log y la respuesta no cambia.'),
+      'envía un correo por SMTP (spring-boot-starter-mail) en segundo plano (@Async con un executor acotado de 1–2 hilos y cola de 50), ' +
+      'así que la respuesta no espera al servidor de correo. Si el envío falla, solo se registra en el log y la respuesta no cambia.'),
+    bullet('Un administrador no puede quitarse su propio rol ni quitárselo al último ADMIN (400 con el motivo). En el formulario ' +
+      'de edición el selector de rol queda bloqueado cuando el admin se edita a sí mismo.'),
+    bullet('Un token mal formado, con firma inválida o expirado (o de un usuario que ya no existe) no rompe la petición: el filtro ' +
+      'JWT de cada servicio lo captura, la petición sigue sin autenticar y una ruta privada responde 401 en JSON.'),
     bullet('Ante un error interno, la API responde 500 con un mensaje genérico; el detalle técnico queda solo en el log del servicio.'),
     p('Roles del sistema:'),
     table(
@@ -261,7 +266,7 @@ function anexo2() {
         ['GET', '/api/v1/usuarios', 'Sí', 'ADMIN', 'Lista todos los usuarios'],
         ['GET', '/api/v1/usuarios/{id}', 'Sí', 'ADMIN', 'Obtiene un usuario por ID'],
         ['POST', '/api/v1/usuarios', 'Sí', 'ADMIN', 'Crea un usuario con el rol indicado'],
-        ['PUT', '/api/v1/usuarios/{id}', 'Sí', 'ADMIN', 'Actualiza datos del usuario'],
+        ['PUT', '/api/v1/usuarios/{id}', 'Sí', 'ADMIN', 'Actualiza datos del usuario; un ADMIN no puede quitarse su propio rol ni dejar el sistema sin ADMIN (400)'],
         ['DELETE', '/api/v1/usuarios/{id}', 'Sí', 'ADMIN', 'Elimina un usuario; un ADMIN no puede borrar su propia cuenta (400)'],
         ['PUT', '/api/v1/cuenta/contrasena', 'Sí', 'Autenticado', 'Cambia la contraseña del usuario del token (pide la actual)'],
         ['POST', '/api/v1/auth/recuperar', 'No', 'Público', 'Pide un enlace de recuperación; responde siempre el mismo mensaje'],
@@ -396,16 +401,16 @@ function anexo2() {
     table(
       ['Componente', 'Herramienta', 'Pruebas', 'Qué cubren'],
       [
-        ['ms-auth', 'JUnit + MockMvc', '90', 'Login, registro, JWT, política de contraseñas, RUT (incluida la semilla), roles en usuarios, cambio y recuperación de contraseña, límite de intentos (429), correo de recuperación con JavaMailSender simulado, errores'],
+        ['ms-auth', 'JUnit + MockMvc', '102', 'Login, registro, JWT (incluidos tokens mal formados o expirados → 401), política de contraseñas, RUT (incluida la semilla), roles en usuarios (rol propio y último ADMIN), cambio y recuperación de contraseña, límite de intentos (429), correo de recuperación asíncrono con JavaMailSender simulado, errores'],
         ['ms-catalogoProductos', 'JUnit + MockMvc', '27', 'CRUD, SKU no modificable, catálogo público, activar/desactivar (solo ADMIN), 404/500'],
         ['ms-inventario', 'JUnit + MockMvc', '26', 'Ajustes de stock con tope 1–500, stock crítico, 409 por concurrencia, solo ADMIN escribe'],
         ['ms-ventas', 'JUnit + MockMvc', '37', 'Precio por tipo de cliente del token, ítems agrupados, topes, dueño de la venta, bloqueo optimista, 403 por rol'],
-        ['Frontend React', 'Vitest + Testing Library', '127 (29 archivos)', 'Componentes, páginas, sesión, carrito, buscador, RUT, contraseñas, mensaje 429 del login y llamadas a la API'],
+        ['Frontend React', 'Vitest + Testing Library', '130 (29 archivos)', 'Componentes, páginas, sesión, carrito, buscador, RUT, contraseñas, mensaje 429 del login, rol propio bloqueado y llamadas a la API'],
       ],
       [22, 20, 14, 44]
     ),
     new Paragraph({ text: '', spacing: { after: 120 } }),
-    p('Total backend: 180 pruebas JUnit. Pruebas manuales contra Oracle Cloud con el sistema completo en ejecución:', { bold: true }),
+    p('Total backend: 192 pruebas JUnit. Pruebas manuales contra Oracle Cloud con el sistema completo en ejecución:', { bold: true }),
     table(
       ['Prueba', 'Resultado esperado', 'Resultado obtenido'],
       [
@@ -423,6 +428,8 @@ function anexo2() {
         ['CLIENTE intenta listar todas las ventas', '403', 'OK'],
         ['VENDEDOR lista las órdenes', '200', 'OK'],
         ['ADMIN desactiva y reactiva un producto', 'Sale de la tienda y vuelve; VENDEDOR y CLIENTE reciben 403', 'OK'],
+        ['ADMIN intenta quitarse su propio rol (PUT /api/v1/usuarios/{id})', '400 "No puedes cambiar tu propio rol de administrador"; el rol no cambia', 'OK'],
+        ['Petición a ms-auth con token mal formado o con la firma alterada', '401 en JSON', 'OK'],
         ['Crear usuario con RUT de dígito verificador inválido', '400; editar un usuario existente sigue funcionando', 'OK'],
         ['Cambiar contraseña con la actual incorrecta / correcta', '400 / 204; la anterior deja de servir', 'OK'],
         ['Recuperar contraseña de cuenta existente e inexistente', 'Misma respuesta 200; el token no viene en la respuesta', 'OK'],

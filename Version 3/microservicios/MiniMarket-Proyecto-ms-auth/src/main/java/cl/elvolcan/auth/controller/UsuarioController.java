@@ -49,13 +49,15 @@ public class UsuarioController {
         return ResponseEntity.status(HttpStatus.CREATED).body(usuarioService.crear(request));
     }
 
-    @Operation(summary = "Actualizar usuario", description = "Modifica datos y rol. Si la contraseña viene vacía, se conserva la actual.")
+    @Operation(summary = "Actualizar usuario", description = "Modifica datos y rol. Si la contraseña viene vacía, se conserva la actual. Un ADMIN no puede quitarse su propio rol ni dejar el sistema sin administradores.")
     @ApiResponse(responseCode = "200", description = "Usuario actualizado con éxito")
+    @ApiResponse(responseCode = "400", description = "Datos inválidos, o el ADMIN intenta quitarse su propio rol o quitárselo al último ADMIN")
     @ApiResponse(responseCode = "404", description = "Usuario no encontrado")
     @ApiResponse(responseCode = "409", description = "El RUT o usuario nuevo ya pertenece a otra persona")
     @PutMapping("/{id}")
-    public ResponseEntity<UsuarioResponseDTO> actualizarUsuario(@PathVariable Long id, @Valid @RequestBody UsuarioAdminRequestDTO request) {
-        return ResponseEntity.ok(usuarioService.actualizar(id, request));
+    public ResponseEntity<UsuarioResponseDTO> actualizarUsuario(@PathVariable Long id, @Valid @RequestBody UsuarioAdminRequestDTO request,
+                                                    Authentication authentication) {
+        return ResponseEntity.ok(usuarioService.actualizar(id, request, authentication != null ? authentication.getName() : null));
     }
 
     @Operation(summary = "Eliminar usuario", description = "Borra al usuario por su ID. Requiere rol ADMIN. Un ADMIN no puede eliminar su propia cuenta.")

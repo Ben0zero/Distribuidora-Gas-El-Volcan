@@ -186,4 +186,59 @@ describe('Edición de usuario (PUT /api/v1/usuarios/:id)', () => {
     })
     expect(cuerpo).not.toHaveProperty('password')
   })
+
+  function renderEdicion(idUsuario) {
+    render(
+      <MemoryRouter initialEntries={[`/admin/usuarios/${idUsuario}/editar`]}>
+        <Routes>
+          <Route path="/admin/usuarios/:id/editar" element={<NuevoUsuario />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+  }
+
+  const ADMIN = {
+    id: 1, nombre: 'Juan Perez', rut: '190110222', username: 'admin@duoc.cl', nombreRol: 'ADMIN',
+    telefono: '', direccion: '', region: 'Región de Ñuble', comuna: 'Chillán',
+  }
+
+  test('H-16: el admin que se edita a sí mismo no puede cambiar su rol (selector bloqueado)', async () => {
+    const sesion = guardarSesion({ rol: 'Administrador' })
+    localStorage.setItem('sesion', JSON.stringify({ ...sesion, correo: 'ADMIN@duoc.cl' }))
+    fetchMock.mockReturnValueOnce(json(200, ADMIN))
+    renderEdicion(1)
+
+    expect(await screen.findByDisplayValue('Juan Perez')).toBeInTheDocument()
+    expect(screen.getByLabelText('Rol')).toBeDisabled()
+    expect(screen.getByText('No puedes cambiar tu propio rol de administrador.')).toBeInTheDocument()
+  })
+
+  test('H-16: al editar a otro usuario el selector de rol sigue habilitado', async () => {
+    const sesion = guardarSesion({ rol: 'Administrador' })
+    localStorage.setItem('sesion', JSON.stringify({ ...sesion, correo: 'otro.admin@duoc.cl' }))
+    fetchMock.mockReturnValueOnce(json(200, ADMIN))
+    renderEdicion(1)
+
+    expect(await screen.findByDisplayValue('Juan Perez')).toBeInTheDocument()
+    expect(screen.getByLabelText('Rol')).toBeEnabled()
+  })
+
+  test('H-16: si el backend rechaza quitar el rol al último ADMIN (400) muestra su mensaje', async () => {
+    const user = userEvent.setup()
+    const sesion = guardarSesion({ rol: 'Administrador' })
+    localStorage.setItem('sesion', JSON.stringify({ ...sesion, correo: 'otro.admin@duoc.cl' }))
+    fetchMock.mockReturnValueOnce(json(200, ADMIN))
+    renderEdicion(1)
+    await screen.findByDisplayValue('Juan Perez')
+
+    await user.selectOptions(screen.getByLabelText('Rol'), 'VENDEDOR')
+    fetchMock.mockReturnValueOnce(json(400, {
+      error: 'Datos inválidos (400)',
+      mensaje: 'Debe quedar al menos un administrador: no se puede quitar el rol al último ADMIN',
+    }))
+    await user.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+
+    expect(await screen.findByText('Debe quedar al menos un administrador: no se puede quitar el rol al último ADMIN'))
+      .toBeInTheDocument()
+  })
 })

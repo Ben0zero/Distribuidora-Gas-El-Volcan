@@ -5,7 +5,7 @@
 **Asignatura:** DSY1104 — Desarrollo Fullstack II
 **Evaluación:** Evaluación Parcial N° 3 (integración frontend React + microservicios Spring Boot)
 **Tecnología principal de esta entrega:** React (SPA) + microservicios Spring Boot + Oracle Cloud
-**Versión del documento:** 3.3
+**Versión del documento:** 3.4
 **Fecha:** Noviembre 2026
 
 ---
@@ -21,6 +21,7 @@
 | **3.1** | **EP3** | **Correcciones de la auditoría OWASP (`docs/AUDITORIA_EP3.md`): tipo de cliente desde el JWT, topes de cantidades, bloqueo optimista al confirmar el pago, errores internos con mensaje genérico, JWT de 2 h, contraseñas de 8 a 64 caracteres con letra y número, y estado de los secretos.** | **Equipo** |
 | **3.2** | **EP3** | **Nuevas funciones: activar y desactivar productos, eliminar usuarios, cambiar la contraseña con sesión iniciada y recuperarla con un enlace de un solo uso (RF-48 a RF-51). Además: buscador con sugerencias de productos, precio destacado según el tipo de cliente, carrito que se vacía al cerrar sesión y RUT con formato y dígito verificador.** | **Equipo** |
 | **3.3** | **EP3** | **Límite de intentos de login (429 con mensaje genérico), envío del enlace de recuperación por correo activable por configuración, RUT válido en los usuarios semilla, el frontend deja de enviar el tipo de cliente en la venta y se agregan las pruebas correspondientes.** | **Equipo** |
+| **3.4** | **EP3** | **Un administrador no puede quitarse su propio rol ni dejar el sistema sin administradores (H-16); ms-auth maneja tokens inválidos o expirados respondiendo 401 en JSON (H-20); el correo de recuperación se envía en segundo plano.** | **Equipo** |
 
 ---
 
@@ -209,10 +210,12 @@ main.jsx
   - Si el token expiró, se pide volver a iniciar sesión. Al cerrar sesión (o si el token vence) también se **vacía el carrito**, para que el siguiente usuario del navegador no lo vea.
 - **Contraseñas:**
   - **Cambio con sesión iniciada** (`PUT /api/v1/cuenta/contrasena`): exige el token y la **contraseña actual**; el usuario sale del token, nunca del cuerpo de la petición.
-  - **Recuperación** (`POST /api/v1/auth/recuperar` y `/restablecer`): responde **siempre el mismo mensaje**, exista o no la cuenta (anti-enumeración). Se crea un token aleatorio de 32 bytes (`SecureRandom`) y se guarda **solo su SHA-256**. El token vence en **15 minutos**, es de **un solo uso** e invalida los enlaces anteriores. Hay un máximo de **3 solicitudes por usuario cada 15 minutos**. El enlace se envía por la interfaz `NotificacionService` y nunca viene en la respuesta de la API. La implementación se elige con `app.notificacion.modo`: **`log`** (por defecto) lo escribe solo en el log de ms-auth, y **`correo`** lo envía por SMTP (`spring-boot-starter-mail`) con un correo en español que avisa que vence en 15 minutos y que, si el usuario no lo pidió, puede ignorarlo. Las credenciales SMTP (`spring.mail.*`) se leen del archivo externo de secretos. Si el envío falla, solo se registra en el log y el usuario recibe la misma respuesta.
+  - **Recuperación** (`POST /api/v1/auth/recuperar` y `/restablecer`): responde **siempre el mismo mensaje**, exista o no la cuenta (anti-enumeración). Se crea un token aleatorio de 32 bytes (`SecureRandom`) y se guarda **solo su SHA-256**. El token vence en **15 minutos**, es de **un solo uso** e invalida los enlaces anteriores. Hay un máximo de **3 solicitudes por usuario cada 15 minutos**. El enlace se envía por la interfaz `NotificacionService` y nunca viene en la respuesta de la API. La implementación se elige con `app.notificacion.modo`: **`log`** (por defecto) lo escribe solo en el log de ms-auth, y **`correo`** lo envía por SMTP (`spring-boot-starter-mail`) con un correo en español que avisa que vence en 15 minutos y que, si el usuario no lo pidió, puede ignorarlo. Las credenciales SMTP (`spring.mail.*`) se leen del archivo externo de secretos. El correo se envía **en segundo plano** (`@Async` con un executor acotado: 1–2 hilos y cola de 50; si la cola se llena, el envío se descarta y queda en el log), así que `/recuperar` no espera al servidor SMTP. Si el envío falla, solo se registra en el log y el usuario recibe la misma respuesta.
 - **Autorización en el backend:**
   - `@PreAuthorize` y reglas por método HTTP en cada `SecurityConfig`.
   - El servicio de ventas verifica además que el cliente sea **dueño** de la venta.
+  - Un administrador **no puede quitarse su propio rol** ni quitárselo al **último ADMIN** (400 con el motivo); en el formulario de edición el selector de rol queda bloqueado cuando el admin se edita a sí mismo.
+  - Un token **mal formado, con firma inválida o expirado**, o de un usuario que ya no existe, no rompe la petición en ningún servicio: se sigue sin autenticar y una ruta privada responde **401 en JSON**.
   - Respuestas: **401** sin token o con credenciales malas; **403** sin permiso; **429** por demasiados intentos de login; **500** con mensaje genérico ante un error interno (el detalle queda en el log).
 - **Autorización en el frontend:** `RutaProtegida` y el Navbar muestran solo las vistas del rol. Un Vendedor en la tienda es redirigido a su panel.
 - **Registro:** el body **no** decide el rol: siempre se crea un CLIENTE.
@@ -339,7 +342,7 @@ El catálogo vive en **ms-catalogoProductos**:
 | Cód. | Requerimiento | Prioridad | Estado |
 |------|---------------|:---------:|:------:|
 | **RF-48** | El administrador debe poder **activar y desactivar** productos. El panel lista también los inactivos con la etiqueta "Inactivo" y un botón Activar/Desactivar (`GET /api/v1/productos/todos`, `PATCH /api/v1/productos/{id}/estado`, solo ADMIN). La tienda sigue mostrando solo los activos. | A | ✅ |
-| **RF-49** | El administrador debe poder **eliminar** usuarios con confirmación y **editar** sus datos. Un administrador no puede eliminar su propia cuenta (la interfaz lo impide y el backend responde 400 con el motivo). | A | ✅ |
+| **RF-49** | El administrador debe poder **eliminar** usuarios con confirmación y **editar** sus datos. Un administrador no puede eliminar su propia cuenta ni cambiar su propio rol, y no se puede quitar el rol al último administrador (la interfaz lo impide y el backend responde 400 con el motivo). | A | ✅ |
 | **RF-50** | Todo usuario con sesión debe poder **cambiar su contraseña** indicando la actual y la nueva (8 a 64 caracteres, con letra y número), desde la tienda o desde su panel. | A | ✅ |
 | **RF-51** | El usuario debe poder **recuperar su contraseña** con un enlace de un solo uso que vence en 15 minutos. La solicitud no revela si la cuenta existe y se limita a 3 por usuario cada 15 minutos. Nunca se puede cambiar la contraseña conociendo solo el nombre de usuario. | A | ✅ |
 
@@ -444,7 +447,7 @@ El detalle completo (parámetros, body, respuestas y códigos de error) está en
 | RF-04, RF-05 | `pages/DetalleProducto.jsx` | `DetalleProducto.test.jsx` |
 | RF-07 – RF-13 | `utils/carrito.js`, `pages/Carrito.jsx`, `App.jsx` | `carrito.test.js`, `Carrito.test.jsx`, `Navbar.test.jsx` |
 | RF-14 – RF-16, RF-19 | `pages/Registro.jsx`, `utils/validaciones.js` · ms-auth `AuthService.registrar` | `Registro.test.jsx`, `validaciones.test.js` · `AuthServiceTest`, `AuthControllerTest` (409, 400), `DataInitializerTest` de ms-auth (RUT semilla válido) |
-| RF-17, RF-18, RF-38, RF-47 | `pages/Login.jsx`, `utils/sesion.js`, `components/RutaProtegida.jsx` · ms-auth `AuthController.login`, `JwtUtil`, `LimiteIntentosLogin` | `Login.test.jsx` (incluye el 429), `sesion.test.js`, `RutaProtegida.test.jsx` · `AuthServiceTest`, `AuthControllerTest` (429 e IP), `LimiteIntentosLoginTest` |
+| RF-17, RF-18, RF-38, RF-47 | `pages/Login.jsx`, `utils/sesion.js`, `components/RutaProtegida.jsx` · ms-auth `AuthController.login`, `JwtUtil`, `JwtAuthenticationFilter`, `LimiteIntentosLogin` | `Login.test.jsx` (incluye el 429), `sesion.test.js`, `RutaProtegida.test.jsx` · `AuthServiceTest`, `AuthControllerTest` (429 e IP), `LimiteIntentosLoginTest`, `JwtFiltroSeguridadTest` (token mal formado, expirado o con otra firma → 401) |
 | RF-20 – RF-24 | `pages/Ventas.jsx` · ms-ventas `VentaService.crearPedido` / `confirmarPago` (Feign a catálogo e inventario) | `Ventas.test.jsx` · `VentaServiceTest`, `VentaRequestDTOTest` |
 | RF-26 – RF-28 | `pages/Contacto.jsx`, `Nosotros.jsx`, `Consejos.jsx`, `Tiendas.jsx` | `validaciones.test.js`, `Nosotros.test.jsx` |
 | RF-29, RF-43 | `pages/admin/Dashboard.jsx`, `Ordenes.jsx`, `utils/ventas.js` · ms-ventas `GET /ventas`, `/ventas/{id}` | `PanelAdmin.test.jsx`, `ventas.test.js` · `VentaServiceTest` (detalle por rol) |
@@ -456,9 +459,9 @@ El detalle completo (parámetros, body, respuestas y códigos de error) está en
 | RF-44 | `pages/admin/Clientes.jsx`, `Reportes.jsx`, `utils/reportes.js` | `reportes.test.js`, `ClientesReportes.test.jsx` |
 | RF-45 | Controladores V1 y V2, `SwaggerConfig` (grupos v1/v2) | Prueba manual en Swagger (Anexo 2) |
 | RF-48 | `pages/admin/Inventario.jsx` · ms-catalogoProductos `ProductoController.cambiarEstado`, `listarTodosAdmin` | `Inventario.test.jsx` · `ProductoServiceImplTest`, `ProductoSeguridadTest` |
-| RF-49 | `pages/admin/ListaUsuarios.jsx`, `NuevoUsuario.jsx` · ms-auth `UsuarioService.eliminar` / `actualizar` | `ListaUsuarios.test.jsx`, `NuevoUsuario.test.jsx` · `UsuarioServiceTest` |
+| RF-49 | `pages/admin/ListaUsuarios.jsx`, `NuevoUsuario.jsx` · ms-auth `UsuarioService.eliminar` / `actualizar` | `ListaUsuarios.test.jsx`, `NuevoUsuario.test.jsx` (rol propio bloqueado, 400 del último ADMIN) · `UsuarioServiceTest` |
 | RF-50 | `pages/CambiarContrasena.jsx` · ms-auth `CuentaController`, `CuentaService` | `CambiarContrasena.test.jsx` · `CuentaServiceTest`, `CuentaSeguridadTest` |
-| RF-51 | `pages/RecuperarContrasena.jsx`, `RestablecerContrasena.jsx` · ms-auth `RecuperacionController`, `RecuperacionService`, `NotificacionService` (`NotificacionLogService` / `NotificacionCorreoService`) | `RecuperacionContrasena.test.jsx` · `RecuperacionServiceTest`, `RecuperacionControllerTest`, `NotificacionCorreoServiceTest` |
+| RF-51 | `pages/RecuperarContrasena.jsx`, `RestablecerContrasena.jsx` · ms-auth `RecuperacionController`, `RecuperacionService`, `NotificacionService` (`NotificacionLogService` / `NotificacionCorreoService`) | `RecuperacionContrasena.test.jsx` · `RecuperacionServiceTest`, `RecuperacionControllerTest`, `NotificacionCorreoServiceTest`, `NotificacionCorreoAsyncTest` |
 
 ---
 
