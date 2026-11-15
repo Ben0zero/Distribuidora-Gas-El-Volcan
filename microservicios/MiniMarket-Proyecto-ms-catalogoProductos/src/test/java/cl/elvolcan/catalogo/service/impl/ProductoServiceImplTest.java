@@ -1,5 +1,8 @@
 package cl.elvolcan.catalogo.service.impl;
 
+import static org.mockito.ArgumentMatchers.argThat;
+import org.springframework.data.domain.Sort;
+import cl.elvolcan.catalogo.exception.ProductoNoEncontradoException;
 import cl.elvolcan.catalogo.client.InventarioClient;
 import cl.elvolcan.catalogo.dto.InventarioInitDTO;
 import cl.elvolcan.catalogo.dto.ProductoRequestDTO;
@@ -229,5 +232,60 @@ class ProductoServiceImplTest {
     void actualizarProductoInexistente() {
         when(productoRepository.findById(99L)).thenReturn(Optional.empty());
         assertThrows(RuntimeException.class, () -> productoService.actualizarProducto(99L, new ProductoRequestDTO()));
+    }
+
+    // --- Activar / desactivar productos (panel admin) ---
+
+    private Producto producto(Long id, boolean activo) {
+        Producto p = new Producto();
+        p.setId(id);
+        p.setSku("CL00" + id);
+        p.setNombre("Cilindro " + id);
+        p.setActivo(activo);
+        return p;
+    }
+
+    @Test
+    @DisplayName("cambiarEstado reactiva un producto inactivo y lo guarda")
+    void cambiarEstadoReactiva() {
+        Producto inactivo = producto(4L, false);
+        when(productoRepository.findById(4L)).thenReturn(Optional.of(inactivo));
+        when(productoRepository.save(inactivo)).thenReturn(inactivo);
+
+        ProductoResponseDTO resultado = productoService.cambiarEstado(4L, true);
+
+        assertTrue(resultado.getActivo());
+        verify(productoRepository).save(argThat(Producto::getActivo));
+    }
+
+    @Test
+    @DisplayName("cambiarEstado desactiva un producto activo")
+    void cambiarEstadoDesactiva() {
+        Producto activo = producto(2L, true);
+        when(productoRepository.findById(2L)).thenReturn(Optional.of(activo));
+        when(productoRepository.save(activo)).thenReturn(activo);
+
+        assertFalse(productoService.cambiarEstado(2L, false).getActivo());
+    }
+
+    @Test
+    @DisplayName("cambiarEstado de un producto inexistente lanza 404 y no guarda")
+    void cambiarEstadoInexistente() {
+        when(productoRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThrows(ProductoNoEncontradoException.class, () -> productoService.cambiarEstado(99L, true));
+        verify(productoRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("obtenerTodos incluye los inactivos (la tienda sigue usando obtenerTodosActivos)")
+    void obtenerTodosIncluyeInactivos() {
+        when(productoRepository.findAll(any(Sort.class))).thenReturn(List.of(producto(1L, true), producto(2L, false)));
+
+        List<ProductoResponseDTO> todos = productoService.obtenerTodos();
+
+        assertEquals(2, todos.size());
+        assertFalse(todos.get(1).getActivo());
+        verify(productoRepository, never()).findByActivoTrue();
     }
 }

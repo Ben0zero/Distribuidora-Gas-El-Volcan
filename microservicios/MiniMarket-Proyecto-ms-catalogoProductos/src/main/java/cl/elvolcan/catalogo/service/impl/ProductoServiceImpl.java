@@ -4,6 +4,7 @@ import cl.elvolcan.catalogo.exception.ProductoNoEncontradoException;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import cl.elvolcan.catalogo.dto.ProductoRequestDTO;
 import cl.elvolcan.catalogo.dto.ProductoResponseDTO;
@@ -115,6 +116,21 @@ public class ProductoServiceImpl implements ProductoService {
             producto.setPrecioComercial(pRes);
         }
 
+        return mapearADTO(productoRepository.save(producto));
+    }
+
+    @Override
+    public List<ProductoResponseDTO> obtenerTodos() {
+        return productoRepository.findAll(Sort.by("id")).stream()
+                .map(this::mapearADTO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public ProductoResponseDTO cambiarEstado(Long id, boolean activo) {
+        Producto producto = productoRepository.findById(id)
+                .orElseThrow(() -> new ProductoNoEncontradoException("Producto no encontrado con ID: " + id));
+        producto.setActivo(activo);
         return mapearADTO(productoRepository.save(producto));
     }
 

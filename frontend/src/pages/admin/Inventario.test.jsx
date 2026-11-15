@@ -7,7 +7,8 @@ import { guardarSesion } from '../../testUtils/jwt'
 
 const CATALOGO = [
   { id: 1, sku: 'CL001', nombre: 'Cilindro GLP 5 kg', precioResidencial: 6500, precioComercial: 6000, categoria: 'Cilindros de Gas' },
-  { id: 2, sku: 'CL002', nombre: 'Cilindro GLP 11 kg', precioResidencial: 12000, precioComercial: 11000, categoria: 'Cilindros de Gas' },
+  { id: 2, sku: 'CL002', nombre: 'Cilindro GLP 11 kg', precioResidencial: 12000, precioComercial: 11000, categoria: 'Cilindros de Gas', activo: true },
+  { id: 4, sku: 'CL004', nombre: 'Cilindro GLP 45 kg', precioResidencial: 45000, precioComercial: 42000, categoria: 'Cilindros de Gas', activo: false },
 ]
 const STOCK = [{ sku: 'CL001', stockActual: 80, bajoStock: false }, { sku: 'CL002', stockActual: 3, bajoStock: true }]
 
@@ -18,12 +19,12 @@ function json(status, cuerpo = {}) {
 function api() {
   return vi.fn((url, opciones = {}) => {
     const metodo = opciones.method || 'GET'
-    if (metodo === 'GET' && url.endsWith('/api/v1/productos')) return json(200, CATALOGO)
+    if (metodo === 'GET' && url.endsWith('/api/v1/productos/todos')) return json(200, CATALOGO)
     if (metodo === 'GET' && url.endsWith('/api/v1/inventario')) return json(200, STOCK)
     if (metodo === 'POST' && url.endsWith('/api/v1/productos')) return json(200, { id: 3 })
     if (metodo === 'PUT' && /\/api\/v1\/productos\/\d+$/.test(url)) return json(200, {})
     if (metodo === 'PUT' && /\/api\/v1\/inventario\/(aumentar|disminuir)$/.test(url)) return json(200, {})
-    if (metodo === 'DELETE') return Promise.resolve({ ok: true, status: 204, json: () => Promise.resolve({}) })
+    if (metodo === 'PATCH' && /\/api\/v1\/productos\/\d+\/estado$/.test(url)) return json(200, {})
     return json(404)
   })
 }
@@ -91,15 +92,51 @@ describe('Página admin <Inventario /> (ms-catalogoProductos + ms-inventario)', 
     expect(JSON.parse(disminucion[1].body)).toEqual({ sku: 'CL001', stockActual: 10 })
   })
 
-  test('eliminar pide confirmación y desactiva el producto por SKU', async () => {
+  test('muestra también los inactivos con su etiqueta y botón Activar', async () => {
+    render(<Inventario />)
+    const inactiva = (await screen.findByText('Cilindro GLP 45 kg')).closest('tr')
+
+    expect(within(inactiva).getByText('Inactivo')).toBeInTheDocument()
+    expect(within(inactiva).getByRole('button', { name: 'Activar' })).toBeInTheDocument()
+    const activa = screen.getByText('Cilindro GLP 11 kg').closest('tr')
+    expect(within(activa).queryByText('Inactivo')).not.toBeInTheDocument()
+    expect(within(activa).getByRole('button', { name: 'Desactivar' })).toBeInTheDocument()
+    // el panel usa el listado completo (incluye inactivos), no el de la tienda
+    expect(llamadas(fetchMock, 'GET', /\/api\/v1\/productos\/todos$/)).toHaveLength(1)
+  })
+
+  test('desactivar pide confirmación y envía PATCH con activo=false', async () => {
     const user = userEvent.setup()
     vi.spyOn(window, 'confirm').mockReturnValue(true)
     render(<Inventario />)
     const fila = (await screen.findByText('Cilindro GLP 11 kg')).closest('tr')
 
-    await user.click(within(fila).getByRole('button', { name: 'Eliminar' }))
+    await user.click(within(fila).getByRole('button', { name: 'Desactivar' }))
 
-    expect(await screen.findByText('Producto eliminado del catálogo')).toBeInTheDocument()
-    expect(llamadas(fetchMock, 'DELETE', /\/api\/v1\/productos\/CL002$/)).toHaveLength(1)
+    expect(await screen.findByText('"Cilindro GLP 11 kg" quedó inactivo')).toBeInTheDocument()
+    const [patch] = llamadas(fetchMock, 'PATCH', /\/api\/v1\/productos\/2\/estado$/)
+    expect(JSON.parse(patch[1].body)).toEqual({ activo: false })
+  })
+
+  test('si se cancela la confirmación no se desactiva', async () => {
+    const user = userEvent.setup()
+    vi.spyOn(window, 'confirm').mockReturnValue(false)
+    render(<Inventario />)
+    const fila = (await screen.findByText('Cilindro GLP 11 kg')).closest('tr')
+
+    await user.click(within(fila).getByRole('button', { name: 'Desactivar' }))
+    expect(llamadas(fetchMock, 'PATCH', /estado$/)).toHaveLength(0)
+  })
+
+  test('activar un producto inactivo envía PATCH con activo=true (sin confirmación)', async () => {
+    const user = userEvent.setup()
+    render(<Inventario />)
+    const fila = (await screen.findByText('Cilindro GLP 45 kg')).closest('tr')
+
+    await user.click(within(fila).getByRole('button', { name: 'Activar' }))
+
+    expect(await screen.findByText('"Cilindro GLP 45 kg" volvió a la tienda')).toBeInTheDocument()
+    const [patch] = llamadas(fetchMock, 'PATCH', /\/api\/v1\/productos\/4\/estado$/)
+    expect(JSON.parse(patch[1].body)).toEqual({ activo: true })
   })
 })

@@ -21,4 +21,10 @@ public interface ProductoService {
     
     // soft delete, se desactiva en lugar de borrar
     void desactivarProducto(String sku);
+
+    // panel admin: todos los productos, activos e inactivos
+    List<ProductoResponseDTO> obtenerTodos();
+
+    // activa o desactiva un producto (la tienda solo muestra los activos)
+    ProductoResponseDTO cambiarEstado(Long id, boolean activo);
 }

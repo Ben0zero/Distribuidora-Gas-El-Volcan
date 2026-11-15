@@ -1,5 +1,7 @@
 package cl.elvolcan.catalogo.controller;
 
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import cl.elvolcan.catalogo.exception.ProductoNoEncontradoException;
 import cl.elvolcan.catalogo.exception.GlobalExceptionHandler;
@@ -105,5 +107,62 @@ class ProductoSeguridadTest {
                 .andExpect(jsonPath("$.mensaje").value(GlobalExceptionHandler.MENSAJE_INTERNO));
         // un id con formato inválido es error del cliente (400), no un 500
         mockMvc.perform(get("/api/v1/productos/id/abc")).andExpect(status().isBadRequest());
+    }
+
+    // --- Panel admin: listado completo y activar/desactivar (solo ADMIN) ---
+
+    private static final String ACTIVAR = "{\"activo\":true}";
+
+    @Test
+    @WithMockUser(username = "admin@duoc.cl", roles = "ADMIN")
+    @DisplayName("ADMIN lista todos los productos (incluye inactivos) y cambia su estado")
+    void adminListaTodosYCambiaEstado() throws Exception {
+        when(productoService.obtenerTodos()).thenReturn(List.of());
+        when(productoService.cambiarEstado(4L, true)).thenReturn(new ProductoResponseDTO());
+
+        mockMvc.perform(get("/api/v1/productos/todos")).andExpect(status().isOk());
+        mockMvc.perform(patch("/api/v1/productos/4/estado").contentType(MediaType.APPLICATION_JSON).content(ACTIVAR))
+                .andExpect(status().isOk());
+        verify(productoService).cambiarEstado(4L, true);
+    }
+
+    @Test
+    @WithMockUser(username = "admin@duoc.cl", roles = "ADMIN")
+    @DisplayName("cambiar estado sin el campo activo responde 400")
+    void cambiarEstadoSinCampo() throws Exception {
+        mockMvc.perform(patch("/api/v1/productos/4/estado").contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isBadRequest());
+        verify(productoService, never()).cambiarEstado(anyLong(), anyBoolean());
+    }
+
+    @Test
+    @WithMockUser(username = "vendedor@elvolcan.cl", roles = "VENDEDOR")
+    @DisplayName("VENDEDOR no ve los inactivos ni cambia el estado (403)")
+    void vendedorNoCambiaEstado() throws Exception {
+        mockMvc.perform(get("/api/v1/productos/todos")).andExpect(status().isForbidden());
+        mockMvc.perform(patch("/api/v1/productos/4/estado").contentType(MediaType.APPLICATION_JSON).content(ACTIVAR))
+                .andExpect(status().isForbidden());
+        verifyNoInteractions(productoService);
+    }
+
+    @Test
+    @WithMockUser(username = "cliente@elvolcan.cl", roles = "CLIENTE")
+    @DisplayName("CLIENTE no ve los inactivos ni cambia el estado (403)")
+    void clienteNoCambiaEstado() throws Exception {
+        mockMvc.perform(get("/api/v1/productos/todos")).andExpect(status().isForbidden());
+        mockMvc.perform(patch("/api/v1/productos/4/estado").contentType(MediaType.APPLICATION_JSON).content(ACTIVAR))
+                .andExpect(status().isForbidden());
+        verifyNoInteractions(productoService);
+    }
+
+    @Test
+    @DisplayName("sin token, el listado completo y el cambio de estado responden 401; la tienda sigue pública")
+    void sinTokenResponde401() throws Exception {
+        mockMvc.perform(get("/api/v1/productos/todos")).andExpect(status().isUnauthorized());
+        mockMvc.perform(patch("/api/v1/productos/4/estado").contentType(MediaType.APPLICATION_JSON).content(ACTIVAR))
+                .andExpect(status().isUnauthorized());
+        when(productoService.obtenerTodosActivos()).thenReturn(List.of());
+        mockMvc.perform(get("/api/v1/productos")).andExpect(status().isOk());
+        verify(productoService, never()).obtenerTodos();
     }
 }
