@@ -16,8 +16,8 @@ public class UsuarioModelAssembler implements RepresentationModelAssembler<Usuar
         return EntityModel.of(usuario,
             linkTo(methodOn(UsuarioControllerV2.class).obtenerUsuario(usuario.getId())).withSelfRel(),
             linkTo(methodOn(UsuarioControllerV2.class).listarUsuarios()).withRel("usuarios"),
-            linkTo(methodOn(UsuarioControllerV2.class).actualizarUsuario(usuario.getId(), null)).withRel("actualizar"),
-            // El Authentication es solo para construir el enlace (queda null en la plantilla)
+            linkTo(methodOn(UsuarioControllerV2.class).actualizarUsuario(usuario.getId(), null, null)).withRel("actualizar"),
+            // Los argumentos null (body y Authentication) solo sirven para construir los enlaces
             linkTo(methodOn(UsuarioControllerV2.class).eliminarUsuario(usuario.getId(), null)).withRel("eliminar")
         );
     }

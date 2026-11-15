@@ -65,8 +65,17 @@ public class UsuarioService {
         return aRespuesta(usuarioRepository.save(usuario));
     }
 
-    public UsuarioResponseDTO actualizar(Long id, UsuarioAdminRequestDTO request) {
+    static final String ROL_ADMIN = "ADMIN";
+
+    /**
+     * Actualiza un usuario. H-16: un administrador no puede quitarse su propio rol, y no se puede
+     * quitar el rol al último ADMIN (el sistema quedaría sin administradores). Ambos casos: 400.
+     *
+     * @param usernameActual usuario autenticado que ejecuta la acción
+     */
+    public UsuarioResponseDTO actualizar(Long id, UsuarioAdminRequestDTO request, String usernameActual) {
         Usuario usuario = buscar(id);
+        verificarCambioDeRol(usuario, request.getNombreRol(), usernameActual);
 
         // RUT y usuario pueden cambiar, pero no a uno que ya use otra persona.
         // Al editar el RUT solo se normaliza (no se exige el dígito verificador).
@@ -99,6 +108,20 @@ public class UsuarioService {
             throw new IllegalArgumentException("No puedes eliminar tu propia cuenta");
         }
         usuarioRepository.deleteById(id);
+    }
+
+    private void verificarCambioDeRol(Usuario usuario, String rolNuevo, String usernameActual) {
+        boolean eraAdmin = usuario.getRol() != null && ROL_ADMIN.equals(usuario.getRol().getNombreRol());
+        boolean seguiraAdmin = rolNuevo != null && ROL_ADMIN.equals(rolNuevo.trim().toUpperCase(Locale.ROOT));
+        if (!eraAdmin || seguiraAdmin) {
+            return;
+        }
+        if (usernameActual != null && usernameActual.equalsIgnoreCase(usuario.getUsername())) {
+            throw new IllegalArgumentException("No puedes cambiar tu propio rol de administrador");
+        }
+        if (usuarioRepository.countByRol_NombreRol(ROL_ADMIN) <= 1) {
+            throw new IllegalArgumentException("Debe quedar al menos un administrador: no se puede quitar el rol al último ADMIN");
+        }
     }
 
     private Usuario buscar(Long id) {

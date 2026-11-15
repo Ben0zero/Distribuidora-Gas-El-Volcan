@@ -93,7 +93,7 @@ class UsuarioSeguridadTest {
     @WithMockUser(username = "admin@duoc.cl", roles = "ADMIN")
     @DisplayName("editar un usuario inexistente responde 404")
     void editarInexistente() throws Exception {
-        when(usuarioService.actualizar(eq(99L), any())).thenThrow(new UsuarioNoEncontradoException(99L));
+        when(usuarioService.actualizar(eq(99L), any(), any())).thenThrow(new UsuarioNoEncontradoException(99L));
         mockMvc.perform(put("/api/v1/usuarios/99").contentType(MediaType.APPLICATION_JSON).content(VENDEDOR))
                 .andExpect(status().isNotFound());
     }
