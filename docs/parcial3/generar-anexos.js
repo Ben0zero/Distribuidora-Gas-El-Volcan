@@ -10,7 +10,7 @@ const capturasDir = path.join(__dirname, 'capturas');
 const VER = '3.0';
 const FECHA = '12-11-2026';
 // El Anexo 2 se actualizó tras la auditoría OWASP (docs/AUDITORIA_EP3.md)
-const VER_ANEXO2 = '3.5';
+const VER_ANEXO2 = '3.6';
 const FECHA_ANEXO2 = '15-11-2026';
 
 // ---------- helpers ----------
@@ -160,6 +160,39 @@ function anexo2() {
       'Un bloqueo optimista (@Version) impide que dos confirmaciones simultáneas descuenten el stock dos veces.'),
     bullet('El cliente revisa el resultado en “Mis compras”, que consulta ms-ventas.'),
 
+    h2('2.1 Arquitectura de contenedores (Docker)'),
+    p('El sistema completo se levanta con Docker Compose (docker-compose.yml en la raíz), en local con Docker Desktop o en ' +
+      'AWS EC2. Son seis contenedores en una red interna (172.28.0.0/16); solo el frontend publica un puerto. El paso a paso ' +
+      'está en docs/DOCKER.md.'),
+    table(
+      ['Contenedor', 'Imagen de ejecución', 'Puerto', 'Publicado'],
+      [
+        ['eureka', 'eclipse-temurin:21-jre-alpine', '8761', 'Solo 127.0.0.1:8761'],
+        ['ms-auth', 'eclipse-temurin:21-jre-alpine', '8081', 'No'],
+        ['ms-catalogoproductos', 'eclipse-temurin:21-jre-alpine', '8082', 'No'],
+        ['ms-inventario', 'eclipse-temurin:21-jre-alpine', '8084', 'No'],
+        ['ms-ventas', 'eclipse-temurin:21-jre-alpine', '8086', 'No'],
+        ['frontend (Nginx)', 'nginx:1.27-alpine', '80', '80'],
+      ],
+      [26, 36, 12, 26]
+    ),
+    new Paragraph({ text: '', spacing: { after: 120 } }),
+    bullet('Imágenes multi-etapa: los microservicios se compilan con Maven y Java 21 dentro de la imagen y se ejecutan con un JRE 21 ' +
+      'liviano, con un usuario sin privilegios y memoria configurable (JAVA_OPTS, por defecto -Xmx384m). El frontend se compila con Node 22 y lo sirve Nginx.'),
+    bullet('Nginx sirve la SPA (try_files para React Router) y reenvía /api/v1 y /api/v2 a cada microservicio por la red interna: ' +
+      'auth, usuarios y cuenta a ms-auth; productos a ms-catalogoproductos; inventario a ms-inventario; ventas a ms-ventas. ' +
+      'Envía X-Forwarded-For con la IP del navegador y quita Origin, igual que el proxy de Vite.'),
+    bullet('Headers de seguridad (H-13): X-Content-Type-Options nosniff, X-Frame-Options DENY, Referrer-Policy ' +
+      'strict-origin-when-cross-origin y una Content-Security-Policy que solo permite recursos del propio sitio y los iframes de ' +
+      'Google Maps y YouTube. Las imágenes de productos deben ser rutas locales /IMAGENES/...'),
+    bullet('Arranque ordenado con healthchecks y depends_on: Eureka, luego los cuatro microservicios y por último el frontend. ' +
+      'Los servicios encuentran a Eureka por el nombre del contenedor (http://eureka:8761/eureka/).'),
+    bullet('Secretos: DB_USER, DB_PASSWORD, JWT_SECRET, el correo (NOTIFICACION_MODO, SPRING_MAIL_*) y APP_FRONTEND_URL se leen ' +
+      'de un archivo .env no versionado (plantilla .env.example). El Oracle Wallet no se copia a las imágenes: se monta como ' +
+      'volumen de solo lectura en /wallet (WALLET_HOST_DIR).'),
+    bullet('En AWS EC2 el grupo de seguridad abre solo los puertos 22 y 80; Eureka se revisa con un túnel SSH y la IP de la ' +
+      'instancia debe estar permitida en la lista de acceso de la base Oracle.'),
+
     h1('3. Seguridad y control de acceso'),
     p('La autenticación se basa en JWT firmado con una clave compartida (HS256). El login devuelve el token junto con los ' +
       'datos del usuario y su rol. Cada microservicio valida el token de forma independiente y aplica autorización por rol ' +
@@ -172,7 +205,9 @@ function anexo2() {
       '("Demasiados intentos. Intenta nuevamente en unos minutos.") que no revela si el usuario existe; los usuarios ' +
       'inexistentes se cuentan igual. Se cuenta por usuario + IP para que nadie pueda bloquear la cuenta de otro desde su IP. ' +
       'Un login correcto reinicia el contador y cada bloqueo queda en el log con el usuario y la IP (sin contraseñas). ' +
-      'El contador está en memoria de ms-auth (ConcurrentHashMap con limpieza de entradas vencidas).'),
+      'El contador está en memoria de ms-auth (ConcurrentHashMap con limpieza de entradas vencidas). Detrás de un proxy se usa la ' +
+      'última IP de X-Forwarded-For solo si la petición viene de un proxy confiable (app.seguridad.proxies-confiables, IPs o CIDR): ' +
+      'por defecto 127.0.0.1 y ::1 (proxy de Vite) y, en Docker, también la red interna 172.28.0.0/16 desde la que llega Nginx.'),
     bullet('Cambio de contraseña con sesión iniciada: exige el token y la contraseña actual; el usuario sale del token.'),
     bullet('Recuperación de contraseña: la solicitud responde siempre lo mismo (no revela si la cuenta existe). Se genera un token ' +
       'aleatorio de 32 bytes, se guarda solo su SHA-256, vence en 15 minutos, es de un solo uso e invalida los anteriores; máximo 3 ' +
@@ -371,7 +406,8 @@ function anexo2() {
     p('En desarrollo, el frontend usa rutas relativas (/api/v1/…) y el proxy de Vite las reenvía a cada microservicio. ' +
       'El proxy quita el header Origin, así que estas llamadas no dependen de CORS y funcionan desde localhost, la red local o un túnel. ' +
       'CORS sigue configurado en los microservicios (CORS_ORIGINS) para clientes que llamen directo a los puertos. ' +
-      'Si el backend no responde, la interfaz muestra un aviso de conexión en lugar de datos locales.'),
+      'Si el backend no responde, la interfaz muestra un aviso de conexión en lugar de datos locales. ' +
+      'Con Docker, el mismo papel lo cumple Nginx en el contenedor frontend (sección 2.1), con las rutas v1 y v2.'),
 
     h1('8. Base de datos y configuración'),
     p('Los microservicios usan Oracle Autonomous Database con Wallet. La conexión se configura con TNS_ADMIN apuntando a ' +
@@ -383,6 +419,8 @@ function anexo2() {
     bullet('Correo de recuperación (opcional): app.notificacion.modo=correo y las propiedades spring.mail.* (host, port, username, ' +
       'password, smtp.auth y starttls) se definen en el archivo de secretos; secrets.example.properties trae un ejemplo para Gmail ' +
       '(smtp.gmail.com, puerto 587, contraseña de aplicación). Sin esa configuración el enlace queda en el log, como en desarrollo.'),
+    bullet('Con Docker, las mismas claves se leen de variables de entorno definidas en .env (que tienen prioridad sobre el archivo ' +
+      'de secretos) y ORACLE_WALLET_DIR apunta a /wallet, donde se monta el Wallet en solo lectura.'),
     bullet('Hoy el Wallet y el archivo de secretos están excluidos del repositorio mediante .gitignore. ' + 'La contraseña de la base de datos y la clave JWT que quedaron en el historial de git (commit 1bec55c) ya se cambiaron; el Oracle Wallet, que también quedó en ese historial (se retiró en el commit 21e47ba), está pendiente de rotar.'),
     new Paragraph({ text: '', spacing: { after: 100 } }),
     p('Modelo entidad-relación:', { bold: true }),
