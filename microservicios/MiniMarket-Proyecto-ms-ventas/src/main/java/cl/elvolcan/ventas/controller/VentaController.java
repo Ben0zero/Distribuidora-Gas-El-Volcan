@@ -30,6 +30,19 @@ public class VentaController {
         return ResponseEntity.ok(ventaService.listarTodas());
     }
 
+    @Operation(summary = "Productos con ventas registradas",
+            description = "IDs de producto que aparecen en al menos un detalle de venta (sin repetir). Lo usan "
+                    + "ms-catalogoProductos y el panel admin para impedir eliminar productos con ventas. Solo ADMIN.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Lista de productoId, por ejemplo [281, 282]"),
+        @ApiResponse(responseCode = "401", description = "Sin token o token inválido"),
+        @ApiResponse(responseCode = "403", description = "El usuario no es ADMIN")
+    })
+    @GetMapping("/productos-vendidos")
+    public ResponseEntity<List<Long>> productosVendidos() {
+        return ResponseEntity.ok(ventaService.productosVendidos());
+    }
+
     @Operation(summary = "Mis compras", description = "Obtiene el historial de compras del usuario autenticado")
     @GetMapping("/mis-compras")
     public ResponseEntity<List<VentaResponseDTO>> misCompras() {

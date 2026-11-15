@@ -187,4 +187,40 @@ class VentaSeguridadTest {
         mockMvc.perform(get("/error").requestAttr(RequestDispatcher.ERROR_STATUS_CODE, 403))
                 .andExpect(status().isForbidden());
     }
+
+    // --- GET /api/v1/ventas/productos-vendidos: solo ADMIN ---
+
+    @Test
+    @WithMockUser(username = "admin@duoc.cl", roles = "ADMIN")
+    @DisplayName("ADMIN obtiene los productoId con ventas")
+    void adminObtieneProductosVendidos() throws Exception {
+        when(ventaService.productosVendidos()).thenReturn(List.of(281L, 282L));
+        mockMvc.perform(get("/api/v1/ventas/productos-vendidos"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0]").value(281))
+                .andExpect(jsonPath("$[1]").value(282));
+    }
+
+    @Test
+    @WithMockUser(username = "vendedor@elvolcan.cl", roles = "VENDEDOR")
+    @DisplayName("VENDEDOR no puede ver los productos vendidos (403)")
+    void vendedorNoVeProductosVendidos() throws Exception {
+        mockMvc.perform(get("/api/v1/ventas/productos-vendidos")).andExpect(status().isForbidden());
+        verify(ventaService, never()).productosVendidos();
+    }
+
+    @Test
+    @WithMockUser(username = "cliente@elvolcan.cl", roles = "CLIENTE")
+    @DisplayName("CLIENTE no puede ver los productos vendidos (403)")
+    void clienteNoVeProductosVendidos() throws Exception {
+        mockMvc.perform(get("/api/v1/ventas/productos-vendidos")).andExpect(status().isForbidden());
+        verify(ventaService, never()).productosVendidos();
+    }
+
+    @Test
+    @DisplayName("Sin token, productos vendidos responde 401")
+    void sinTokenProductosVendidos401() throws Exception {
+        mockMvc.perform(get("/api/v1/ventas/productos-vendidos")).andExpect(status().isUnauthorized());
+        verify(ventaService, never()).productosVendidos();
+    }
 }

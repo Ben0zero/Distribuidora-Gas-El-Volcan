@@ -57,6 +57,9 @@ public class SecurityConfig {
                 // Solo ADMIN y VENDEDOR pueden ver TODAS las ventas
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/ventas", "/api/v2/ventas").hasAnyRole("ADMIN", "VENDEDOR")
                 // El VENDEDOR es de SOLO LECTURA: ve la lista y el detalle de órdenes, pero no compra ni confirma pagos
+                // Productos con ventas (para impedir eliminarlos): solo ADMIN. Va ANTES de /ventas/*,
+                // que dejaría pasar también a VENDEDOR y CLIENTE
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/ventas/productos-vendidos").hasRole("ADMIN")
                 // Compras propias (la tienda): CLIENTE y ADMIN
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/ventas/mis-compras", "/api/v2/ventas/mis-compras").hasAnyRole("ADMIN", "CLIENTE")
                 // Detalle de una orden (va DESPUÉS de mis-compras): el servicio limita al CLIENTE a sus propias ventas
