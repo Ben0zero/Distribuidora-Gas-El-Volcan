@@ -48,6 +48,11 @@ public class SecurityConfig {
                         "/swagger-ui.html"
                 ).permitAll()
 
+                // Cuando una regla de rol rechaza la petición, Spring responde 403 con sendError y el contenedor
+                // reenvía a /error. En ese reenvío el filtro JWT no corre: si /error exigiera autenticación,
+                // el 403 se convertiría en 401. Se deja público para conservar el código original (403).
+                .requestMatchers("/error").permitAll()
+
                 // Las reglas aplican igual a ambas versiones de la API (/api/v1 y /api/v2)
                 // Solo ADMIN y VENDEDOR pueden ver TODAS las ventas
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/ventas", "/api/v2/ventas").hasAnyRole("ADMIN", "VENDEDOR")
