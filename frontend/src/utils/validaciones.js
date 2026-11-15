@@ -46,12 +46,12 @@ export function formatearPrecio(n) {
   return '$' + Number(n).toLocaleString('es-CL')
 }
 
-// Política de contraseñas (H-07): 8 a 10 caracteres, con al menos una letra y un número.
-// ms-auth exige lo mismo (mín. 8 + letra y número); el máximo de 10 es la regla del formulario.
+// Política de contraseñas (H-07): 8 a 64 caracteres, con al menos una letra y un número.
+// OWASP recomienda permitir contraseñas largas (frases de paso); ms-auth acepta hasta 72.
 export function validarContrasena(password) {
   const texto = String(password ?? '')
-  if (texto.length < 8 || texto.length > 10 || !/[A-Za-z]/.test(texto) || !/\d/.test(texto))
-    return 'La contraseña debe tener entre 8 y 10 caracteres, con al menos una letra y un número'
+  if (texto.length < 8 || texto.length > 64 || !/[A-Za-z]/.test(texto) || !/\d/.test(texto))
+    return 'La contraseña debe tener entre 8 y 64 caracteres, con al menos una letra y un número'
   return ''
 }
 
