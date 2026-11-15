@@ -3,7 +3,7 @@
 //  - No distingue mayúsculas ni tildes ("conexion" encuentra "Conexiones").
 //  - Busca en nombre, categoría y código (no en la descripción: evita ruido).
 //  - Se combina con el filtro por categoría.
-//  - Sugiere palabras clave del catálogo ("cil" -> "Cilindro").
+//  - Sugiere productos ("cil" -> "Cilindro GLP 5 kg") para ir a su detalle.
 
 const DIACRITICOS = /[\u0300-\u036f]/g
 
@@ -33,40 +33,20 @@ export function filtrarProductos(productos, { categoria = null, texto = '' } = {
   )
 }
 
-// Palabras clave sugeridas: categorías y palabras de los nombres que contienen
-// el texto escrito. Devuelve como máximo `limite` sugerencias sin repetir.
-export function sugerenciasProductos(productos, texto, limite = 5) {
+// Productos sugeridos mientras se escribe (desde 2 caracteres), para ir directo a su detalle.
+// Orden: primero los que tienen el texto al inicio del nombre, luego por posición
+// de la coincidencia en el nombre y, al final, por nombre. Máximo `limite` productos.
+export function productosSugeridos(productos, texto, limite = 6) {
   const buscado = normalizar(texto)
   if (buscado.length < 2) return []
 
-  const candidatos = []
-  const agregar = (valor) => {
-    const limpio = String(valor ?? '').trim()
-    if (!limpio) return
-    const clave = normalizar(limpio)
-    if (candidatos.some((c) => c.clave === clave)) return
-    candidatos.push({ clave, valor: limpio })
+  const posicion = (producto) => {
+    const enNombre = normalizar(producto.nombre).indexOf(buscado)
+    return enNombre === -1 ? Number.MAX_SAFE_INTEGER : enNombre
   }
 
-  for (const producto of productos || []) {
-    for (const campo of ['nombre', 'categoria']) {
-      const valor = String(producto?.[campo] ?? '').trim()
-      if (!valor) continue
-      agregar(valor)
-      // También las palabras sueltas: "Cilindro de Gas 5 kg" -> "Cilindro", "Gas"…
-      valor.split(/[^\p{L}\p{N}]+/u).forEach(agregar)
-    }
-  }
-
-  return candidatos
-    .filter((c) => c.clave !== buscado && c.clave.includes(buscado))
-    .sort((a, b) => {
-      const inicioA = a.clave.indexOf(buscado)
-      const inicioB = b.clave.indexOf(buscado)
-      // Primero las que empiezan con el texto, después las más cortas.
-      if (inicioA !== inicioB) return inicioA - inicioB
-      return a.clave.length - b.clave.length
-    })
+  return (productos || [])
+    .filter((producto) => coincideProducto(producto, texto))
+    .sort((a, b) => posicion(a) - posicion(b) || String(a.nombre).localeCompare(String(b.nombre), 'es', { numeric: true }))
     .slice(0, limite)
-    .map((c) => c.valor)
 }

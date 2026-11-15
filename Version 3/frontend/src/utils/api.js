@@ -100,6 +100,24 @@ export async function actualizarProducto(id, producto) {
   return res.json()
 }
 
+// Panel admin: todos los productos, incluidos los inactivos (GET /todos, solo ADMIN)
+export async function listarTodosProductos() {
+  const res = await fetch(`${API_CATALOGO}/todos`, { headers: authHeaders() })
+  if (!res.ok) await lanzarError(res, 'No se pudo cargar el catálogo')
+  return res.json()
+}
+
+// Activa (true) o desactiva (false) un producto: PATCH /{id}/estado, solo ADMIN
+export async function cambiarEstadoProducto(id, activo) {
+  const res = await fetch(`${API_CATALOGO}/${id}/estado`, {
+    method: 'PATCH',
+    headers: authHeaders(),
+    body: JSON.stringify({ activo }),
+  })
+  if (!res.ok) await lanzarError(res, 'No se pudo cambiar el estado del producto')
+  return res.json()
+}
+
 // Borrado lógico: el producto deja de mostrarse en la tienda
 export async function desactivarProducto(sku) {
   const res = await fetch(`${API_CATALOGO}/${encodeURIComponent(sku)}`, { method: 'DELETE', headers: authHeaders() })

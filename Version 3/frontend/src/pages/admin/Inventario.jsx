@@ -4,11 +4,11 @@ import { CATEGORIAS, formatearPrecio } from '../../utils/validaciones'
 import { desdeApi } from '../../utils/productos'
 import { combinarInventario, ajusteDeStock, productoDesdeFormulario, validarProducto, STOCK_MAXIMO } from '../../utils/inventario'
 import {
-  obtenerProductos,
+  listarTodosProductos,
   obtenerInventario,
   crearProducto,
   actualizarProducto,
-  desactivarProducto,
+  cambiarEstadoProducto,
   ajustarStock,
   ApiError,
 } from '../../utils/api'
@@ -30,9 +30,10 @@ function mensaje(e) {
   return e instanceof ApiError ? e.message.replace(/^Error:\s*/, '') : 'No se pudo conectar con el servidor.'
 }
 
-// Trae catálogo y stock en paralelo; el stock es opcional (si falla, se muestra el catálogo igual)
+// Trae catálogo (activos e inactivos) y stock en paralelo; el stock es opcional
+// (si falla, se muestra el catálogo igual)
 async function cargarInventario() {
-  const [productos, stock] = await Promise.allSettled([obtenerProductos(), obtenerInventario()])
+  const [productos, stock] = await Promise.allSettled([listarTodosProductos(), obtenerInventario()])
   if (productos.status === 'rejected') {
     return { filas: [], error: 'No se pudo cargar el catálogo: ' + mensaje(productos.reason) }
   }
@@ -135,10 +136,14 @@ function Inventario() {
     if (listo) setEditando(null)
   }
 
-  const eliminar = (fila) => {
-    if (!window.confirm(`¿Eliminar "${fila.nombre}" del catálogo? Dejará de mostrarse en la tienda.`)) return
-    // DELETE /api/v1/productos/{sku}: borrado lógico (activo = false)
-    ejecutar(() => desactivarProducto(fila.codigo), 'Producto eliminado del catálogo')
+  // PATCH /api/v1/productos/{id}/estado: un producto inactivo no se muestra ni se vende en la tienda
+  const cambiarEstado = (fila) => {
+    if (fila.activo) {
+      if (!window.confirm(`¿Desactivar "${fila.nombre}"? Dejará de mostrarse y venderse en la tienda.`)) return
+      ejecutar(() => cambiarEstadoProducto(fila.id, false), `"${fila.nombre}" quedó inactivo`)
+    } else {
+      ejecutar(() => cambiarEstadoProducto(fila.id, true), `"${fila.nombre}" volvió a la tienda`)
+    }
   }
 
   return (
@@ -183,9 +188,12 @@ function Inventario() {
                 </thead>
                 <tbody>
                   {filas.map((f) => (
-                    <tr key={f.id}>
+                    <tr key={f.id} className={f.activo ? '' : 'table-light text-muted'}>
                       <td className="fw-bold">{f.codigo}</td>
-                      <td>{f.nombre}</td>
+                      <td>
+                        {f.nombre}
+                        {!f.activo && <span className="badge text-bg-secondary ms-2">Inactivo</span>}
+                      </td>
                       <td>{f.categoria}</td>
                       <td>
                         {f.stock === null ? (
@@ -202,8 +210,13 @@ function Inventario() {
                         <Button size="sm" variant="outline-primary" className="me-1" onClick={() => abrirEdicion(f)} disabled={guardando}>
                           Editar
                         </Button>
-                        <Button size="sm" variant="outline-danger" onClick={() => eliminar(f)} disabled={guardando}>
-                          Eliminar
+                        <Button
+                          size="sm"
+                          variant={f.activo ? 'outline-danger' : 'outline-success'}
+                          onClick={() => cambiarEstado(f)}
+                          disabled={guardando}
+                        >
+                          {f.activo ? 'Desactivar' : 'Activar'}
                         </Button>
                       </td>
                     </tr>

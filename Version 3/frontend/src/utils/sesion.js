@@ -58,6 +58,13 @@ export function sesionActiva() {
   return sesion
 }
 
+// Precio que corresponde a la sesión: 'comercial' o 'residencial' según el tipo de cliente
+// (que también viene en el JWT y es el que usa ms-ventas al cobrar). Sin sesión: null.
+export function tipoPrecioSesion(sesion = sesionActiva()) {
+  if (!sesion) return null
+  return String(sesion.tipoCliente || '').toLowerCase() === 'comercial' ? 'comercial' : 'residencial'
+}
+
 export function cerrarSesion() {
   localStorage.removeItem('sesion')
 }

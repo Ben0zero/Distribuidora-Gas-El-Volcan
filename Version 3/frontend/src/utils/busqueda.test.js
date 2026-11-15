@@ -4,7 +4,7 @@ import {
   normalizar,
   coincideProducto,
   filtrarProductos,
-  sugerenciasProductos,
+  productosSugeridos,
 } from './busqueda'
 
 const PRODUCTOS = [
@@ -80,21 +80,30 @@ describe('filtrarProductos', () => {
   })
 })
 
-describe('sugerenciasProductos', () => {
-  test('"cil" sugiere "Cilindro" y la categoría', () => {
-    const sugerencias = sugerenciasProductos(PRODUCTOS, 'cil')
-    expect(sugerencias).toContain('Cilindro')
-    expect(sugerencias).toContain('Cilindros de Gas')
+describe('productosSugeridos', () => {
+  test('sugiere productos por nombre, categoría o código sin distinguir mayúsculas ni tildes', () => {
+    expect(productosSugeridos(PRODUCTOS, 'REGULADOR').map((p) => p.id)).toEqual([2])
+    expect(productosSugeridos(PRODUCTOS, 'conexion').map((p) => p.id)).toEqual([3])
+    expect(productosSugeridos(PRODUCTOS, 'cl005').map((p) => p.id)).toEqual([1])
+    expect(productosSugeridos(PRODUCTOS, 'presión').map((p) => p.id)).toEqual([2])
   })
 
-  test('no repite sugerencias y respeta el límite', () => {
-    const sugerencias = sugerenciasProductos(PRODUCTOS, 're', 2)
-    expect(sugerencias.length).toBeLessThanOrEqual(2)
-    expect(new Set(sugerencias.map(normalizar)).size).toBe(sugerencias.length)
+  test('ordena primero los que empiezan con el texto y respeta el límite', () => {
+    // "man" está al inicio de "Manguera…" y no aparece en los demás nombres
+    expect(productosSugeridos(PRODUCTOS, 'man')[0].id).toBe(3)
+    expect(productosSugeridos(PRODUCTOS, 're', 1)).toHaveLength(1)
   })
 
-  test('no sugiere nada con menos de 2 caracteres o si ya coincide exacto', () => {
-    expect(sugerenciasProductos(PRODUCTOS, 'c')).toEqual([])
-    expect(sugerenciasProductos(PRODUCTOS, 'cilindro')).not.toContain('Cilindro')
+  test('ordena los números de forma natural (5 kg antes que 11 kg)', () => {
+    const cilindros = [
+      { id: 11, nombre: 'Cilindro GLP 11 kg', categoria: 'Cilindros de Gas', codigo: 'CL002' },
+      { id: 5, nombre: 'Cilindro GLP 5 kg', categoria: 'Cilindros de Gas', codigo: 'CL001' },
+    ]
+    expect(productosSugeridos(cilindros, 'cil').map((p) => p.id)).toEqual([5, 11])
+  })
+
+  test('no sugiere nada con menos de 2 caracteres o sin coincidencias', () => {
+    expect(productosSugeridos(PRODUCTOS, 'c')).toEqual([])
+    expect(productosSugeridos(PRODUCTOS, 'zzz')).toEqual([])
   })
 })

@@ -37,6 +37,9 @@ public class SecurityConfig {
                     "/swagger-ui/**",
                     "/swagger-ui.html"
                 ).permitAll()
+                // El listado completo (incluye inactivos) es del panel admin: exige token (401 sin token;
+                // el rol ADMIN lo valida @PreAuthorize). Va ANTES de la regla pública de GET.
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/productos/todos").authenticated()
                 // El catálogo es público para la tienda (solo lectura) en ambas versiones de la API
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/productos/**", "/api/v2/productos/**").permitAll()
                 // Todo el resto de la API requiere token

@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import cl.elvolcan.catalogo.dto.EstadoProductoRequestDTO;
 import cl.elvolcan.catalogo.dto.ProductoRequestDTO;
 import cl.elvolcan.catalogo.dto.ProductoResponseDTO;
 import cl.elvolcan.catalogo.service.ProductoService;
@@ -41,6 +42,17 @@ public class ProductoController {
         return ResponseEntity.ok(productoService.obtenerTodosActivos());
     }
 
+    @Operation(summary = "Listar todos los productos (panel admin)",
+            description = "Incluye los inactivos, para poder reactivarlos. La tienda usa GET /api/v1/productos (solo activos). Requiere rol ADMIN.")
+    @ApiResponse(responseCode = "200", description = "Productos activos e inactivos")
+    @ApiResponse(responseCode = "401", description = "Sin token")
+    @ApiResponse(responseCode = "403", description = "El usuario no es ADMIN")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN')")
+    @GetMapping("/todos")
+    public ResponseEntity<List<ProductoResponseDTO>> listarTodosAdmin() {
+        return ResponseEntity.ok(productoService.obtenerTodos());
+    }
+
     @Operation(summary = "Buscar producto por SKU", description = "Busca los detalles de un producto específico mediante su código SKU. Requiere estar autenticado.")
     @ApiResponse(responseCode = "200", description = "Producto encontrado")
     @ApiResponse(responseCode = "400", description = "Producto no encontrado")
@@ -67,6 +79,18 @@ public class ProductoController {
     @PutMapping("/{id}")
     public ResponseEntity<ProductoResponseDTO> actualizar(@PathVariable Long id, @Valid @RequestBody ProductoRequestDTO request) {
         return ResponseEntity.ok(productoService.actualizarProducto(id, request));
+    }
+
+    @Operation(summary = "Activar o desactivar un producto",
+            description = "Con activo=false el producto deja de mostrarse y venderse; con activo=true vuelve a la tienda. Requiere rol ADMIN.")
+    @ApiResponse(responseCode = "200", description = "Estado actualizado")
+    @ApiResponse(responseCode = "400", description = "Falta el campo activo")
+    @ApiResponse(responseCode = "403", description = "El usuario no es ADMIN")
+    @ApiResponse(responseCode = "404", description = "Producto no encontrado")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN')")
+    @PatchMapping("/{id}/estado")
+    public ResponseEntity<ProductoResponseDTO> cambiarEstado(@PathVariable Long id, @Valid @RequestBody EstadoProductoRequestDTO request) {
+        return ResponseEntity.ok(productoService.cambiarEstado(id, request.getActivo()));
     }
 
     @Operation(summary = "Desactivar producto (Borrado Lógico)", description = "Pausa las ventas de un producto sin eliminarlo de la base de datos. Requiere rol ADMIN.")

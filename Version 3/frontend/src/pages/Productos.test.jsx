@@ -1,7 +1,7 @@
 // Página de catálogo: carga desde la API simulada y prueba el buscador
-// (filtrado en vivo, sugerencias y aviso de "sin resultados").
+// (filtrado en vivo, productos sugeridos que llevan al detalle y aviso de "sin resultados").
 import { render, screen, fireEvent } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, Routes, Route, useParams } from 'react-router-dom'
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest'
 import Productos from './Productos'
 
@@ -28,15 +28,24 @@ const API = [
   },
 ]
 
+// Página de detalle simulada: solo muestra el id recibido en la ruta
+function DetalleSimulado() {
+  const { id } = useParams()
+  return <h1>Detalle del producto {id}</h1>
+}
+
 function renderProductos(ruta = '/productos') {
   render(
     <MemoryRouter initialEntries={[ruta]}>
-      <Productos onAgregar={vi.fn()} />
+      <Routes>
+        <Route path="/productos" element={<Productos onAgregar={vi.fn()} />} />
+        <Route path="/producto/:id" element={<DetalleSimulado />} />
+      </Routes>
     </MemoryRouter>,
   )
 }
 
-const buscador = () => screen.getByRole('searchbox', { name: /Buscar productos/i })
+const buscador = () => screen.getByRole('combobox', { name: /Buscar productos/i })
 
 describe('Página <Productos />', () => {
   let fetchMock
@@ -76,17 +85,43 @@ describe('Página <Productos />', () => {
     expect(screen.getByText(/1 producto encontrado/)).toBeInTheDocument()
   })
 
-  test('sugiere palabras clave y permite usarlas con un clic', async () => {
+  test('sugiere productos mientras se escribe y al elegir uno abre su detalle', async () => {
     renderProductos()
     await screen.findByText('Cilindro GLP 5 kg')
 
-    fireEvent.change(buscador(), { target: { value: 'cil' } })
-    const sugerencia = screen.getByRole('button', { name: 'Cilindro' })
-    fireEvent.click(sugerencia)
+    fireEvent.change(buscador(), { target: { value: 'CILÍNDRO' } }) // sin distinguir mayúsculas ni tildes
+    const lista = screen.getByRole('listbox', { name: 'Productos sugeridos' })
+    expect(buscador()).toHaveAttribute('aria-expanded', 'true')
+    const opcion = screen.getByRole('option', { name: /Cilindro GLP 5 kg/ })
+    expect(lista).toContainElement(opcion)
+    expect(screen.queryByRole('option', { name: /Regulador/ })).not.toBeInTheDocument()
 
-    expect(buscador()).toHaveValue('Cilindro')
-    expect(screen.getAllByText('Cilindro GLP 5 kg').length).toBeGreaterThan(0)
-    expect(screen.queryAllByText('Regulador de presión')).toHaveLength(0)
+    fireEvent.mouseDown(opcion)
+    expect(await screen.findByRole('heading', { name: 'Detalle del producto 1' })).toBeInTheDocument()
+  })
+
+  test('el teclado recorre las sugerencias: flecha abajo + Enter abre el detalle; Esc cierra la lista', async () => {
+    renderProductos()
+    await screen.findByText('Cilindro GLP 5 kg')
+
+    fireEvent.change(buscador(), { target: { value: 're001' } }) // también por código (SKU)
+    fireEvent.keyDown(buscador(), { key: 'Escape' })
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
+
+    // con la lista cerrada, flecha abajo la reabre y marca la primera sugerencia
+    fireEvent.keyDown(buscador(), { key: 'ArrowDown' })
+    expect(screen.getByRole('option', { name: /Regulador de presión/ })).toHaveAttribute('aria-selected', 'true')
+    fireEvent.keyDown(buscador(), { key: 'Enter' })
+
+    expect(await screen.findByRole('heading', { name: 'Detalle del producto 2' })).toBeInTheDocument()
+  })
+
+  test('no sugiere nada con un solo carácter', async () => {
+    renderProductos()
+    await screen.findByText('Cilindro GLP 5 kg')
+
+    fireEvent.change(buscador(), { target: { value: 'c' } })
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
   })
 
   test('avisa cuando no hay resultados y combina con la categoría', async () => {
