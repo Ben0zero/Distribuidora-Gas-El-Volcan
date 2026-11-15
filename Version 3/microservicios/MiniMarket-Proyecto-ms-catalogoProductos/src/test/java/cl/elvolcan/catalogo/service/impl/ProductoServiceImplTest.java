@@ -1,6 +1,15 @@
 package cl.elvolcan.catalogo.service.impl;
 
+import static org.mockito.ArgumentMatchers.argThat;
+import org.springframework.data.domain.Sort;
+import cl.elvolcan.catalogo.exception.ProductoNoEncontradoException;
 import cl.elvolcan.catalogo.client.InventarioClient;
+import cl.elvolcan.catalogo.client.VentasClient;
+import cl.elvolcan.catalogo.exception.ProductoConVentasException;
+import feign.FeignException;
+import feign.Request;
+import java.nio.charset.StandardCharsets;
+import java.util.Map;
 import cl.elvolcan.catalogo.dto.InventarioInitDTO;
 import cl.elvolcan.catalogo.dto.ProductoRequestDTO;
 import cl.elvolcan.catalogo.dto.ProductoResponseDTO;
@@ -28,6 +37,9 @@ class ProductoServiceImplTest {
 
     @Mock
     private InventarioClient inventarioClient;
+
+    @Mock
+    private VentasClient ventasClient;
 
     @InjectMocks
     private ProductoServiceImpl productoService;
@@ -154,25 +166,6 @@ class ProductoServiceImplTest {
         verify(productoRepository).findByActivoTrue();
     }
 
-    @Test
-    @DisplayName("desactivarProducto debe cambiar el estado a false y guardar")
-    void desactivarProductoDebeCambiarEstadoYGuardar() {
-        // Given
-        Producto producto = new Producto();
-        producto.setSku("PAN-001");
-        producto.setActivo(true);
-
-        when(productoRepository.findBySku("PAN-001")).thenReturn(Optional.of(producto));
-
-        // When
-        productoService.desactivarProducto("PAN-001");
-
-        // Then
-        assertFalse(producto.getActivo()); // Comprobamos que cambió el estado
-        verify(productoRepository).findBySku("PAN-001");
-        verify(productoRepository).save(producto); // Comprobamos que se guardó la actualización
-    }
-
     private Producto productoCl002() {
         Producto p = new Producto();
         p.setId(2L);
@@ -229,5 +222,149 @@ class ProductoServiceImplTest {
     void actualizarProductoInexistente() {
         when(productoRepository.findById(99L)).thenReturn(Optional.empty());
         assertThrows(RuntimeException.class, () -> productoService.actualizarProducto(99L, new ProductoRequestDTO()));
+    }
+
+    // --- Activar / desactivar productos (panel admin) ---
+
+    private Producto producto(Long id, boolean activo) {
+        Producto p = new Producto();
+        p.setId(id);
+        p.setSku("CL00" + id);
+        p.setNombre("Cilindro " + id);
+        p.setActivo(activo);
+        return p;
+    }
+
+    @Test
+    @DisplayName("cambiarEstado reactiva un producto inactivo y lo guarda")
+    void cambiarEstadoReactiva() {
+        Producto inactivo = producto(4L, false);
+        when(productoRepository.findById(4L)).thenReturn(Optional.of(inactivo));
+        when(productoRepository.save(inactivo)).thenReturn(inactivo);
+
+        ProductoResponseDTO resultado = productoService.cambiarEstado(4L, true);
+
+        assertTrue(resultado.getActivo());
+        verify(productoRepository).save(argThat(Producto::getActivo));
+    }
+
+    @Test
+    @DisplayName("cambiarEstado desactiva un producto activo")
+    void cambiarEstadoDesactiva() {
+        Producto activo = producto(2L, true);
+        when(productoRepository.findById(2L)).thenReturn(Optional.of(activo));
+        when(productoRepository.save(activo)).thenReturn(activo);
+
+        assertFalse(productoService.cambiarEstado(2L, false).getActivo());
+    }
+
+    @Test
+    @DisplayName("cambiarEstado de un producto inexistente lanza 404 y no guarda")
+    void cambiarEstadoInexistente() {
+        when(productoRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThrows(ProductoNoEncontradoException.class, () -> productoService.cambiarEstado(99L, true));
+        verify(productoRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("obtenerTodos incluye los inactivos (la tienda sigue usando obtenerTodosActivos)")
+    void obtenerTodosIncluyeInactivos() {
+        when(productoRepository.findAll(any(Sort.class))).thenReturn(List.of(producto(1L, true), producto(2L, false)));
+
+        List<ProductoResponseDTO> todos = productoService.obtenerTodos();
+
+        assertEquals(2, todos.size());
+        assertFalse(todos.get(1).getActivo());
+        verify(productoRepository, never()).findByActivoTrue();
+    }
+
+    // --- Eliminar producto (definitivo, solo sin ventas) ---
+
+    private static final Request PETICION = Request.create(Request.HttpMethod.GET, "/api", Map.of(), null,
+            StandardCharsets.UTF_8, null);
+
+    private Producto productoTest(Long id) {
+        Producto p = new Producto();
+        p.setId(id);
+        p.setSku("TEST-01");
+        p.setNombre("Producto de prueba");
+        p.setActivo(true);
+        return p;
+    }
+
+    @Test
+    @DisplayName("eliminar sin ventas borra el producto y su inventario")
+    void eliminarSinVentas() {
+        Producto producto = productoTest(90L);
+        when(productoRepository.findBySku("TEST-01")).thenReturn(Optional.of(producto));
+        when(ventasClient.productosVendidos()).thenReturn(List.of(1L, 2L));
+
+        productoService.eliminarProducto("TEST-01");
+
+        var orden = inOrder(ventasClient, productoRepository, inventarioClient);
+        orden.verify(ventasClient).productosVendidos();
+        orden.verify(productoRepository).delete(producto);
+        orden.verify(productoRepository).flush();
+        orden.verify(inventarioClient).eliminarInventario("TEST-01");
+    }
+
+    @Test
+    @DisplayName("eliminar con ventas lanza ProductoConVentasException (409) y no borra nada")
+    void eliminarConVentas() {
+        when(productoRepository.findBySku("TEST-01")).thenReturn(Optional.of(productoTest(2L)));
+        when(ventasClient.productosVendidos()).thenReturn(List.of(1L, 2L));
+
+        ProductoConVentasException ex = assertThrows(ProductoConVentasException.class,
+                () -> productoService.eliminarProducto("TEST-01"));
+
+        assertEquals("El producto tiene ventas registradas; desactívalo en lugar de eliminarlo", ex.getMessage());
+        verify(productoRepository, never()).delete(any(Producto.class));
+        verifyNoInteractions(inventarioClient);
+    }
+
+    @Test
+    @DisplayName("eliminar un SKU inexistente lanza ProductoNoEncontradoException (404) sin llamar a otros servicios")
+    void eliminarInexistente() {
+        when(productoRepository.findBySku("NO-EXISTE")).thenReturn(Optional.empty());
+
+        assertThrows(ProductoNoEncontradoException.class, () -> productoService.eliminarProducto("NO-EXISTE"));
+        verifyNoInteractions(ventasClient, inventarioClient);
+    }
+
+    @Test
+    @DisplayName("si ms-ventas no responde, no se borra nada (la FeignException termina en 502)")
+    void ventasCaidoNoBorra() {
+        when(productoRepository.findBySku("TEST-01")).thenReturn(Optional.of(productoTest(90L)));
+        when(ventasClient.productosVendidos())
+                .thenThrow(new FeignException.ServiceUnavailable("ms-ventas no disponible", PETICION, null, null));
+
+        assertThrows(FeignException.class, () -> productoService.eliminarProducto("TEST-01"));
+        verify(productoRepository, never()).delete(any(Producto.class));
+        verifyNoInteractions(inventarioClient);
+    }
+
+    @Test
+    @DisplayName("si ms-inventario falla, la excepción sale del método @Transactional (rollback del borrado, 502)")
+    void inventarioCaidoPropaga() {
+        when(productoRepository.findBySku("TEST-01")).thenReturn(Optional.of(productoTest(90L)));
+        when(ventasClient.productosVendidos()).thenReturn(List.of());
+        doThrow(new FeignException.ServiceUnavailable("ms-inventario no disponible", PETICION, null, null))
+                .when(inventarioClient).eliminarInventario("TEST-01");
+
+        assertThrows(FeignException.class, () -> productoService.eliminarProducto("TEST-01"));
+    }
+
+    @Test
+    @DisplayName("si ms-inventario no tiene registro (404), el producto se elimina igual")
+    void inventarioSinRegistro() {
+        Producto producto = productoTest(90L);
+        when(productoRepository.findBySku("TEST-01")).thenReturn(Optional.of(producto));
+        when(ventasClient.productosVendidos()).thenReturn(List.of());
+        doThrow(new FeignException.NotFound("sin registro", PETICION, null, null))
+                .when(inventarioClient).eliminarInventario("TEST-01");
+
+        assertDoesNotThrow(() -> productoService.eliminarProducto("TEST-01"));
+        verify(productoRepository).delete(producto);
     }
 }

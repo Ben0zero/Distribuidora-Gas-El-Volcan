@@ -2,6 +2,7 @@ package cl.elvolcan.auth.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
@@ -13,7 +14,7 @@ public class RegistroRequestDTO {
     @NotBlank(message = "El nombre es obligatorio")
     private String nombre;
 
-    @Schema(description = "RUT del usuario", example = "12345678-9")
+    @Schema(description = "RUT del usuario, con o sin puntos y guion (se valida el dígito verificador)", example = "12.345.678-5")
     @NotBlank(message = "El RUT es obligatorio")
     private String rut;
 
@@ -22,9 +23,11 @@ public class RegistroRequestDTO {
     @Size(min = 4, message = "El usuario debe tener al menos 4 caracteres")
     private String username;
 
-    @Schema(description = "Contraseña de acceso", example = "secreta123")
+    // Política de contraseñas (H-07): mínimo 8 caracteres, con al menos una letra y un número
+    @Schema(description = "Contraseña de acceso (mín. 8, con letra y número)", example = "Secreta123")
     @NotBlank(message = "La contraseña es obligatoria")
-    @Size(min = 6, message = "La contraseña debe tener al menos 6 caracteres")
+    @Size(min = 8, max = 72, message = "La contraseña debe tener entre 8 y 72 caracteres")
+    @Pattern(regexp = "^(?=.*[A-Za-z])(?=.*\\d).+$", message = "La contraseña debe incluir al menos una letra y un número")
     private String password;
 
     // El rol NO se recibe desde el cliente: el registro público siempre crea usuarios CLIENTE.

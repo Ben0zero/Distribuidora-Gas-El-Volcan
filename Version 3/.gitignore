@@ -4,6 +4,14 @@ dist/
 build/
 target/
 
+# Secretos de Docker Compose (la plantilla .env.example sí se versiona)
+.env
+
+# Kit portatil (contiene secretos; se crea fuera del repo con scripts/crear-kit.ps1)
+elvolcan-kit/
+elvolcan-kit*/
+elvolcan-kit*.zip
+
 # Sistema
 .DS_Store
 Thumbs.db

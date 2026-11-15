@@ -60,4 +60,23 @@ class VentaRequestDTOTest {
 
         assertEquals(Set.of("metodoPago"), camposConError(dto));
     }
+
+    @Test
+    @DisplayName("una venta no puede tener más de 50 ítems (evita amplificar llamadas Feign)")
+    void maximo50Items() {
+        VentaRequestDTO dto = ventaValida();
+        DetalleVentaRequestDTO detalle = dto.getDetalles().get(0);
+        dto.setDetalles(java.util.Collections.nCopies(51, detalle));
+
+        assertEquals(Set.of("detalles"), camposConError(dto));
+    }
+
+    @Test
+    @DisplayName("la cantidad de un ítem no puede superar 100 unidades")
+    void cantidadMaxima100() {
+        VentaRequestDTO dto = ventaValida();
+        dto.getDetalles().get(0).setCantidad(101);
+
+        assertEquals(Set.of("detalles[0].cantidad"), camposConError(dto));
+    }
 }

@@ -20,7 +20,7 @@ public class UsuarioAdminRequestDTO {
     @Size(max = 100, message = "El nombre no puede superar 100 caracteres")
     private String nombre;
 
-    @Schema(description = "RUT/RUN sin puntos ni guion", example = "18765432")
+    @Schema(description = "RUT/RUN con o sin puntos y guion; al crear se valida el dígito verificador", example = "16.543.217")
     @NotBlank(message = "El RUT es obligatorio")
     private String rut;
 
@@ -30,7 +30,9 @@ public class UsuarioAdminRequestDTO {
     private String username;
 
     @Schema(description = "Contraseña (obligatoria al crear; al editar, vacía = no cambia)", example = "Vende123")
-    @Size(min = 6, max = 72, message = "La contraseña debe tener entre 6 y 72 caracteres")
+    // Política de contraseñas (H-07): mínimo 8 caracteres, con al menos una letra y un número
+    @Size(min = 8, max = 72, message = "La contraseña debe tener entre 8 y 72 caracteres")
+    @Pattern(regexp = "^(?=.*[A-Za-z])(?=.*\\d).+$", message = "La contraseña debe incluir al menos una letra y un número")
     private String password;
 
     @Schema(description = "Rol del usuario", example = "VENDEDOR", allowableValues = {"ADMIN", "VENDEDOR", "CLIENTE"})

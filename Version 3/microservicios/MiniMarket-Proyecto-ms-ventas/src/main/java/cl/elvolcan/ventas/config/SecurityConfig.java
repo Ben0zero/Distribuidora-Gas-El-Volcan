@@ -48,10 +48,18 @@ public class SecurityConfig {
                         "/swagger-ui.html"
                 ).permitAll()
 
+                // Cuando una regla de rol rechaza la petición, Spring responde 403 con sendError y el contenedor
+                // reenvía a /error. En ese reenvío el filtro JWT no corre: si /error exigiera autenticación,
+                // el 403 se convertiría en 401. Se deja público para conservar el código original (403).
+                .requestMatchers("/error").permitAll()
+
                 // Las reglas aplican igual a ambas versiones de la API (/api/v1 y /api/v2)
                 // Solo ADMIN y VENDEDOR pueden ver TODAS las ventas
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/ventas", "/api/v2/ventas").hasAnyRole("ADMIN", "VENDEDOR")
                 // El VENDEDOR es de SOLO LECTURA: ve la lista y el detalle de órdenes, pero no compra ni confirma pagos
+                // Productos con ventas (para impedir eliminarlos): solo ADMIN. Va ANTES de /ventas/*,
+                // que dejaría pasar también a VENDEDOR y CLIENTE
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/ventas/productos-vendidos").hasRole("ADMIN")
                 // Compras propias (la tienda): CLIENTE y ADMIN
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/ventas/mis-compras", "/api/v2/ventas/mis-compras").hasAnyRole("ADMIN", "CLIENTE")
                 // Detalle de una orden (va DESPUÉS de mis-compras): el servicio limita al CLIENTE a sus propias ventas

@@ -88,4 +88,24 @@ describe('Página admin <ListaUsuarios />', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1) // solo el GET inicial
     expect(screen.getByText('Maria Soto')).toBeInTheDocument()
   })
+
+  test('si el backend rechaza borrar la propia cuenta (400), muestra su mensaje y no quita al usuario', async () => {
+    // Sesión antigua sin id: la interfaz no puede saber cuál es la propia cuenta y deja el botón
+    // habilitado; el backend es quien lo impide y su mensaje debe llegar al administrador.
+    localStorage.setItem('sesion', JSON.stringify({ nombre: 'Juan Perez', rol: 'Administrador', token: jwtDePrueba() }))
+    fetchMock.mockImplementation((url, opciones = {}) =>
+      (opciones.method || 'GET') === 'DELETE'
+        ? json(400, { error: 'Datos inválidos (400)', mensaje: 'No puedes eliminar tu propia cuenta' })
+        : json(200, USUARIOS),
+    )
+    renderLista()
+    expect(await screen.findByText('Maria Soto')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Eliminar Juan Perez' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Eliminar' }))
+
+    expect(await screen.findByText('No puedes eliminar tu propia cuenta')).toBeInTheDocument()
+    expect(screen.getByText('Juan Perez')).toBeInTheDocument()
+    expect(screen.queryByText(/eliminado correctamente/)).not.toBeInTheDocument()
+  })
 })

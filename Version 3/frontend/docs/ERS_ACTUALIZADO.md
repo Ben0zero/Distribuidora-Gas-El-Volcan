@@ -5,7 +5,7 @@
 **Asignatura:** DSY1104 — Desarrollo Fullstack II
 **Evaluación:** Evaluación Parcial N° 3 (integración frontend React + microservicios Spring Boot)
 **Tecnología principal de esta entrega:** React (SPA) + microservicios Spring Boot + Oracle Cloud
-**Versión del documento:** 3.0
+**Versión del documento:** 3.6
 **Fecha:** Noviembre 2026
 
 ---
@@ -18,6 +18,12 @@
 | 2.0 | EP2 | La solución se reespecifica como SPA en React; se agregan requisitos de testing y arquitectura de componentes | Equipo |
 | 2.1 | EP2 | Actualización de la interfaz (identidad visual, diseño responsive, CSS modular) y del catálogo unificado | Equipo |
 | **3.0** | **EP3** | **Backend de 4 microservicios Spring Boot + Eureka con JWT, roles ADMIN / VENDEDOR / CLIENTE, API versionada (v1 / v2 HATEOAS), base Oracle Cloud y frontend conectado a la API. Se reemplaza `localStorage` como base de datos; se redefinen los roles; se agregan los RF-38 a RF-47 y el modelo de datos real.** | **Equipo** |
+| **3.1** | **EP3** | **Correcciones de la auditoría OWASP (`docs/AUDITORIA_EP3.md`): tipo de cliente desde el JWT, topes de cantidades, bloqueo optimista al confirmar el pago, errores internos con mensaje genérico, JWT de 2 h, contraseñas de 8 a 64 caracteres con letra y número, y estado de los secretos.** | **Equipo** |
+| **3.2** | **EP3** | **Nuevas funciones: activar y desactivar productos, eliminar usuarios, cambiar la contraseña con sesión iniciada y recuperarla con un enlace de un solo uso (RF-48 a RF-51). Además: buscador con sugerencias de productos, precio destacado según el tipo de cliente, carrito que se vacía al cerrar sesión y RUT con formato y dígito verificador.** | **Equipo** |
+| **3.3** | **EP3** | **Límite de intentos de login (429 con mensaje genérico), envío del enlace de recuperación por correo activable por configuración, RUT válido en los usuarios semilla, el frontend deja de enviar el tipo de cliente en la venta y se agregan las pruebas correspondientes.** | **Equipo** |
+| **3.4** | **EP3** | **Un administrador no puede quitarse su propio rol ni dejar el sistema sin administradores (H-16); ms-auth maneja tokens inválidos o expirados respondiendo 401 en JSON (H-20); el correo de recuperación se envía en segundo plano.** | **Equipo** |
+| **3.5** | **EP3** | **Eliminación definitiva de productos sin ventas (RF-52): `DELETE /api/v1/productos/{sku}` pasa a ser un borrado real que consulta a ms-ventas y borra también el inventario; la baja lógica queda en `PATCH /{id}/estado`. Nuevos endpoints `GET /api/v1/ventas/productos-vendidos` y `DELETE /api/v1/inventario/{sku}`, y botón Eliminar en el panel.** | **Equipo** |
+| **3.6** | **EP3** | **Arquitectura de contenedores: Dockerfile multi-etapa para Eureka, los 4 microservicios y el frontend (Nginx con proxy de la API v1/v2 y headers de seguridad, H-13), `docker-compose.yml` con red interna, healthchecks y secretos por `.env` (el Wallet se monta en solo lectura y ya no se copia a las imágenes). Lista de proxies confiables configurable para el límite de intentos de login. Guía `docs/DOCKER.md` para local y AWS EC2.** | **Equipo** |
 
 ---
 
@@ -59,13 +65,14 @@ El ERS sirve como:
   - panel de administración con datos reales (inventario, órdenes, usuarios, clientes y reportes con exportación CSV).
 - **Pruebas automatizadas:** Vitest en el frontend y JUnit, Mockito y `@WebMvcTest` en el backend, con reporte de cobertura (V8 y JaCoCo).
 - Persistencia en **Oracle Autonomous Database (Oracle Cloud, con Wallet)**.
+- **Contenedores Docker:** imágenes de Eureka, los 4 microservicios y el frontend (Nginx), orquestadas con Docker Compose para levantar en local y en **AWS EC2** (§3.8 y `docs/DOCKER.md`).
 
 **Fuera del alcance de esta entrega:**
 
 - `ms-produccion`: microservicio heredado del template MiniMarket, no adaptado.
 - **Seguimiento de pedidos en tiempo real** con mapas y roles de despacho (Operadora y Repartidor).
 - **Pasarela de pago real:** el pago se registra con la confirmación de la venta.
-- Despliegue de los microservicios en **AWS con Docker**. El frontend de la V2 ya se desplegó en EC2 (ver `DEPLOY.md`).
+- HTTPS con dominio propio y despliegue automatizado (CI/CD). El despliegue con Docker en EC2 queda documentado y se realiza por HTTP en el puerto 80.
 
 ### 1.3 Definiciones y acrónimos
 
@@ -171,8 +178,8 @@ El sistema **digitaliza** el catálogo, los pedidos, el stock y la administraci�
 
 - Cada microservicio tiene su **propia configuración y sus tablas** en Oracle Cloud. El frontend **no accede a la base de datos**: solo a la API.
 - **Flujo de compra:**
-  1. `POST /api/v1/ventas`: ms-ventas consulta el **precio** en ms-catalogoProductos y el **stock** en ms-inventario. Si no alcanza, responde 409.
-  2. `PUT /api/v1/ventas/{id}/confirmar`: marca la venta PAGADA y **descuenta el stock** en ms-inventario, con un token interno de servicio.
+  1. `POST /api/v1/ventas`: ms-ventas consulta el **precio** en ms-catalogoProductos (según el tipo de cliente del **JWT**) y el **stock** en ms-inventario. Si no alcanza, responde 409. Rechaza productos inactivos y limita la venta a 50 ítems y 100 unidades por producto.
+  2. `PUT /api/v1/ventas/{id}/confirmar`: marca la venta PAGADA y **descuenta el stock** en ms-inventario, con un token interno de servicio. Un **bloqueo optimista** (`@Version`) hace que una segunda confirmación simultánea responda 409 sin volver a descontar.
 
 ### 3.3 Arquitectura del frontend (componentes)
 
@@ -199,17 +206,25 @@ main.jsx
 ### 3.4 Seguridad
 
 - **Autenticación:**
-  - `POST /api/v1/auth/login` valida con **BCrypt** y emite un **JWT** con el rol, válido por 10 horas.
+  - `POST /api/v1/auth/login` valida con **BCrypt** y emite un **JWT** con el rol y el tipo de cliente, válido por **2 horas**.
+  - Las contraseñas nuevas deben tener **8 a 64 caracteres** con al menos una letra y un número (el backend acepta hasta 72).
+  - **Límite de intentos de login** (`LimiteIntentosLogin`, en memoria): **5 fallos** del mismo usuario desde la misma IP, o **20 fallos** desde una IP con cualquier usuario, dentro de **15 minutos**, bloquean el login por **15 minutos**. Durante el bloqueo se responde **429** con un mensaje genérico ("Demasiados intentos. Intenta nuevamente en unos minutos."), sin revelar si el usuario existe; los usuarios inexistentes se cuentan igual. Se cuenta por usuario + IP para que un tercero no pueda bloquear la cuenta de otro desde su propia IP. Un login correcto reinicia el contador, y cada bloqueo queda en el log con el usuario y la IP (nunca la contraseña). Detrás de un proxy se usa la IP de `X-Forwarded-For` (la última entrada), en la que solo se confía si la petición llega desde un **proxy confiable** (`app.seguridad.proxies-confiables`, IPs o rangos CIDR). Por defecto es `127.0.0.1,::1` (el proxy de Vite); en Docker se agrega la red interna `172.28.0.0/16`, desde donde llega Nginx.
   - El frontend guarda el token en la sesión y lo envía en cada petición.
-  - Si el token expiró, se pide volver a iniciar sesión.
+  - Si el token expiró, se pide volver a iniciar sesión. Al cerrar sesión (o si el token vence) también se **vacía el carrito**, para que el siguiente usuario del navegador no lo vea.
+- **Contraseñas:**
+  - **Cambio con sesión iniciada** (`PUT /api/v1/cuenta/contrasena`): exige el token y la **contraseña actual**; el usuario sale del token, nunca del cuerpo de la petición.
+  - **Recuperación** (`POST /api/v1/auth/recuperar` y `/restablecer`): responde **siempre el mismo mensaje**, exista o no la cuenta (anti-enumeración). Se crea un token aleatorio de 32 bytes (`SecureRandom`) y se guarda **solo su SHA-256**. El token vence en **15 minutos**, es de **un solo uso** e invalida los enlaces anteriores. Hay un máximo de **3 solicitudes por usuario cada 15 minutos**. El enlace se envía por la interfaz `NotificacionService` y nunca viene en la respuesta de la API. La implementación se elige con `app.notificacion.modo`: **`log`** (por defecto) lo escribe solo en el log de ms-auth, y **`correo`** lo envía por SMTP (`spring-boot-starter-mail`) con un correo en español que avisa que vence en 15 minutos y que, si el usuario no lo pidió, puede ignorarlo. Las credenciales SMTP (`spring.mail.*`) se leen del archivo externo de secretos. El correo se envía **en segundo plano** (`@Async` con un executor acotado: 1–2 hilos y cola de 50; si la cola se llena, el envío se descarta y queda en el log), así que `/recuperar` no espera al servidor SMTP. Si el envío falla, solo se registra en el log y el usuario recibe la misma respuesta.
 - **Autorización en el backend:**
   - `@PreAuthorize` y reglas por método HTTP en cada `SecurityConfig`.
   - El servicio de ventas verifica además que el cliente sea **dueño** de la venta.
-  - Respuestas: **401** sin token o con credenciales malas; **403** sin permiso.
+  - Un administrador **no puede quitarse su propio rol** ni quitárselo al **último ADMIN** (400 con el motivo); en el formulario de edición el selector de rol queda bloqueado cuando el admin se edita a sí mismo.
+  - Un token **mal formado, con firma inválida o expirado**, o de un usuario que ya no existe, no rompe la petición en ningún servicio: se sigue sin autenticar y una ruta privada responde **401 en JSON**.
+  - Respuestas: **401** sin token o con credenciales malas; **403** sin permiso; **429** por demasiados intentos de login; **500** con mensaje genérico ante un error interno (el detalle queda en el log).
 - **Autorización en el frontend:** `RutaProtegida` y el Navbar muestran solo las vistas del rol. Un Vendedor en la tienda es redirigido a su panel.
 - **Registro:** el body **no** decide el rol: siempre se crea un CLIENTE.
-- **Secretos:** la contraseña de la base, la ruta del Wallet y la clave JWT se leen de un archivo externo. El Wallet **no** se versiona.
-- **CORS:** solo para `/api/**` y los orígenes configurados (el frontend local).
+- **Secretos:** la contraseña de la base, la ruta del Wallet y la clave JWT se leen de un archivo externo. Hoy el Wallet **no** se versiona. La contraseña de la base de datos y la clave JWT que quedaron en el historial de git (commit 1bec55c) ya se cambiaron; el Oracle Wallet, que también quedó en ese historial (se retiró en el commit 21e47ba), está pendiente de rotar.
+- **CORS:** solo para `/api/**` y los orígenes configurados. En desarrollo el frontend llama por el **proxy de Vite**, y en Docker por **Nginx**; ambos quitan `Origin`, así que esas llamadas no dependen de CORS.
+- **Headers de seguridad (H-13):** en Docker, Nginx agrega `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin` y una **Content-Security-Policy** que solo permite recursos del propio sitio, más los iframes de Google Maps y YouTube. Por eso las imágenes de productos deben ser rutas locales `/IMAGENES/...`.
 
 ### 3.5 Versionado de la API
 
@@ -235,6 +250,35 @@ El catálogo vive en **ms-catalogoProductos**:
 
 ---
 
+### 3.8 Arquitectura de contenedores (Docker)
+
+El sistema completo se levanta con **Docker Compose** (`docker-compose.yml` en la raíz), tanto en local (Docker Desktop) como en **AWS EC2**. El paso a paso está en `docs/DOCKER.md`.
+
+```
+              Navegador ── puerto 80 (único puerto público)
+┌──────────────────────────────▼───────────────────────────────────┐
+│ Red interna Docker "elvolcan" (172.28.0.0/16)                    │
+│  frontend (Nginx :80): SPA + proxy /api/v1 y /api/v2             │
+│     ├─ auth | usuarios | cuenta → ms-auth :8081                  │
+│     ├─ productos                → ms-catalogoproductos :8082     │
+│     ├─ inventario               → ms-inventario :8084            │
+│     └─ ventas                   → ms-ventas :8086                │
+│  los 4 servicios se registran en eureka :8761 (127.0.0.1:8761)   │
+└───────────────┬──────────────────────────────────────────────────┘
+                └─ salida TLS → Oracle Autonomous Database (Wallet en /wallet, solo lectura)
+```
+
+| Contenedor | Imagen base (ejecución) | Puerto | Publicado |
+|---|---|---|---|
+| `eureka` | `eclipse-temurin:21-jre-alpine` | 8761 | solo `127.0.0.1:8761` |
+| `ms-auth`, `ms-catalogoproductos`, `ms-inventario`, `ms-ventas` | `eclipse-temurin:21-jre-alpine` | 8081 / 8082 / 8084 / 8086 | no |
+| `frontend` | `nginx:1.27-alpine` | 80 | `80` |
+
+- **Imágenes multi-etapa:** los microservicios se compilan con Maven + Java 21 dentro de la imagen y se ejecutan con un JRE 21 liviano, con un usuario sin privilegios. La memoria se configura con `JAVA_OPTS` (por defecto `-Xmx384m`). El frontend se compila con Node 22 y lo sirve Nginx, con `try_files` para React Router.
+- **Arranque ordenado:** healthchecks HTTP y `depends_on`, en el orden Eureka → microservicios → frontend. Los servicios encuentran a Eureka por el nombre del contenedor (`http://eureka:8761/eureka/`).
+- **Secretos:** `DB_USER`, `DB_PASSWORD`, `JWT_SECRET`, el correo (`NOTIFICACION_MODO`, `SPRING_MAIL_*`) y `APP_FRONTEND_URL` se leen de un `.env` que no se versiona (plantilla `.env.example`). Tienen prioridad sobre el archivo de secretos opcional. El Wallet **no se copia a las imágenes**: se monta como volumen de solo lectura (`WALLET_HOST_DIR` → `/wallet`). Los `.dockerignore` excluyen el Wallet, `target`, `node_modules`, `dist`, `coverage`, `.env` y los logs.
+- **En EC2:** el grupo de seguridad abre solo los puertos 22 (IP del equipo) y 80. Eureka se revisa con un túnel SSH. La IP pública de la instancia debe estar permitida en la lista de acceso de la base Oracle.
+
 ## 4. Requisitos funcionales (RF)
 
 **Prioridad:** A = Alta · M = Media · B = Baja.
@@ -250,7 +294,7 @@ El catálogo vive en **ms-catalogoProductos**:
 |------|---------------|:---------:|:------:|
 | **RF-01** | El sistema debe mostrar una página de **inicio** con bienvenida, imagen de cilindros, beneficios del servicio y acceso al catálogo. | A | ✅ |
 | **RF-02** | El sistema debe mostrar el **catálogo público** obtenido de ms-catalogoProductos (`GET /api/v1/productos`, sin autenticación), en tarjetas con imagen, nombre, descripción y precio. | A | ✅ |
-| **RF-03** | El usuario debe poder **filtrar** los productos por **categoría** (Cilindros de Gas, Reguladores, Mangueras y Conexiones, Accesorios) y ver “Todos”. | A | ✅ |
+| **RF-03** | El usuario debe poder **buscar** productos por nombre, categoría o código (sin distinguir mayúsculas ni tildes), con **sugerencias de productos** que llevan a su detalle, y **filtrar** los productos por **categoría** (Cilindros de Gas, Reguladores, Mangueras y Conexiones, Accesorios) y ver “Todos”. | A | ✅ |
 | **RF-04** | El usuario debe poder abrir el **detalle** de un producto (código, categoría, precios residencial y comercial) desde la API. | A | ✅ |
 | **RF-05** | El sistema debe indicar claramente cuando un producto **no existe** (404). | M | ✅ |
 | **RF-06** | El sistema debe mostrar los precios en **pesos chilenos** (separador de miles). | M | ✅ |
@@ -263,7 +307,7 @@ El catálogo vive en **ms-catalogoProductos**:
 | **RF-07** | El usuario debe poder **agregar** un producto al carrito desde el catálogo y desde el detalle. | A | ✅ |
 | **RF-08** | El usuario debe poder **aumentar** y **disminuir** la cantidad de cada ítem. | A | ✅ |
 | **RF-09** | Al disminuir a **cero**, el ítem debe **eliminarse** del carrito. | M | ✅ |
-| **RF-10** | El sistema debe **calcular el total** con tarifa **residencial** o **comercial** según el tipo de cliente. El backend recalcula el precio al crear la venta. | A | ✅ |
+| **RF-10** | El sistema debe **calcular el total** con tarifa **residencial** o **comercial** según el tipo de cliente. El backend recalcula el precio al crear la venta y toma el tipo de cliente del **JWT**, no del cuerpo de la petición. Con sesión, las tarjetas **destacan el precio** del tipo de cliente. | A | ✅ |
 | **RF-11** | La barra de navegación debe mostrar el **contador de ítems** del carrito. | M | ✅ |
 | **RF-12** | El carrito debe **persistir** entre recargas (en el navegador, con los ids de la API). | M | ✅ |
 | **RF-13** | El sistema debe indicar cuando el carrito está **vacío**. | B | ✅ |
@@ -273,10 +317,10 @@ El catálogo vive en **ms-catalogoProductos**:
 | Cód. | Requerimiento | Prioridad | Estado |
 |------|---------------|:---------:|:------:|
 | **RF-14** | El usuario debe poder **registrarse** como cliente (Residencial o Comercial) en ms-auth (`POST /api/v1/auth/register`). | A | ✅ |
-| **RF-15** | El sistema debe **validar** RUN (7–9 dígitos), teléfono, formato y dominio de correo, contraseña (**6–10**) y términos. El backend vuelve a validar (`@Valid`). | A | ✅ |
+| **RF-15** | El sistema debe **validar** el RUT (con o sin puntos y guion; al **crear** un usuario se exige el **dígito verificador** por módulo 11) y mostrarlo como `12.345.678-5`, teléfono, formato y dominio de correo, contraseña (**8–64**, con letra y número) y términos. El backend vuelve a validar (`@Valid`). | A | ✅ |
 | **RF-16** | El sistema debe **impedir correos o RUN duplicados** en el registro (409). | A | ✅ |
-| **RF-17** | El usuario debe poder **iniciar sesión** contra ms-auth y ser dirigido según su rol: Administrador a `/admin`, Vendedor a `/vendedor`, Cliente a la tienda. | A | ✅ |
-| **RF-18** | El sistema debe **cerrar sesión** eliminando el token y los datos de sesión. | A | ✅ |
+| **RF-17** | El usuario debe poder **iniciar sesión** contra ms-auth y ser dirigido según su rol: Administrador a `/admin`, Vendedor a `/vendedor`, Cliente a la tienda. Tras 5 intentos fallidos del mismo usuario e IP (o 20 desde una IP) en 15 minutos, el login se bloquea 15 minutos y se muestra un mensaje genérico (429). | A | ✅ |
+| **RF-18** | El sistema debe **cerrar sesión** eliminando el token, los datos de sesión y el **carrito**. | A | ✅ |
 | **RF-19** | El sistema debe usar **selectores dependientes** Región → Comuna. | M | ✅ |
 
 ### 4.4 Módulo de pedido / checkout
@@ -306,7 +350,7 @@ El catálogo vive en **ms-catalogoProductos**:
 | **RF-30** | El administrador debe poder **listar el inventario** (catálogo + stock por SKU), resaltando el **stock crítico**. | A | ✅ |
 | **RF-31** | El administrador debe poder **crear** productos con validación. El producto se crea en el catálogo, se crea su registro de inventario y se carga su stock inicial. | A | ✅ |
 | **RF-32** | El administrador debe poder **editar** productos (`PUT /api/v1/productos/{id}`), excepto el SKU, y **ajustar el stock**. | A | ✅ |
-| **RF-33** | El administrador debe poder **eliminar** productos (borrado lógico: dejan de mostrarse en la tienda). | M | ✅ |
+| **RF-33** | El administrador debe poder **desactivar** productos (borrado lógico con `PATCH /api/v1/productos/{id}/estado`: dejan de mostrarse en la tienda). Ver también RF-48 y RF-52. | M | ✅ |
 | **RF-34** | El administrador debe poder **listar y filtrar usuarios** por rol (Administradores, Clientes y Vendedores). | A | ✅ |
 | **RF-35** | El administrador debe poder **crear usuarios** con rol (Admin, Vendedor o Cliente), región y comuna, con validaciones y control de duplicados (409). | A | ✅ |
 | **RF-36** | El SKU de un producto no debe poder modificarse, porque enlaza el catálogo con el inventario. | M | ✅ |
@@ -326,6 +370,16 @@ El catálogo vive en **ms-catalogoProductos**:
 | **RF-46** | Si un microservicio no responde, el frontend debe **avisarlo** y deshabilitar la compra (sin fallar en silencio). | M | ✅ |
 | **RF-47** | La sesión debe expirar con el token: con un JWT vencido, el sistema debe pedir iniciar sesión de nuevo. | M | ✅ |
 
+### 4.8 Gestión de productos, usuarios y contraseñas (nuevos en la versión 3.2)
+
+| Cód. | Requerimiento | Prioridad | Estado |
+|------|---------------|:---------:|:------:|
+| **RF-48** | El administrador debe poder **activar y desactivar** productos. El panel lista también los inactivos con la etiqueta "Inactivo" y un botón Activar/Desactivar (`GET /api/v1/productos/todos`, `PATCH /api/v1/productos/{id}/estado`, solo ADMIN). La tienda sigue mostrando solo los activos. | A | ✅ |
+| **RF-49** | El administrador debe poder **eliminar** usuarios con confirmación y **editar** sus datos. Un administrador no puede eliminar su propia cuenta ni cambiar su propio rol, y no se puede quitar el rol al último administrador (la interfaz lo impide y el backend responde 400 con el motivo). | A | ✅ |
+| **RF-50** | Todo usuario con sesión debe poder **cambiar su contraseña** indicando la actual y la nueva (8 a 64 caracteres, con letra y número), desde la tienda o desde su panel. | A | ✅ |
+| **RF-51** | El usuario debe poder **recuperar su contraseña** con un enlace de un solo uso que vence en 15 minutos. La solicitud no revela si la cuenta existe y se limita a 3 por usuario cada 15 minutos. Nunca se puede cambiar la contraseña conociendo solo el nombre de usuario. | A | ✅ |
+| **RF-52** | El administrador debe poder **eliminar definitivamente** un producto **sin ventas**, junto con su registro de inventario. El panel muestra Editar, Activar/Desactivar y Eliminar; Eliminar pide confirmación ("Esta acción no se puede deshacer") y queda deshabilitado, con el motivo, si el producto tiene ventas o si no se pudo verificar. El backend lo valida siempre: con ventas responde **409** ("desactívalo en lugar de eliminarlo") y, si ms-ventas o ms-inventario no responden, **502** sin borrar nada. | A | ✅ |
+
 ---
 
 ## 5. Requisitos no funcionales (RNF)
@@ -336,13 +390,13 @@ El catálogo vive en **ms-catalogoProductos**:
 | **RNF-02** | **Usabilidad** | Formularios de pocos pasos; errores en español, claros, incluido el motivo que envía el backend (ej. "Stock insuficiente para: …"). |
 | **RNF-03** | **Compatibilidad** | Navegadores modernos (Chrome, Edge, Firefox) y teléfonos Android de gama media-baja. |
 | **RNF-04** | **Rendimiento** | Carga rápida; bundle de producción optimizado; los paneles cargan sus datos en paralelo. |
-| **RNF-05** | **Seguridad** | Toda operación que no sea pública (catálogo, login y registro) exige JWT. Contraseñas con BCrypt. Roles aplicados en el servidor. Secretos fuera del repositorio. CORS restringido. |
-| **RNF-06** | **Confiabilidad** | Errores controlados con códigos HTTP coherentes (400 / 401 / 403 / 404 / 409). Las fallas parciales de un servicio no bloquean todo el panel. |
+| **RNF-05** | **Seguridad** | Toda operación que no sea pública (catálogo, login y registro) exige JWT. Contraseñas con BCrypt. Límite de intentos de login (429). Roles aplicados en el servidor. Secretos fuera del repositorio y de las imágenes Docker. CORS restringido. Headers de seguridad y CSP en Nginx. |
+| **RNF-06** | **Confiabilidad** | Errores controlados con códigos HTTP coherentes (400 / 401 / 403 / 404 / 409 / 429); un error interno responde 500 sin detalles técnicos. Las fallas parciales de un servicio no bloquean todo el panel. |
 | **RNF-07** | **Mantenibilidad** | Capas controller / service / repository con DTOs; componentes y utilidades reutilizables; lint sin errores. |
 | **RNF-08** | **Testabilidad** | La lógica de negocio y las reglas de seguridad deben tener **pruebas automatizadas** con reporte de cobertura (frontend y backend). |
 | **RNF-09** | **Accesibilidad** | Etiquetas asociadas a los campos, `role` y `aria-label` en navegación, botones y alertas. |
 | **RNF-10** | **Escalabilidad** | Microservicios independientes con descubrimiento en Eureka; se pueden agregar servicios sin cambiar los existentes. |
-| **RNF-11** | **Disponibilidad** | Despliegue planificado en **AWS** con **Docker** (el frontend de la V2 ya se desplegó en EC2). |
+| **RNF-11** | **Disponibilidad** | Despliegue con **Docker Compose** en local y en **AWS EC2** (§3.8): healthchecks, arranque ordenado y reinicio automático de los contenedores (`restart: unless-stopped`). |
 | **RNF-12** | **Privacidad** | Los datos de clientes y pedidos solo los ve el personal autorizado y cada cliente ve solo los suyos. La API nunca devuelve contraseñas. |
 | **RNF-13** | **Interoperabilidad** | API REST/JSON documentada con OpenAPI (Swagger), versionada en v1 y v2. |
 
@@ -355,10 +409,11 @@ Cada microservicio administra **sus propias tablas** en Oracle Cloud. Las relaci
 | Microservicio | Tabla (entidad JPA) | Atributos | Relaciones |
 |---|---|---|---|
 | ms-auth | **roles** (`Rol`) | `id` (PK), `nombre_rol` (único: ADMIN, VENDEDOR, CLIENTE) | 1 rol → N usuarios |
-| ms-auth | **usuarios** (`Usuario`) | `id` (PK), `nombre`, `rut` (único), `username` (único, correo), `password` (hash BCrypt), `rol_id` (FK → roles), `direccion`, `region`, `comuna`, `tipo_cliente`, `telefono` | N usuarios → 1 rol |
+| ms-auth | **tokens_recuperacion** (`TokenRecuperacion`) | `id` (PK), `usuario_id` (id del usuario, sin FK), `token_hash` (SHA-256, único), `creado_en`, `expira_en`, `usado_en` | N tokens → 1 usuario (solo uno vigente) |
+| ms-auth | **usuarios** (`Usuario`) | `id` (PK), `nombre`, `rut` (único, sin puntos ni guion), `username` (único, correo), `password` (hash BCrypt), `rol_id` (FK → roles), `direccion`, `region`, `comuna`, `tipo_cliente`, `telefono` | N usuarios → 1 rol |
 | ms-catalogoProductos | **productos** (`Producto`) | `id` (PK), `sku` (único), `nombre`, `descripcion`, `precio_residencial`, `precio_comercial`, `precio`, `categoria`, `imagen`, `activo` (borrado lógico) | 1 producto ↔ 1 inventario (por `sku`) |
-| ms-inventario | **inventarios** (`Inventario`) | `id` (PK), `sku` (único), `stock_actual`, `nivel_critico`, `nivel_maximo`, `ultima_actualizacion` | por `sku` con productos |
-| ms-ventas | **ventas** (`Venta`) | `id` (PK), `usuario` (username del cliente), `total`, `estado` (PENDIENTE_PAGO, PAGADA, CANCELADA), `fecha_venta`, `direccion`, `comuna`, `metodo_pago` | 1 venta → N detalles |
+| ms-inventario | **inventarios** (`Inventario`) | `id` (PK), `sku` (único), `stock_actual`, `nivel_critico`, `nivel_maximo`, `ultima_actualizacion`, `version` (bloqueo optimista) | por `sku` con productos |
+| ms-ventas | **ventas** (`Venta`) | `id` (PK), `usuario` (username del cliente), `total`, `estado` (PENDIENTE_PAGO, PAGADA, CANCELADA), `fecha_venta`, `direccion`, `comuna`, `metodo_pago`, `version` (bloqueo optimista) | 1 venta → N detalles |
 | ms-ventas | **detalles_venta** (`DetalleVenta`) | `id` (PK), `venta_id` (FK → ventas), `producto_id` (id del catálogo), `cantidad`, `precio_unitario`, `subtotal` | N detalles → 1 venta |
 
 ```
@@ -378,18 +433,25 @@ ms-ventas:    ventas 1───N detalles_venta ·· producto_id → productos.i
 
 | Servicio | Método | Ruta | Descripción | Acceso |
 |---|---|---|---|---|
-| ms-auth | `POST` | `/api/v1/auth/login` | Inicia sesión y devuelve el JWT y los datos del usuario | Público |
+| ms-auth | `POST` | `/api/v1/auth/login` | Inicia sesión y devuelve el JWT y los datos del usuario (429 tras demasiados intentos fallidos) | Público |
 | ms-auth | `POST` | `/api/v1/auth/register` | Registra un cliente | Público |
+| ms-auth | `POST` | `/api/v1/auth/recuperar` | Pide un enlace de recuperación (respuesta siempre igual) | Público |
+| ms-auth | `POST` | `/api/v1/auth/restablecer` | Nueva contraseña con el token del enlace | Público |
+| ms-auth | `PUT` | `/api/v1/cuenta/contrasena` | Cambia la contraseña del usuario del token | Autenticado |
 | ms-auth | `GET`/`POST` | `/api/v1/usuarios` | Lista y crea usuarios con rol | ADMIN |
 | ms-auth | `GET`/`PUT`/`DELETE` | `/api/v1/usuarios/{id}` | Detalle, edición y eliminación | ADMIN |
 | ms-catalogoProductos | `GET` | `/api/v1/productos`, `/id/{id}`, `/{sku}` | Catálogo y detalle | Público |
-| ms-catalogoProductos | `POST` · `PUT` · `DELETE` | `/api/v1/productos` · `/{id}` · `/{sku}` | Crear, editar y desactivar | ADMIN |
+| ms-catalogoProductos | `POST` · `PUT` | `/api/v1/productos` · `/{id}` | Crear y editar | ADMIN |
+| ms-catalogoProductos | `DELETE` | `/api/v1/productos/{sku}` | Eliminar definitivamente un producto sin ventas y su inventario (409 si tiene ventas, 502 si falla otro servicio) | ADMIN |
+| ms-catalogoProductos | `GET` · `PATCH` | `/api/v1/productos/todos` · `/{id}/estado` | Listado con inactivos y activar/desactivar | ADMIN |
 | ms-inventario | `GET` | `/api/v1/inventario`, `/{sku}`, `/critico` | Stock | Autenticado |
 | ms-inventario | `POST` · `PUT` | `/crear` · `/aumentar` · `/disminuir` | Gestión de stock | ADMIN |
+| ms-inventario | `DELETE` | `/api/v1/inventario/{sku}` | Elimina el registro de stock (lo llama catálogo al eliminar un producto) | ADMIN |
 | ms-ventas | `POST` | `/api/v1/ventas` | Crea una venta | CLIENTE, ADMIN |
 | ms-ventas | `PUT` | `/api/v1/ventas/{id}/confirmar` | Confirma el pago (solo el dueño o ADMIN) | CLIENTE, ADMIN |
 | ms-ventas | `GET` | `/api/v1/ventas/mis-compras` | Historial propio | CLIENTE, ADMIN |
 | ms-ventas | `GET` | `/api/v1/ventas`, `/{id}` | Todas las órdenes y su detalle | ADMIN, VENDEDOR (el cliente solo el detalle de las suyas) |
+| ms-ventas | `GET` | `/api/v1/ventas/productos-vendidos` | IDs de productos con al menos una venta (`SELECT DISTINCT`) | ADMIN |
 
 El detalle completo (parámetros, body, respuestas y códigos de error) está en los **Anexos 2 y 3** y en el Swagger de cada servicio.
 
@@ -408,7 +470,7 @@ El detalle completo (parámetros, body, respuestas y códigos de error) está en
 | Dispositivos | Teléfonos Android de gama media-baja. |
 | Nivel técnico | Usuarios sin experiencia en software de gestión: mínima cantidad de pasos. |
 | Base de datos | Oracle Autonomous Database (Oracle Cloud, plan gratuito: pool de conexiones limitado a 3 por servicio). |
-| Seguridad | Los secretos (contraseña de la BD, clave JWT, Wallet) no se versionan. |
+| Seguridad | Los secretos (contraseña de la BD, clave JWT, Wallet) no se versionan. La contraseña de la base de datos y la clave JWT que quedaron en el historial de git (commit 1bec55c) ya se cambiaron; el Oracle Wallet, que también quedó en ese historial (se retiró en el commit 21e47ba), está pendiente de rotar. |
 | Stack | React (SPA) · Spring Boot 4 / Java 21 · Spring Cloud (Eureka, OpenFeign) · API REST/JSON · Oracle Cloud. |
 
 ---
@@ -421,8 +483,8 @@ El detalle completo (parámetros, body, respuestas y códigos de error) está en
 | RF-02, RF-03, RF-06, RF-46 | `pages/Productos.jsx`, `utils/useCatalogo.js`, `utils/productos.js` · ms-catalogoProductos `ProductoController` | `useCatalogo.test.js`, `productos.test.js`, `Producto.test.jsx` · `ProductoSeguridadTest` (catálogo público) |
 | RF-04, RF-05 | `pages/DetalleProducto.jsx` | `DetalleProducto.test.jsx` |
 | RF-07 – RF-13 | `utils/carrito.js`, `pages/Carrito.jsx`, `App.jsx` | `carrito.test.js`, `Carrito.test.jsx`, `Navbar.test.jsx` |
-| RF-14 – RF-16, RF-19 | `pages/Registro.jsx`, `utils/validaciones.js` · ms-auth `AuthService.registrar` | `Registro.test.jsx`, `validaciones.test.js` · `AuthServiceTest`, `AuthControllerTest` (409, 400) |
-| RF-17, RF-18, RF-38, RF-47 | `pages/Login.jsx`, `utils/sesion.js`, `components/RutaProtegida.jsx` · ms-auth `AuthController.login`, `JwtUtil` | `Login.test.jsx`, `sesion.test.js`, `RutaProtegida.test.jsx` · `AuthServiceTest` |
+| RF-14 – RF-16, RF-19 | `pages/Registro.jsx`, `utils/validaciones.js` · ms-auth `AuthService.registrar` | `Registro.test.jsx`, `validaciones.test.js` · `AuthServiceTest`, `AuthControllerTest` (409, 400), `DataInitializerTest` de ms-auth (RUT semilla válido) |
+| RF-17, RF-18, RF-38, RF-47 | `pages/Login.jsx`, `utils/sesion.js`, `components/RutaProtegida.jsx` · ms-auth `AuthController.login`, `JwtUtil`, `JwtAuthenticationFilter`, `LimiteIntentosLogin` | `Login.test.jsx` (incluye el 429), `sesion.test.js`, `RutaProtegida.test.jsx` · `AuthServiceTest`, `AuthControllerTest` (429 e IP), `LimiteIntentosLoginTest`, `JwtFiltroSeguridadTest` (token mal formado, expirado o con otra firma → 401) |
 | RF-20 – RF-24 | `pages/Ventas.jsx` · ms-ventas `VentaService.crearPedido` / `confirmarPago` (Feign a catálogo e inventario) | `Ventas.test.jsx` · `VentaServiceTest`, `VentaRequestDTOTest` |
 | RF-26 – RF-28 | `pages/Contacto.jsx`, `Nosotros.jsx`, `Consejos.jsx`, `Tiendas.jsx` | `validaciones.test.js`, `Nosotros.test.jsx` |
 | RF-29, RF-43 | `pages/admin/Dashboard.jsx`, `Ordenes.jsx`, `utils/ventas.js` · ms-ventas `GET /ventas`, `/ventas/{id}` | `PanelAdmin.test.jsx`, `ventas.test.js` · `VentaServiceTest` (detalle por rol) |
@@ -433,6 +495,11 @@ El detalle completo (parámetros, body, respuestas y códigos de error) está en
 | RF-41 | `App.jsx` (`RutaProtegida`) · `@PreAuthorize` ADMIN | `RutaProtegida.test.jsx`, `UsuarioSeguridadTest` |
 | RF-44 | `pages/admin/Clientes.jsx`, `Reportes.jsx`, `utils/reportes.js` | `reportes.test.js`, `ClientesReportes.test.jsx` |
 | RF-45 | Controladores V1 y V2, `SwaggerConfig` (grupos v1/v2) | Prueba manual en Swagger (Anexo 2) |
+| RF-48 | `pages/admin/Inventario.jsx` · ms-catalogoProductos `ProductoController.cambiarEstado`, `listarTodosAdmin` | `Inventario.test.jsx` · `ProductoServiceImplTest`, `ProductoSeguridadTest` |
+| RF-49 | `pages/admin/ListaUsuarios.jsx`, `NuevoUsuario.jsx` · ms-auth `UsuarioService.eliminar` / `actualizar` | `ListaUsuarios.test.jsx`, `NuevoUsuario.test.jsx` (rol propio bloqueado, 400 del último ADMIN) · `UsuarioServiceTest` |
+| RF-50 | `pages/CambiarContrasena.jsx` · ms-auth `CuentaController`, `CuentaService` | `CambiarContrasena.test.jsx` · `CuentaServiceTest`, `CuentaSeguridadTest` |
+| RF-52 | `pages/admin/Inventario.jsx` · ms-catalogoProductos `ProductoServiceImpl.eliminarProducto` (Feign a ms-ventas y ms-inventario) · ms-ventas `VentaRepository.findProductosVendidos` · ms-inventario `InventarioController.eliminar` | `InventarioEliminar.test.jsx` · `ProductoServiceImplTest`, `ProductoSeguridadTest` (204/409/404/502/403/401), `VentaSeguridadTest`, `VentaServiceTest`, `InventarioSeguridadTest`, `InventarioServiceTest` |
+| RF-51 | `pages/RecuperarContrasena.jsx`, `RestablecerContrasena.jsx` · ms-auth `RecuperacionController`, `RecuperacionService`, `NotificacionService` (`NotificacionLogService` / `NotificacionCorreoService`) | `RecuperacionContrasena.test.jsx` · `RecuperacionServiceTest`, `RecuperacionControllerTest`, `NotificacionCorreoServiceTest`, `NotificacionCorreoAsyncTest` |
 
 ---
 
@@ -441,10 +508,11 @@ El detalle completo (parámetros, body, respuestas y códigos de error) está en
 1. Los 4 microservicios y Eureka se levantan (`levantar-servicios.ps1`) y aparecen **UP** en Eureka. Cada uno publica su Swagger con los grupos **v1** y **v2**.
 2. Un **cliente** puede registrarse, iniciar sesión, comprar (la venta queda PAGADA y el **stock baja**) y ver la orden en "Mis compras".
 3. Un **vendedor** solo ve lista y detalle de productos y de órdenes. Cualquier escritura en la API devuelve **403**.
-4. El **administrador** puede crear, editar y eliminar productos, ajustar stock, crear usuarios con rol y ver órdenes, clientes y reportes con datos reales.
-5. Sin token, las operaciones protegidas responden **401**; un cliente no puede ver ni pagar ventas ajenas (**403**); un registro duplicado responde **409**.
-6. Las pruebas automatizadas del frontend y del backend pasan y generan **reporte de cobertura**.
-7. `npm run build` y `npm run lint` terminan **sin errores**, y ningún secreto queda en el repositorio.
+4. El **administrador** puede crear, editar, activar y desactivar productos, ajustar stock, crear, editar y eliminar usuarios con rol y ver órdenes, clientes y reportes con datos reales.
+5. Un usuario puede **cambiar su contraseña** con la actual y **recuperarla** con un enlace de un solo uso; la solicitud de recuperación responde igual exista o no la cuenta.
+6. Sin token, las operaciones protegidas responden **401**; un cliente no puede ver ni pagar ventas ajenas (**403**); un registro duplicado responde **409**; tras demasiados intentos fallidos el login responde **429** con un mensaje genérico.
+7. Las pruebas automatizadas del frontend y del backend pasan y generan **reporte de cobertura**.
+8. `npm run build` y `npm run lint` terminan **sin errores**, y ningún secreto queda en el repositorio.
 
 ---
 

@@ -8,6 +8,8 @@ import cl.elvolcan.auth.model.Rol;
 import cl.elvolcan.auth.model.Usuario;
 import cl.elvolcan.auth.repository.RolRepository;
 import cl.elvolcan.auth.repository.UsuarioRepository;
+import cl.elvolcan.auth.exception.DemasiadosIntentosException;
+import cl.elvolcan.auth.security.LimiteIntentosLogin;
 import cl.elvolcan.auth.security.jwt.JwtUtil;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -40,6 +42,11 @@ class AuthServiceTest {
     @Mock
     private JwtUtil jwtUtil;
 
+    @Mock
+    private LimiteIntentosLogin limiteIntentos;
+
+    private static final String IP = "10.0.0.1";
+
     @InjectMocks
     private AuthService authService;
 
@@ -62,10 +69,10 @@ class AuthServiceTest {
 
         when(usuarioRepository.findByUsername("admin")).thenReturn(Optional.of(usuario));
         when(passwordEncoder.matches("admin123", "hash_de_contraseña")).thenReturn(true);
-        when(jwtUtil.generateToken("admin", "ADMIN")).thenReturn("token_falso_123");
+        when(jwtUtil.generateToken("admin", "ADMIN", null)).thenReturn("token_falso_123");
 
         // When
-        UsuarioResponseDTO resultado = authService.login(request);
+        UsuarioResponseDTO resultado = authService.login(request, IP);
 
         // Then
         assertNotNull(resultado);
@@ -76,7 +83,7 @@ class AuthServiceTest {
 
         verify(usuarioRepository).findByUsername("admin");
         verify(passwordEncoder).matches("admin123", "hash_de_contraseña");
-        verify(jwtUtil).generateToken("admin", "ADMIN");
+        verify(jwtUtil).generateToken("admin", "ADMIN", null);
     }
 
     @Test
@@ -97,13 +104,14 @@ class AuthServiceTest {
         // When + Then
         RuntimeException exception = assertThrows(
                 RuntimeException.class,
-                () -> authService.login(request)
+                () -> authService.login(request, IP)
         );
 
         assertEquals("Error: Usuario o contraseña incorrectos", exception.getMessage());
         verify(usuarioRepository).findByUsername("admin");
         verify(passwordEncoder).matches("clave_mala", "hash_de_contraseña");
-        verify(jwtUtil, never()).generateToken(anyString(), anyString()); // Verifica que NO se genere token
+        verify(jwtUtil, never()).generateToken(anyString(), anyString(), any()); // Verifica que NO se genere token
+        verify(limiteIntentos).registrarFallo("admin", IP); // H-07: el fallo se cuenta
     }
 
     @Test
@@ -112,7 +120,7 @@ class AuthServiceTest {
         // Given
         RegistroRequestDTO request = new RegistroRequestDTO();
         request.setNombre("Nuevo Usuario");
-        request.setRut("11222333-4");
+        request.setRut("11.222.333-9");
         request.setUsername("nuevo_user");
         request.setPassword("123456");
 
@@ -122,11 +130,11 @@ class AuthServiceTest {
         Usuario usuarioGuardado = new Usuario();
         usuarioGuardado.setId(2L);
         usuarioGuardado.setNombre("Nuevo Usuario");
-        usuarioGuardado.setRut("11222333-4");
+        usuarioGuardado.setRut("11.222.333-9");
         usuarioGuardado.setUsername("nuevo_user");
         usuarioGuardado.setRol(rolCliente);
 
-        when(usuarioRepository.existsByRut("11222333-4")).thenReturn(false);
+        when(usuarioRepository.existsByRut("112223339")).thenReturn(false);
         when(usuarioRepository.existsByUsername("nuevo_user")).thenReturn(false);
         when(rolRepository.findByNombreRol("CLIENTE")).thenReturn(Optional.of(rolCliente));
         when(passwordEncoder.encode("123456")).thenReturn("hash_nuevo");
@@ -141,7 +149,7 @@ class AuthServiceTest {
         assertEquals("nuevo_user", resultado.getUsername());
         assertEquals("CLIENTE", resultado.getNombreRol());
 
-        verify(usuarioRepository).existsByRut("11222333-4");
+        verify(usuarioRepository).existsByRut("112223339");
         verify(usuarioRepository).existsByUsername("nuevo_user");
         verify(rolRepository).findByNombreRol("CLIENTE");
         verify(passwordEncoder).encode("123456");
@@ -153,7 +161,7 @@ class AuthServiceTest {
     void registrarSiempreAsignaRolCliente() {
         // Given
         RegistroRequestDTO request = new RegistroRequestDTO();
-        request.setRut("99888777-6");
+        request.setRut("99888777-1");
         request.setUsername("intruso");
         request.setPassword("123456");
 
@@ -183,7 +191,7 @@ class AuthServiceTest {
     void registrarDebeLanzarExcepcionCuandoUsernameExiste() {
         // Given
         RegistroRequestDTO request = new RegistroRequestDTO();
-        request.setRut("11222333-4");
+        request.setRut("11.222.333-9");
         request.setUsername("user_duplicado");
 
         when(usuarioRepository.existsByRut(anyString())).thenReturn(false);
@@ -203,10 +211,10 @@ class AuthServiceTest {
     @DisplayName("registrar debe lanzar RegistroDuplicadoException cuando el RUT ya existe")
     void registrarDebeLanzarExcepcionCuandoRutExiste() {
         RegistroRequestDTO request = new RegistroRequestDTO();
-        request.setRut("17234567");
+        request.setRut("17234560");
         request.setUsername("otro_usuario");
 
-        when(usuarioRepository.existsByRut("17234567")).thenReturn(true);
+        when(usuarioRepository.existsByRut("17234560")).thenReturn(true);
 
         RegistroDuplicadoException exception = assertThrows(
                 RegistroDuplicadoException.class,
@@ -216,5 +224,67 @@ class AuthServiceTest {
         assertEquals("Error: Ya existe un usuario registrado con este RUT", exception.getMessage());
         verify(usuarioRepository, never()).existsByUsername(anyString());
         verify(usuarioRepository, never()).save(any(Usuario.class));
+    }
+
+    @Test
+    @DisplayName("registrar con un RUT de dígito verificador inválido lanza 400 y no guarda")
+    void registrarConRutInvalido() {
+        RegistroRequestDTO request = new RegistroRequestDTO();
+        request.setRut("17.234.567"); // DV correcto sería 0
+        request.setUsername("nuevo@duoc.cl");
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> authService.registrar(request));
+        assertTrue(ex.getMessage().contains("dígito verificador"));
+        verify(usuarioRepository, never()).existsByRut(anyString());
+        verify(usuarioRepository, never()).save(any(Usuario.class));
+    }
+
+    @Test
+    @DisplayName("H-07: login correcto reinicia el contador de intentos de ese usuario + IP")
+    void loginCorrectoReiniciaContador() {
+        LoginRequestDTO request = new LoginRequestDTO();
+        request.setUsername("admin");
+        request.setPassword("admin123");
+        Rol rol = new Rol();
+        rol.setNombreRol("ADMIN");
+        Usuario usuario = new Usuario();
+        usuario.setUsername("admin");
+        usuario.setPassword("hash");
+        usuario.setRol(rol);
+        when(usuarioRepository.findByUsername("admin")).thenReturn(Optional.of(usuario));
+        when(passwordEncoder.matches("admin123", "hash")).thenReturn(true);
+
+        authService.login(request, IP);
+
+        verify(limiteIntentos).verificar("admin", IP);
+        verify(limiteIntentos).registrarExito("admin", IP);
+        verify(limiteIntentos, never()).registrarFallo(anyString(), anyString());
+    }
+
+    @Test
+    @DisplayName("H-07: un usuario inexistente cuenta como intento fallido")
+    void usuarioInexistenteCuentaComoFallo() {
+        LoginRequestDTO request = new LoginRequestDTO();
+        request.setUsername("nadie@duoc.cl");
+        request.setPassword("Clave1234");
+        when(usuarioRepository.findByUsername("nadie@duoc.cl")).thenReturn(Optional.empty());
+
+        assertThrows(RuntimeException.class, () -> authService.login(request, IP));
+
+        verify(limiteIntentos).registrarFallo("nadie@duoc.cl", IP);
+    }
+
+    @Test
+    @DisplayName("H-07: bloqueado responde 429 sin consultar la BD ni comparar la contraseña")
+    void bloqueadoNoConsultaBd() {
+        LoginRequestDTO request = new LoginRequestDTO();
+        request.setUsername("admin");
+        request.setPassword("admin123");
+        doThrow(new DemasiadosIntentosException(LimiteIntentosLogin.MENSAJE)).when(limiteIntentos).verificar("admin", IP);
+
+        DemasiadosIntentosException ex = assertThrows(DemasiadosIntentosException.class, () -> authService.login(request, IP));
+
+        assertEquals(LimiteIntentosLogin.MENSAJE, ex.getMessage());
+        verifyNoInteractions(usuarioRepository, passwordEncoder, jwtUtil);
     }
 }

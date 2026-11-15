@@ -3,7 +3,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { Container, Row, Col, Card, Form, Button, Alert } from 'react-bootstrap'
 import { CLAVES } from '../utils/validaciones'
 import { login, ApiError } from '../utils/api'
-import { sesionDesdeLogin, rutaInicial, sesionActiva, ROLES } from '../utils/sesion'
+import { sesionDesdeLogin, rutaInicial, sesionActiva, cerrarSesion as cerrarSesionGuardada, ROLES } from '../utils/sesion'
 
 function Login() {
   const [email, setEmail] = useState('')
@@ -50,7 +50,7 @@ function Login() {
   }
 
   function cerrarSesion() {
-    localStorage.removeItem(CLAVES.sesion)
+    cerrarSesionGuardada() // borra sesión y carrito
     setSesion(null)
   }
 
@@ -102,6 +102,9 @@ function Login() {
                       onChange={(event) => setPassword(event.target.value)}
                     />
                   </Form.Group>
+                  <p className="small mb-3">
+                    <Link to="/recuperar">¿Olvidaste tu contraseña?</Link>
+                  </p>
                   {error && <Alert variant="danger">{error}</Alert>}
                   <Button className="btn-login" type="submit" variant="primary" disabled={cargando}>
                     {cargando ? 'Ingresando…' : 'Ingresar'}

@@ -1,6 +1,8 @@
 package cl.elvolcan.auth.service;
 
 
+import cl.elvolcan.auth.util.Rut;
+import org.springframework.security.authentication.BadCredentialsException;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -13,6 +15,7 @@ import cl.elvolcan.auth.model.Rol;
 import cl.elvolcan.auth.model.Usuario;
 import cl.elvolcan.auth.repository.RolRepository;
 import cl.elvolcan.auth.repository.UsuarioRepository;
+import cl.elvolcan.auth.security.LimiteIntentosLogin;
 import cl.elvolcan.auth.security.jwt.JwtUtil;
 
 @Service
@@ -27,22 +30,31 @@ public class AuthService {
     private final RolRepository rolRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final LimiteIntentosLogin limiteIntentos;
 
 
-    public AuthService(UsuarioRepository usuarioRepository, RolRepository rolRepository, PasswordEncoder passwordEncoder, JwtUtil jwtUtil){          //inyeccion de dependencias
+    public AuthService(UsuarioRepository usuarioRepository, RolRepository rolRepository, PasswordEncoder passwordEncoder, JwtUtil jwtUtil,
+                       LimiteIntentosLogin limiteIntentos){          //inyeccion de dependencias
         this.usuarioRepository = usuarioRepository;
         this.rolRepository = rolRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
+        this.limiteIntentos = limiteIntentos;
     }
 
-    // METODO DE LOGIN
-    public UsuarioResponseDTO login(LoginRequestDTO request){
+    // METODO DE LOGIN (ip = IP del cliente, para el límite de intentos fallidos)
+    public UsuarioResponseDTO login(LoginRequestDTO request, String ip){
+
+        // H-07: si el usuario + IP o la IP están bloqueados, 429 antes de consultar la BD
+        // (aunque esta vez la contraseña sea correcta)
+        limiteIntentos.verificar(request.getUsername(), ip);
 
         //buscar si existe el username
         Optional<Usuario> usuarioOpt = usuarioRepository.findByUsername(request.getUsername());
         if (usuarioOpt.isEmpty()) {
-            throw new RuntimeException("Error: Usuario o contraseña incorrectos");
+            // un usuario inexistente cuenta igual que una contraseña mala (no se revela si existe)
+            limiteIntentos.registrarFallo(request.getUsername(), ip);
+            throw new BadCredentialsException("Error: Usuario o contraseña incorrectos");
             // tiene que ser usuario o contra incorrectos, nunca dar informacion de más, siempre generico
         }
 
@@ -50,11 +62,16 @@ public class AuthService {
 
         //comparacion de contraseñas
         if (!passwordEncoder.matches(request.getPassword(), usuario.getPassword())) {
-            throw new RuntimeException("Error: Usuario o contraseña incorrectos");
+            limiteIntentos.registrarFallo(request.getUsername(), ip);
+            throw new BadCredentialsException("Error: Usuario o contraseña incorrectos");
         }
 
-        //se genera el token
-        String tokenGenerado = jwtUtil.generateToken(usuario.getUsername(), usuario.getRol().getNombreRol());
+        // login correcto: se reinicia el contador de este usuario + IP
+        limiteIntentos.registrarExito(request.getUsername(), ip);
+
+        //se genera el token (incluye el tipo de cliente para que ms-ventas no confíe en el body)
+        String tokenGenerado = jwtUtil.generateToken(usuario.getUsername(), usuario.getRol().getNombreRol(),
+                usuario.getTipoCliente());
 
         //si todo pasa y esta bien, se retorna
         UsuarioResponseDTO response = new UsuarioResponseDTO();
@@ -76,8 +93,15 @@ public class AuthService {
     // METODO DE REGISTRO
     public UsuarioResponseDTO registrar(RegistroRequestDTO request){
 
+        // Al CREAR se exige un RUT válido (módulo 11) y se guarda normalizado (sin puntos ni guion).
+        // Al editar no se revisa el dígito verificador: hay usuarios antiguos con un DV inválido.
+        String rut = Rut.normalizar(request.getRut());
+        if (!Rut.esValido(rut)) {
+            throw new IllegalArgumentException("El RUT no es válido: revisa el dígito verificador");
+        }
+
         // duplicados -> 409 Conflict (antes caían en el handler genérico como 401)
-        if (usuarioRepository.existsByRut(request.getRut())) {
+        if (usuarioRepository.existsByRut(rut)) {
             throw new RegistroDuplicadoException("Error: Ya existe un usuario registrado con este RUT");
         }
 
@@ -91,7 +115,7 @@ public class AuthService {
 
         Usuario nuevoUsuario = new Usuario();
         nuevoUsuario.setNombre(request.getNombre());
-        nuevoUsuario.setRut(request.getRut());
+        nuevoUsuario.setRut(rut);
         nuevoUsuario.setUsername(request.getUsername());
 
         //aca se encripta la clave antes de guardarla en bd

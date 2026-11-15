@@ -4,6 +4,7 @@ import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest'
 import Carrito from './Carrito'
+import { guardarSesion } from '../testUtils/jwt'
 
 const CATALOGO_API = [
   { id: 1, sku: 'CL001', nombre: 'Cilindro GLP 5 kg', precioResidencial: 6500, precioComercial: 6000 },
@@ -57,5 +58,16 @@ describe('Página <Carrito />', () => {
 
     expect(await screen.findByText(/No pudimos conectar con el servidor/)).toBeInTheDocument()
     expect(screen.getByText('Ir a pagar')).toHaveAttribute('aria-disabled', 'true')
+  })
+
+  test('con sesión Comercial calcula precios, subtotales y total con la tarifa comercial', async () => {
+    const sesion = guardarSesion({ rol: 'Cliente', nombre: 'Ana' })
+    localStorage.setItem('sesion', JSON.stringify({ ...sesion, tipoCliente: 'Comercial' }))
+    fetchMock.mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(CATALOGO_API) })
+    renderCarrito([{ id: 2, cantidad: 2 }, { id: 1, cantidad: 1 }])
+
+    expect(await screen.findByText('$11.000 c/u')).toBeInTheDocument()
+    expect(screen.getByText('Subtotal: $22.000')).toBeInTheDocument()
+    expect(screen.getByText('Total: $28.000')).toBeInTheDocument()
   })
 })

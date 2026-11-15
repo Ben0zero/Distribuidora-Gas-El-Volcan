@@ -56,10 +56,11 @@ public class UsuarioControllerV2 {
         return ResponseEntity.status(HttpStatus.CREATED).body(assembler.toModel(usuarioService.crear(request)));
     }
 
-    @Operation(summary = "Actualizar usuario (V2)")
+    @Operation(summary = "Actualizar usuario (V2)", description = "Misma lógica que la V1: un ADMIN no puede quitarse su propio rol ni dejar el sistema sin administradores (400).")
     @PutMapping("/{id}")
-    public ResponseEntity<EntityModel<UsuarioResponseDTO>> actualizarUsuario(@PathVariable Long id, @Valid @RequestBody UsuarioAdminRequestDTO request) {
-        return ResponseEntity.ok(assembler.toModel(usuarioService.actualizar(id, request)));
+    public ResponseEntity<EntityModel<UsuarioResponseDTO>> actualizarUsuario(@PathVariable Long id, @Valid @RequestBody UsuarioAdminRequestDTO request,
+                                                    Authentication authentication) {
+        return ResponseEntity.ok(assembler.toModel(usuarioService.actualizar(id, request, authentication != null ? authentication.getName() : null)));
     }
 
     @Operation(summary = "Eliminar usuario (V2)", description = "Borra al usuario por su ID. Un ADMIN no puede eliminar su propia cuenta.")

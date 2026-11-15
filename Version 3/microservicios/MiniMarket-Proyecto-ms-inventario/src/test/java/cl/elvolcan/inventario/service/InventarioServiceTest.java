@@ -220,4 +220,61 @@ class InventarioServiceTest {
         assertEquals(2, resultado.size());
         verify(repository).findAll();
     }
+
+    // --- H-04: los ajustes de stock exigen cantidades positivas y con tope ---
+
+    private StockRequestDTO ajuste(double cantidad) {
+        StockRequestDTO request = new StockRequestDTO();
+        request.setSku("CL015");
+        request.setStockActual(cantidad);
+        return request;
+    }
+
+    @Test
+    @DisplayName("aumentarStock rechaza cantidades negativas o cero sin tocar la BD")
+    void aumentarStockRechazaNegativoYCero() {
+        assertThrows(IllegalArgumentException.class, () -> service.aumentarStock(ajuste(-50)));
+        assertThrows(IllegalArgumentException.class, () -> service.aumentarStock(ajuste(0)));
+        verifyNoInteractions(repository);
+    }
+
+    @Test
+    @DisplayName("disminuirStock rechaza una cantidad negativa (que sumaría stock sin revisar el máximo)")
+    void disminuirStockRechazaNegativo() {
+        assertThrows(IllegalArgumentException.class, () -> service.disminuirStock(ajuste(-10)));
+        verifyNoInteractions(repository);
+    }
+
+    @Test
+    @DisplayName("sumarStock rechaza cantidades negativas, cero o sobre 500")
+    void sumarStockRechazaCantidadesInvalidas() {
+        assertThrows(IllegalArgumentException.class, () -> service.sumarStock("CL015", -999));
+        assertThrows(IllegalArgumentException.class, () -> service.sumarStock("CL015", 0));
+        assertThrows(IllegalArgumentException.class, () -> service.sumarStock("CL015", 501));
+        verifyNoInteractions(repository);
+    }
+
+    // --- Eliminar el registro de un SKU ---
+
+    @Test
+    @DisplayName("eliminarPorSku borra el registro existente")
+    void eliminarPorSkuBorraElRegistro() {
+        Inventario inventario = new Inventario();
+        inventario.setSku("TEST-01");
+        when(repository.findBySku("TEST-01")).thenReturn(Optional.of(inventario));
+
+        service.eliminarPorSku("TEST-01");
+
+        verify(repository).delete(inventario);
+    }
+
+    @Test
+    @DisplayName("eliminarPorSku de un SKU sin registro lanza ResourceNotFoundException (404)")
+    void eliminarPorSkuInexistente() {
+        when(repository.findBySku("NO-EXISTE")).thenReturn(Optional.empty());
+
+        assertThrows(cl.elvolcan.inventario.exception.ResourceNotFoundException.class,
+                () -> service.eliminarPorSku("NO-EXISTE"));
+        verify(repository, never()).delete(any(Inventario.class));
+    }
 }

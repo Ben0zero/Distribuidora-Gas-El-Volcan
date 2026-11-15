@@ -5,12 +5,16 @@ import { useCatalogo } from '../utils/useCatalogo'
 import AvisoSinConexion from '../components/AvisoSinConexion'
 import '../carrito.css'
 import { formatearPrecio } from '../utils/validaciones'
+import { tipoPrecioSesion } from '../utils/sesion'
 
 function Carrito({ carrito, incrementar, decrementar, eliminar }) {
   // Las líneas del carrito guardan el id numérico del producto en ms-catalogoProductos
   const { productos, cargando, sinConexion } = useCatalogo()
+  // El carrito guarda solo { id, cantidad }: el precio se calcula siempre con el tipo de
+  // cliente de la sesión actual (sin sesión, residencial). ms-ventas cobra con el del JWT.
+  const tipo = tipoPrecioSesion() || 'residencial'
   const items = obtenerItemsCompletos(carrito, productos)
-  const total = calcularTotal(carrito, productos)
+  const total = calcularTotal(carrito, productos, tipo)
 
   if (cargando) {
     return (
@@ -53,7 +57,7 @@ function Carrito({ carrito, incrementar, decrementar, eliminar }) {
                 </Col>
                 <Col xs={9} md={4}>
                   <h5 className="mb-1">{item.producto.nombre}</h5>
-                  <span className="text-muted">{formatearPrecio(item.producto.residencial)} c/u</span>
+                  <span className="text-muted">{formatearPrecio(item.producto[tipo])} c/u</span>
                 </Col>
                 <Col xs={6} md={3} className="d-flex align-items-center gap-2">
                   <Button className="px-3 py-2 mx-2" variant="outline-danger" size="sm" onClick={() => decrementar(item.id)}>
@@ -65,7 +69,7 @@ function Carrito({ carrito, incrementar, decrementar, eliminar }) {
                   </Button>
                 </Col>
                 <Col xs={6} md={3} className="text-md-end">
-                  <strong><h3>Subtotal: {formatearPrecio(item.producto.residencial * item.cantidad)}</h3></strong>
+                  <strong><h3>Subtotal: {formatearPrecio(item.producto[tipo] * item.cantidad)}</h3></strong>
                   <br />
                   <Button variant="link" size="sm" className="btn-carrito-quitar my-2 mx-5 px-5" onClick={() => eliminar(item.id)}>
                     Quitar

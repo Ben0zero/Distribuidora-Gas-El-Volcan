@@ -16,7 +16,9 @@ function Navbar({ totalItems }) {
   }
 
   return (
-    <BootstrapNavbar expand="lg" sticky="top" className="navbar-gas">
+    // expand="xl": la barra completa (marca, 7 enlaces y el menú del usuario) no cabe en una fila
+    // bajo 1200 px; ahí se usa el menú hamburguesa en vez de partirse en dos líneas.
+    <BootstrapNavbar expand="xl" sticky="top" className="navbar-gas">
       <Container>
         <BootstrapNavbar.Brand as={Link} to="/" className="d-flex align-items-center gap-2">
           <img src="/IMAGENES/Logo Gas.png" alt="Logo El Volcán" width="40" height="40" />
@@ -43,7 +45,7 @@ function Navbar({ totalItems }) {
             <Nav.Link as={NavLink} to="/contacto">
               Contacto
             </Nav.Link>
-            <Nav.Link as={NavLink} to="/carrito">
+            <Nav.Link as={NavLink} to="/carrito" className="text-nowrap">
               Carrito <Badge bg="light" text="dark">{totalItems}</Badge>
             </Nav.Link>
             {sesion ? (
@@ -56,13 +58,17 @@ function Navbar({ totalItems }) {
                 title={
                   <>
                     <i className="bi bi-person-circle me-1" aria-hidden="true" />
-                    Hola, {sesion.nombre}
+                    <span className="navbar-usuario-nombre">Hola, {sesion.nombre}</span>
                   </>
                 }
               >
                 <NavDropdown.Item as={NavLink} to="/mis-compras">
                   <i className="bi bi-bag-check me-2" aria-hidden="true" />
                   Mis compras
+                </NavDropdown.Item>
+                <NavDropdown.Item as={NavLink} to="/cuenta/contrasena">
+                  <i className="bi bi-key me-2" aria-hidden="true" />
+                  Cambiar contraseña
                 </NavDropdown.Item>
                 {esAdmin && (
                   <NavDropdown.Item as={NavLink} to="/admin">

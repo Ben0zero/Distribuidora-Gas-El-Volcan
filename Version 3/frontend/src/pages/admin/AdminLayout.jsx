@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { NavLink, Link, Outlet, useNavigate } from 'react-router-dom'
-import { CLAVES } from '../../utils/validaciones'
+import { cerrarSesion as cerrarSesionGuardada } from '../../utils/sesion'
 
 const PRINCIPAL = [
   { to: '/admin', end: true, icono: 'bi-grid-fill', label: 'Dashboard' },
@@ -9,10 +9,11 @@ const PRINCIPAL = [
   { to: '/admin/ordenes', icono: 'bi-receipt', label: 'Órdenes' },
   { to: '/admin/reportes', icono: 'bi-file-earmark-bar-graph', label: 'Reportes' },
   { to: '/admin/clientes', icono: 'bi-people', label: 'Clientes' },
+  // Vuelve a la tienda pública sin cerrar la sesión
+  { to: '/', end: true, icono: 'bi-shop', label: 'Ver tienda' },
 ]
 
 const SECUNDARIA = [
-  { to: '/', icono: 'bi-shop', label: 'Ver tienda' },
   { icono: 'bi-gear', label: 'Configuración' },
   { to: '/admin/usuarios/nuevo', icono: 'bi-person-plus', label: 'Nuevo usuario' },
   { icono: 'bi-search', label: 'Buscar' },
@@ -30,7 +31,7 @@ function AdminLayout() {
   const navigate = useNavigate()
 
   const cerrarSesion = () => {
-    localStorage.removeItem(CLAVES.sesion)
+    cerrarSesionGuardada() // borra sesión y carrito
     navigate('/login')
   }
 
@@ -109,6 +110,9 @@ function AdminLayout() {
               <strong>Perfil Admin</strong>
             </span>
           </div>
+          <NavLink to="/admin/contrasena" className="small link-dark mt-2">
+            <i className="bi bi-key me-1" aria-hidden="true" /> Cambiar contraseña
+          </NavLink>
           <button className="btn btn-sm btn-outline-dark rounded-0 mt-2" type="button" onClick={cerrarSesion}>
             Cerrar sesión
           </button>

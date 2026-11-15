@@ -61,6 +61,24 @@
     max-width: 640px;
 }
 
+/* Lista de productos sugeridos bajo el buscador */
+.sugerencias-productos {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 1050;
+    max-height: 22rem;
+    overflow-y: auto;
+    margin-top: 0.25rem;
+    cursor: pointer;
+}
+
+.sugerencias-productos .list-group-item.active {
+    background-color: #03244D;
+    border-color: #03244D;
+}
+
 .btn-producto-detalle {
     background-color: white;
     color: #FF6B00;

@@ -1,0 +1,13 @@
+# Nada de secretos ni artefactos locales dentro del contexto de build
+OracleWallet/
+Wallet_*/
+secrets.properties
+.env
+*.env
+target/
+logs/
+*.log
+.idea/
+.vscode/
+*.iml
+.git

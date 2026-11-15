@@ -71,10 +71,13 @@ describe('Página <Ventas /> (checkout contra ms-ventas)', () => {
 
     const post = fetchMock.mock.calls.find(([, o]) => o?.method === 'POST')
     expect(post[1].headers.Authorization).toBe('Bearer tok-cliente')
-    expect(JSON.parse(post[1].body)).toEqual({
-      tipoCliente: 'Residencial', direccion: 'Calle Nueva 789', comuna: 'Chillán', metodoPago: 'Efectivo',
+    const body = JSON.parse(post[1].body)
+    expect(body).toEqual({
+      direccion: 'Calle Nueva 789', comuna: 'Chillán', metodoPago: 'Efectivo',
       detalles: [{ productoId: 2, cantidad: 2 }],
     })
+    // H-02: el tipo de cliente viaja firmado en el JWT, nunca en el body
+    expect(body).not.toHaveProperty('tipoCliente')
     expect(fetchMock.mock.calls.some(([url, o]) => o?.method === 'PUT' && url.endsWith('/api/v1/ventas/15/confirmar'))).toBe(true)
   })
 

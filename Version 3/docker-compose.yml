@@ -1,0 +1,150 @@
+# ==============================================================================
+#  Distribuidora de Gas El Volcán — Docker Compose (local y AWS EC2)
+#
+#  6 contenedores en la red interna "elvolcan":
+#    eureka · ms-auth · ms-catalogoproductos · ms-inventario · ms-ventas · frontend
+#  - Solo el frontend (Nginx) publica un puerto: 80.
+#  - Eureka se publica solo en 127.0.0.1:8761 (para revisarlo desde la misma máquina).
+#  - Los secretos se leen de .env (copiar .env.example) y el Wallet de Oracle se
+#    monta como volumen de solo lectura; nada de eso queda dentro de las imágenes.
+#
+#  Uso:  docker compose up -d --build     (ver docs/DOCKER.md)
+# ==============================================================================
+
+name: elvolcan
+
+# Configuración común de los 4 microservicios (ancla YAML)
+x-microservicio: &microservicio
+  restart: unless-stopped
+  networks: [elvolcan]
+  depends_on:
+    eureka:
+      condition: service_healthy
+  volumes:
+    # Wallet de Oracle en solo lectura. WALLET_HOST_DIR = carpeta del Wallet en esta máquina
+    - ${WALLET_HOST_DIR:?Define WALLET_HOST_DIR en .env}:/wallet:ro
+
+x-entorno-comun: &entorno-comun
+  # Los servicios encuentran a Eureka por el nombre del contenedor
+  EUR_SERVER: http://eureka:8761/eureka/
+  # Se registran con la IP del contenedor (Feign entre servicios usa esa IP)
+  EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
+  ORACLE_WALLET_DIR: /wallet
+  DB_USER: ${DB_USER:-ADMIN}
+  DB_PASSWORD: ${DB_PASSWORD:?Define DB_PASSWORD en .env}
+  JWT_SECRET: ${JWT_SECRET:?Define JWT_SECRET en .env}
+  JAVA_OPTS: ${JAVA_OPTS:--Xmx384m}
+
+# Healthcheck HTTP de los microservicios: /v3/api-docs/swagger-config es público
+# y no consulta la base de datos. wget viene en la imagen alpine.
+x-healthcheck: &healthcheck
+  interval: 20s
+  timeout: 5s
+  retries: 5
+  start_period: 120s
+
+services:
+  eureka:
+    build: ./microservicios/MiniMarket-Proyecto-ms-eureka/eurekaserver
+    image: elvolcan/eureka:1.0
+    restart: unless-stopped
+    networks: [elvolcan]
+    environment:
+      JAVA_OPTS: ${EUREKA_JAVA_OPTS:--Xmx256m}
+    ports:
+      - "127.0.0.1:8761:8761"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8761/ || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  ms-auth:
+    <<: *microservicio
+    build: ./microservicios/MiniMarket-Proyecto-ms-auth
+    image: elvolcan/ms-auth:1.0
+    environment:
+      <<: *entorno-comun
+      # Límite de intentos de login: además de la misma máquina, se confía en el
+      # X-Forwarded-For que envía Nginx desde la red interna (si no, todos los
+      # usuarios compartirían la IP de Nginx)
+      APP_SEGURIDAD_PROXIES_CONFIABLES: 127.0.0.1,::1,172.28.0.0/16
+      # Enlaces de recuperación de contraseña (http://localhost o http://<IP-EC2>)
+      APP_FRONTEND_URL: ${APP_FRONTEND_URL:-http://localhost}
+      # Recuperación de contraseña: "log" (enlace en el log de ms-auth) o "correo" (SMTP)
+      NOTIFICACION_MODO: ${NOTIFICACION_MODO:-log}
+      SPRING_MAIL_HOST: ${SPRING_MAIL_HOST:-smtp.gmail.com}
+      SPRING_MAIL_PORT: ${SPRING_MAIL_PORT:-587}
+      SPRING_MAIL_USERNAME: ${SPRING_MAIL_USERNAME:-}
+      SPRING_MAIL_PASSWORD: ${SPRING_MAIL_PASSWORD:-}
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH: ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH:-true}
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE: ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE:-true}
+      # Remitente que ve el usuario; por defecto, la misma cuenta SMTP
+      APP_NOTIFICACION_REMITENTE: ${APP_NOTIFICACION_REMITENTE:-${SPRING_MAIL_USERNAME:-}}
+    healthcheck:
+      <<: *healthcheck
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8081/v3/api-docs/swagger-config || exit 1"]
+
+  ms-catalogoproductos:
+    <<: *microservicio
+    build: ./microservicios/MiniMarket-Proyecto-ms-catalogoProductos
+    image: elvolcan/ms-catalogoproductos:1.0
+    environment:
+      <<: *entorno-comun
+      REINICIAR_SEMILLA: ${REINICIAR_SEMILLA:-false}
+    healthcheck:
+      <<: *healthcheck
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8082/v3/api-docs/swagger-config || exit 1"]
+
+  ms-inventario:
+    <<: *microservicio
+    build: ./microservicios/MiniMarket-Proyecto-ms-inventario
+    image: elvolcan/ms-inventario:1.0
+    environment:
+      <<: *entorno-comun
+      REINICIAR_SEMILLA: ${REINICIAR_SEMILLA:-false}
+    healthcheck:
+      <<: *healthcheck
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8084/v3/api-docs/swagger-config || exit 1"]
+
+  ms-ventas:
+    <<: *microservicio
+    build: ./microservicios/MiniMarket-Proyecto-ms-ventas
+    image: elvolcan/ms-ventas:1.0
+    environment:
+      <<: *entorno-comun
+    healthcheck:
+      <<: *healthcheck
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8086/v3/api-docs/swagger-config || exit 1"]
+
+  frontend:
+    build: ./frontend
+    image: elvolcan/frontend:1.0
+    restart: unless-stopped
+    networks: [elvolcan]
+    ports:
+      - "80:80"
+    depends_on:
+      ms-auth:
+        condition: service_healthy
+      ms-catalogoproductos:
+        condition: service_healthy
+      ms-inventario:
+        condition: service_healthy
+      ms-ventas:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+networks:
+  elvolcan:
+    driver: bridge
+    # Subred fija: ms-auth confía en el X-Forwarded-For que llega desde ella (Nginx).
+    # No es "internal: true" porque los servicios necesitan salir a Oracle Cloud y al SMTP.
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16

@@ -6,6 +6,8 @@ import { sesionActiva, cerrarSesion } from '../../utils/sesion'
 const MENU = [
   { to: '/vendedor/productos', icono: 'bi-box-seam', label: 'Productos' },
   { to: '/vendedor/ordenes', icono: 'bi-receipt', label: 'Órdenes' },
+  // Vuelve a la tienda pública sin cerrar la sesión
+  { to: '/', end: true, icono: 'bi-shop', label: 'Ver tienda' },
 ]
 
 function classNav({ isActive }) {
@@ -57,7 +59,7 @@ function VendedorLayout() {
           <nav className="nav nav-pills flex-column mb-auto mt-2" aria-label="Menú del vendedor">
             {MENU.map((l) => (
               <div className="nav-item mb-1" key={l.to}>
-                <NavLink to={l.to} className={classNav}>
+                <NavLink to={l.to} end={l.end} className={classNav}>
                   <i className={`bi ${l.icono} me-2`} /> {l.label}
                 </NavLink>
               </div>
@@ -69,6 +71,9 @@ function VendedorLayout() {
             <i className="bi bi-person-circle fs-4 me-2" />
             <strong>{sesion?.nombre || 'Vendedor'}</strong>
           </span>
+          <NavLink to="/vendedor/contrasena" className="small link-dark mt-2">
+            <i className="bi bi-key me-1" aria-hidden="true" /> Cambiar contraseña
+          </NavLink>
           <button className="btn btn-sm btn-outline-dark rounded-0 mt-2" type="button" onClick={salir}>
             Cerrar sesión
           </button>

@@ -10,6 +10,7 @@ const API_CATALOGO = `${API_BASE}/api/v1/productos`
 const API_INVENTARIO = `${API_BASE}/api/v1/inventario`
 const API_VENTAS = `${API_BASE}/api/v1/ventas`
 const API_USUARIOS = `${API_BASE}/api/v1/usuarios`
+const API_CUENTA = `${API_BASE}/api/v1/cuenta`
 
 export function getToken() {
   try {
@@ -56,6 +57,10 @@ export async function login(username, password) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, password })
   })
+  if (res.status === 429) {
+    // Límite de intentos (H-07): se muestra el mensaje genérico del backend
+    return lanzarError(res, 'Demasiados intentos. Intenta nuevamente en unos minutos.')
+  }
   if (!res.ok) {
     throw new ApiError(res.status === 401 ? 'Credenciales incorrectas' : 'Error al iniciar sesión', res.status)
   }
@@ -100,8 +105,27 @@ export async function actualizarProducto(id, producto) {
   return res.json()
 }
 
-// Borrado lógico: el producto deja de mostrarse en la tienda
-export async function desactivarProducto(sku) {
+// Panel admin: todos los productos, incluidos los inactivos (GET /todos, solo ADMIN)
+export async function listarTodosProductos() {
+  const res = await fetch(`${API_CATALOGO}/todos`, { headers: authHeaders() })
+  if (!res.ok) await lanzarError(res, 'No se pudo cargar el catálogo')
+  return res.json()
+}
+
+// Activa (true) o desactiva (false) un producto: PATCH /{id}/estado, solo ADMIN
+export async function cambiarEstadoProducto(id, activo) {
+  const res = await fetch(`${API_CATALOGO}/${id}/estado`, {
+    method: 'PATCH',
+    headers: authHeaders(),
+    body: JSON.stringify({ activo }),
+  })
+  if (!res.ok) await lanzarError(res, 'No se pudo cambiar el estado del producto')
+  return res.json()
+}
+
+// Eliminación definitiva (DELETE). ms-catalogoProductos responde 409 si el producto tiene ventas
+// (hay que desactivarlo) y 502 si ms-ventas o ms-inventario no responden; se muestra su mensaje.
+export async function eliminarProducto(sku) {
   const res = await fetch(`${API_CATALOGO}/${encodeURIComponent(sku)}`, { method: 'DELETE', headers: authHeaders() })
   if (!res.ok) await lanzarError(res, 'No se pudo eliminar el producto')
 }
@@ -165,6 +189,13 @@ export async function listarVentas() {
 }
 
 // Detalle de una venta: ADMIN y VENDEDOR ven cualquiera; un CLIENTE solo las suyas
+// IDs de los productos con al menos una venta (solo ADMIN): el panel deshabilita su botón Eliminar
+export async function listarProductosVendidos() {
+  const res = await fetch(`${API_VENTAS}/productos-vendidos`, { headers: authHeaders() })
+  if (!res.ok) await lanzarError(res, 'No se pudo verificar qué productos tienen ventas')
+  return res.json()
+}
+
 export async function obtenerVenta(id) {
   const res = await fetch(`${API_VENTAS}/${id}`, { headers: authHeaders() })
   if (!res.ok) await lanzarError(res, 'No se pudo obtener la orden')
@@ -206,4 +237,40 @@ export async function actualizarUsuario(id, usuario) {
 export async function eliminarUsuario(id) {
   const res = await fetch(`${API_USUARIOS}/${id}`, { method: 'DELETE', headers: authHeaders() })
   if (!res.ok) await lanzarError(res, 'No se pudo eliminar el usuario')
+}
+
+// ---------- Recuperación de contraseña (pública) ----------
+
+// POST /api/v1/auth/recuperar: siempre responde 200 con el mismo mensaje (exista o no la cuenta)
+export async function solicitarRecuperacion(usuario) {
+  const res = await fetch(`${API_AUTH}/recuperar`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ usuario }),
+  })
+  if (!res.ok) await lanzarError(res, 'No se pudo procesar la solicitud')
+  return res.json()
+}
+
+// POST /api/v1/auth/restablecer: token del enlace + contraseña nueva
+export async function restablecerContrasena(token, contrasenaNueva) {
+  const res = await fetch(`${API_AUTH}/restablecer`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, contrasenaNueva }),
+  })
+  if (!res.ok) await lanzarError(res, 'No se pudo restablecer la contraseña')
+  return res.json()
+}
+
+// ---------- Mi cuenta (cualquier usuario con sesión) ----------
+
+// PUT /api/v1/cuenta/contrasena: el backend toma el usuario del token y exige la contraseña actual
+export async function cambiarContrasena(contrasenaActual, contrasenaNueva) {
+  const res = await fetch(`${API_CUENTA}/contrasena`, {
+    method: 'PUT',
+    headers: authHeaders(),
+    body: JSON.stringify({ contrasenaActual, contrasenaNueva }),
+  })
+  if (!res.ok) await lanzarError(res, 'No se pudo cambiar la contraseña')
 }

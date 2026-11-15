@@ -13,6 +13,9 @@ import Tiendas from './pages/Tiendas'
 import Contacto from './pages/Contacto'
 import Ventas from './pages/Ventas'
 import MisCompras from './pages/MisCompras'
+import CambiarContrasena from './pages/CambiarContrasena'
+import RecuperarContrasena from './pages/RecuperarContrasena'
+import RestablecerContrasena from './pages/RestablecerContrasena'
 import AdminLayout from './pages/admin/AdminLayout'
 import Dashboard from './pages/admin/Dashboard'
 import Inventario from './pages/admin/Inventario'
@@ -28,7 +31,7 @@ import OrdenesVendedor from './pages/vendedor/OrdenesVendedor'
 import DetalleOrdenVendedor from './pages/vendedor/DetalleOrdenVendedor'
 import { CLAVES } from './utils/validaciones'
 import RutaProtegida from './components/RutaProtegida'
-import { ROLES } from './utils/sesion'
+import { ROLES, EVENTO_SESION_CERRADA } from './utils/sesion'
 import {
   agregarItem,
   incrementarItem,
@@ -54,6 +57,14 @@ function App() {
     localStorage.setItem(CLAVES.carrito, JSON.stringify(carrito))
   }, [carrito])
 
+  // Al cerrar sesión (o si el token venció) el carrito se vacía. El carrito de un
+  // visitante sin sesión NO se toca al iniciar sesión: se conserva para su compra.
+  useEffect(() => {
+    const vaciarAlCerrarSesion = () => setCarrito([])
+    window.addEventListener(EVENTO_SESION_CERRADA, vaciarAlCerrarSesion)
+    return () => window.removeEventListener(EVENTO_SESION_CERRADA, vaciarAlCerrarSesion)
+  }, [])
+
   const agregar = (id) => setCarrito((anterior) => agregarItem(anterior, id))
   const incrementar = (id) => setCarrito((anterior) => incrementarItem(anterior, id))
   const decrementar = (id) => setCarrito((anterior) => decrementarItem(anterior, id))
@@ -76,6 +87,8 @@ function App() {
           <Route path="/contacto" element={<Contacto />} />
           <Route path="/login" element={<Login />} />
           <Route path="/registro" element={<Registro />} />
+          <Route path="/recuperar" element={<RecuperarContrasena />} />
+          <Route path="/restablecer" element={<RestablecerContrasena />} />
           <Route
             path="/carrito"
             element={
@@ -85,6 +98,15 @@ function App() {
                 decrementar={decrementar}
                 eliminar={eliminar}
               />
+            }
+          />
+          {/* Cambio de contraseña desde la tienda (el Vendedor lo hace desde su panel) */}
+          <Route
+            path="/cuenta/contrasena"
+            element={
+              <RutaProtegida roles={ROLES_TIENDA}>
+                <CambiarContrasena />
+              </RutaProtegida>
             }
           />
           {/* Checkout e historial: requieren sesión de Cliente (o Administrador) */}
@@ -128,6 +150,7 @@ function App() {
           <Route path="ordenes" element={<Ordenes />} />
           <Route path="reportes" element={<Reportes />} />
           <Route path="clientes" element={<Clientes />} />
+          <Route path="contrasena" element={<CambiarContrasena />} />
         </Route>
 
         {/* Panel del Vendedor: SOLO lista y detalle de productos y de órdenes */}
@@ -144,6 +167,7 @@ function App() {
           <Route path="productos/:id" element={<DetalleProductoVendedor />} />
           <Route path="ordenes" element={<OrdenesVendedor />} />
           <Route path="ordenes/:id" element={<DetalleOrdenVendedor />} />
+          <Route path="contrasena" element={<CambiarContrasena />} />
         </Route>
       </Routes>
     </BrowserRouter>

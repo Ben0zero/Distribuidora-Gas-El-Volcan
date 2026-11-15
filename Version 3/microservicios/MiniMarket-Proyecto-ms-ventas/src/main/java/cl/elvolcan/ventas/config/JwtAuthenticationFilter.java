@@ -60,6 +60,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         }
                         UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                                 username, null, authorities);
+                        // El tipo de cliente viaja firmado en el token (lo pone ms-auth);
+                        // VentaService lo usa para el precio en vez de confiar en el body.
+                        Object tipoCliente = claims.get("tipoCliente");
+                        authentication.setDetails(tipoCliente != null ? tipoCliente.toString() : null);
                         SecurityContextHolder.getContext().setAuthentication(authentication);
                     }
                 } catch (Exception e) {

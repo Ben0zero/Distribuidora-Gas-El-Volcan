@@ -1,5 +1,6 @@
 package cl.elvolcan.catalogo.controller;
 
+import cl.elvolcan.catalogo.exception.ProductoNoEncontradoException;
 import cl.elvolcan.catalogo.assemblers.ProductoModelAssembler;
 import cl.elvolcan.catalogo.dto.ProductoRequestDTO;
 import cl.elvolcan.catalogo.dto.ProductoResponseDTO;
@@ -60,7 +61,7 @@ public class ProductoControllerV2 {
     @GetMapping("/{sku}")
     public ResponseEntity<EntityModel<ProductoResponseDTO>> obtenerPorSku(@PathVariable String sku) {
         Producto producto = productoRepository.findBySku(sku)
-                .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
+                .orElseThrow(() -> new ProductoNoEncontradoException("Producto no encontrado"));
                 
         return ResponseEntity.ok(assembler.toModel(producto));
     }
@@ -74,11 +75,12 @@ public class ProductoControllerV2 {
         return ResponseEntity.ok(assembler.toModel(actualizado));
     }
 
-    @Operation(summary = "Desactivar producto (V2)")
+    @Operation(summary = "Eliminar producto definitivamente (V2)",
+            description = "Misma lógica que la V1: 204, 404 si no existe, 409 si tiene ventas, 502 si falla otro servicio.")
     @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN')")
     @DeleteMapping("/{sku}")
-    public ResponseEntity<Void> desactivar(@PathVariable String sku) {
-        productoService.desactivarProducto(sku);
+    public ResponseEntity<Void> eliminar(@PathVariable String sku) {
+        productoService.eliminarProducto(sku);
         return ResponseEntity.noContent().build();
     }
 }
