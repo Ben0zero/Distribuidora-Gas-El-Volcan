@@ -10,7 +10,7 @@ const capturasDir = path.join(__dirname, 'capturas');
 const VER = '3.0';
 const FECHA = '12-11-2026';
 // El Anexo 2 se actualizó tras la auditoría OWASP (docs/AUDITORIA_EP3.md)
-const VER_ANEXO2 = '3.4';
+const VER_ANEXO2 = '3.5';
 const FECHA_ANEXO2 = '15-11-2026';
 
 // ---------- helpers ----------
@@ -289,7 +289,7 @@ function anexo2() {
         ['GET', '/api/v1/productos/id/{id}', 'No', 'Público', 'Busca un producto por su ID numérico'],
         ['POST', '/api/v1/productos', 'Sí', 'ADMIN', 'Crea un producto y lo sincroniza con inventario'],
         ['PUT', '/api/v1/productos/{id}', 'Sí', 'ADMIN', 'Actualiza un producto existente'],
-        ['DELETE', '/api/v1/productos/{sku}', 'Sí', 'ADMIN', 'Desactiva el producto (borrado lógico)'],
+        ['DELETE', '/api/v1/productos/{sku}', 'Sí', 'ADMIN', 'Elimina definitivamente un producto sin ventas y su inventario (409 con ventas; 502 si falla otro servicio)'],
         ['GET', '/api/v1/productos/todos', 'Sí', 'ADMIN', 'Lista todos los productos, incluidos los inactivos (panel admin)'],
         ['PATCH', '/api/v1/productos/{id}/estado', 'Sí', 'ADMIN', 'Activa o desactiva un producto: { "activo": true | false }'],
       ],
@@ -298,6 +298,11 @@ function anexo2() {
     new Paragraph({ text: '', spacing: { after: 100 } }),
     p('El catálogo incluye precio residencial y comercial. ms-ventas aplica el precio según el tipo de cliente del token JWT ' +
       '(si el token no lo trae, usa el residencial). Un producto desactivado no se puede comprar (400).'),
+    p('Eliminar un producto (DELETE) es definitivo: ms-catalogoProductos consulta por Feign a ms-ventas ' +
+      '(GET /api/v1/ventas/productos-vendidos) y, si el producto tiene ventas, responde 409 "El producto tiene ventas registradas; ' +
+      'desactívalo en lugar de eliminarlo". Si no las tiene, lo borra y elimina su stock en ms-inventario (DELETE /api/v1/inventario/{sku}) ' +
+      'dentro de una transacción: si ms-ventas o ms-inventario no responden, no se borra nada y se responde 502. Para ocultarlo de la ' +
+      'tienda sin borrarlo se usa PATCH /{id}/estado. En el panel, el botón Eliminar queda deshabilitado (con el motivo) para los productos con ventas.'),
 
     h2('6.3 ms-inventario (http://localhost:8084)'),
     table(
@@ -310,6 +315,7 @@ function anexo2() {
         ['PUT', '/api/v1/inventario/aumentar', 'Sí', 'ADMIN', 'Aumenta el stock disponible'],
         ['PUT', '/api/v1/inventario/disminuir', 'Sí', 'ADMIN', 'Disminuye el stock disponible'],
         ['PUT', '/api/v1/inventario/sumar-stock/{sku}/{cantidad}', 'Sí', 'ADMIN', 'Suma stock (integración con producción)'],
+        ['DELETE', '/api/v1/inventario/{sku}', 'Sí', 'ADMIN', 'Elimina el registro de stock (lo llama catálogo al eliminar un producto; 404 si no existe)'],
       ],
       [9, 34, 8, 11, 38]
     ),
@@ -327,6 +333,7 @@ function anexo2() {
         ['GET', '/api/v1/ventas/{id}', 'Sí', 'ADMIN, VENDEDOR, CLIENTE', 'Detalle de una venta (el cliente solo las propias)'],
         ['POST', '/api/v1/ventas', 'Sí', 'ADMIN, CLIENTE', 'Registra una venta; valida catálogo y stock'],
         ['PUT', '/api/v1/ventas/{id}/confirmar', 'Sí', 'ADMIN, CLIENTE', 'Confirma el pago y descuenta stock (solo el dueño o ADMIN)'],
+        ['GET', '/api/v1/ventas/productos-vendidos', 'Sí', 'ADMIN', 'IDs de productos con al menos una venta (consulta DISTINCT); lo usan catálogo y el panel'],
       ],
       [9, 27, 8, 20, 36]
     ),
@@ -402,15 +409,15 @@ function anexo2() {
       ['Componente', 'Herramienta', 'Pruebas', 'Qué cubren'],
       [
         ['ms-auth', 'JUnit + MockMvc', '102', 'Login, registro, JWT (incluidos tokens mal formados o expirados → 401), política de contraseñas, RUT (incluida la semilla), roles en usuarios (rol propio y último ADMIN), cambio y recuperación de contraseña, límite de intentos (429), correo de recuperación asíncrono con JavaMailSender simulado, errores'],
-        ['ms-catalogoProductos', 'JUnit + MockMvc', '27', 'CRUD, SKU no modificable, catálogo público, activar/desactivar (solo ADMIN), 404/500'],
-        ['ms-inventario', 'JUnit + MockMvc', '26', 'Ajustes de stock con tope 1–500, stock crítico, 409 por concurrencia, solo ADMIN escribe'],
-        ['ms-ventas', 'JUnit + MockMvc', '37', 'Precio por tipo de cliente del token, ítems agrupados, topes, dueño de la venta, bloqueo optimista, 403 por rol'],
-        ['Frontend React', 'Vitest + Testing Library', '130 (29 archivos)', 'Componentes, páginas, sesión, carrito, buscador, RUT, contraseñas, mensaje 429 del login, rol propio bloqueado y llamadas a la API'],
+        ['ms-catalogoProductos', 'JUnit + MockMvc', '38', 'CRUD, SKU no modificable, catálogo público, activar/desactivar (solo ADMIN), eliminación definitiva (204, 409 con ventas, 404, 502 si falla Feign, 403/401), 404/500'],
+        ['ms-inventario', 'JUnit + MockMvc', '32', 'Ajustes de stock con tope 1–500, stock crítico, 409 por concurrencia, solo ADMIN escribe y elimina registros'],
+        ['ms-ventas', 'JUnit + MockMvc', '42', 'Precio por tipo de cliente del token, ítems agrupados, topes, dueño de la venta, bloqueo optimista, 403 por rol, productos vendidos solo ADMIN'],
+        ['Frontend React', 'Vitest + Testing Library', '136 (30 archivos)', 'Componentes, páginas, sesión, carrito, buscador, RUT, contraseñas, mensaje 429 del login, rol propio bloqueado, botón Eliminar según ventas y llamadas a la API'],
       ],
       [22, 20, 14, 44]
     ),
     new Paragraph({ text: '', spacing: { after: 120 } }),
-    p('Total backend: 192 pruebas JUnit. Pruebas manuales contra Oracle Cloud con el sistema completo en ejecución:', { bold: true }),
+    p('Total backend: 214 pruebas JUnit. Pruebas manuales contra Oracle Cloud con el sistema completo en ejecución:', { bold: true }),
     table(
       ['Prueba', 'Resultado esperado', 'Resultado obtenido'],
       [
@@ -428,6 +435,10 @@ function anexo2() {
         ['CLIENTE intenta listar todas las ventas', '403', 'OK'],
         ['VENDEDOR lista las órdenes', '200', 'OK'],
         ['ADMIN desactiva y reactiva un producto', 'Sale de la tienda y vuelve; VENDEDOR y CLIENTE reciben 403', 'OK'],
+        ['Panel de inventario: producto nuevo sin ventas y CL001 con ventas', 'Eliminar habilitado (rojo) en el nuevo; deshabilitado (gris) en CL001 con "Tiene ventas registradas; puedes desactivarlo"', 'OK'],
+        ['ADMIN elimina un producto sin ventas', '204; desaparece del panel, de la tienda y de ms-inventario (404); un segundo DELETE da 404', 'OK'],
+        ['ADMIN fuerza DELETE de CL001 (con ventas) por API', '409 "El producto tiene ventas registradas; desactívalo en lugar de eliminarlo"; CL001 sigue existiendo', 'OK'],
+        ['VENDEDOR pide productos vendidos o elimina un producto; DELETE sin token', '403 / 403 / 401', 'OK'],
         ['ADMIN intenta quitarse su propio rol (PUT /api/v1/usuarios/{id})', '400 "No puedes cambiar tu propio rol de administrador"; el rol no cambia', 'OK'],
         ['Petición a ms-auth con token mal formado o con la firma alterada', '401 en JSON', 'OK'],
         ['Crear usuario con RUT de dígito verificador inválido', '400; editar un usuario existente sigue funcionando', 'OK'],
