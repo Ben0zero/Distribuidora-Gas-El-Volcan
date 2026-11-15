@@ -39,6 +39,13 @@ public class Venta {
     @Column(name = "metodo_pago", length = 20)
     private String metodoPago;
 
+    // Bloqueo optimista (H-03): Hibernate incrementa esta versión en cada UPDATE y rechaza
+    // la escritura si otra transacción la cambió antes. Se declara con DEFAULT 0 NOT NULL para que
+    // ddl-auto=update agregue la columna en Oracle rellenando con 0 las filas que ya existen.
+    @Version
+    @Column(name = "version", nullable = false, columnDefinition = "NUMBER(19,0) DEFAULT 0 NOT NULL")
+    private Long version = 0L;
+
     // Relación 1 a Muchos: Una venta tiene muchos detalles (productos)
     @OneToMany(mappedBy = "venta", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<DetalleVenta> detalles = new ArrayList<>();

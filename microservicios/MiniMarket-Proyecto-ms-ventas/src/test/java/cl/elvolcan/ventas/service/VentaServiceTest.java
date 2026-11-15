@@ -328,7 +328,7 @@ class VentaServiceTest {
 
         when(ventaRepository.findById(idVenta)).thenReturn(Optional.of(venta));
         when(catalogoClient.obtenerProductoPorId(anyString(), eq(10L))).thenReturn(productoMock);
-        when(ventaRepository.save(any(Venta.class))).thenReturn(ventaPagada);
+        when(ventaRepository.saveAndFlush(any(Venta.class))).thenReturn(ventaPagada);
         when(ventaModelAssembler.toModel(ventaPagada)).thenReturn(responseEsperado);
 
         // When
@@ -337,7 +337,11 @@ class VentaServiceTest {
         // Then
         assertEquals(Venta.EstadoVenta.PAGADA, resultado.getEstado());
         verify(inventarioClient).disminuirStock(anyString(), any(StockRequestDTO.class)); // Verifica que llame a inventario
-        verify(ventaRepository).save(venta);
+        verify(ventaRepository).saveAndFlush(venta);
+        // el estado se escribe ANTES de descontar stock (para que @Version frene una confirmación concurrente)
+        org.mockito.InOrder orden = inOrder(ventaRepository, inventarioClient);
+        orden.verify(ventaRepository).saveAndFlush(venta);
+        orden.verify(inventarioClient).disminuirStock(anyString(), any(StockRequestDTO.class));
     }
 
     @Test
@@ -351,6 +355,21 @@ class VentaServiceTest {
         assertThrows(AccessDeniedException.class, () -> ventaService.confirmarPago(5L));
         verify(inventarioClient, never()).disminuirStock(anyString(), any());
         verify(ventaRepository, never()).save(any(Venta.class));
+        verify(ventaRepository, never()).saveAndFlush(any(Venta.class));
+    }
+
+    @Test
+    @DisplayName("H-03: si otra confirmación ganó la carrera (@Version), falla con conflicto y no descuenta stock")
+    void confirmarPagoConcurrenteNoDescuentaDosVeces() {
+        autenticarComo("cliente@elvolcan.cl", "CLIENTE");
+        // Esta petición leyó la venta PENDIENTE_PAGO, pero otra ya la confirmó y subió la versión
+        when(ventaRepository.findById(5L)).thenReturn(Optional.of(ventaPendienteDe("cliente@elvolcan.cl")));
+        when(ventaRepository.saveAndFlush(any(Venta.class)))
+                .thenThrow(new org.springframework.orm.ObjectOptimisticLockingFailureException(Venta.class, 5L));
+
+        assertThrows(org.springframework.orm.ObjectOptimisticLockingFailureException.class,
+                () -> ventaService.confirmarPago(5L));
+        verify(inventarioClient, never()).disminuirStock(anyString(), any());
     }
 
     @Test
@@ -373,7 +392,7 @@ class VentaServiceTest {
 
         when(ventaRepository.findById(5L)).thenReturn(Optional.of(venta));
         when(catalogoClient.obtenerProductoPorId(anyString(), eq(10L))).thenReturn(productoMock);
-        when(ventaRepository.save(any(Venta.class))).thenReturn(venta);
+        when(ventaRepository.saveAndFlush(any(Venta.class))).thenReturn(venta);
         when(ventaModelAssembler.toModel(venta)).thenReturn(new VentaResponseDTO());
 
         assertNotNull(ventaService.confirmarPago(5L));
